@@ -1,0 +1,89 @@
+/* dashboardAdmin.css */
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+
+/* Scrollbar */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.sidebar-transition {
+    transition: transform 0.3s ease-in-out;
+}
+
+
+/* Theme Diamond Bone */
+
+:root {
+    --db-admin-primary: #006c3a;
+    --db-admin-primary-dark: #004d2b;
+    --db-admin-primary-soft: #eaf6f0;
+    --db-admin-accent: #a42a61;
+    --db-admin-text: #16231f;
+}
+
+#sidebar {
+    background: linear-gradient(180deg, #003d25 0%, #004d2b 46%, #063b2a 100%);
+}
+
+#sidebarMenu .db-menu-section {
+    letter-spacing: 0.08em;
+}
+
+#sidebarMenu .db-menu-parent,
+#sidebarMenu [data-menu-page] {
+    min-height: 42px;
+}
+
+#sidebarMenu .db-submenu {
+    border-left: 1px solid rgba(204, 251, 241, 0.18);
+}
+
+#sidebarMenu .db-menu-badge {
+    font-size: 10px;
+    line-height: 1;
+}
+
+.db-page-card {
+    border: 1px solid rgba(0, 108, 58, 0.12);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+}
+
+.db-page-note {
+    background: linear-gradient(135deg, rgba(0, 108, 58, 0.06), rgba(164, 42, 97, 0.05));
+}
+
+.db-table-wrap {
+    overflow-x: auto;
+}
+
+.db-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    #sidebar {
+        max-width: 88vw;
+    }
+}

@@ -1,0 +1,104 @@
+.customer-create-page .card,
+.customer-edit-page .card {
+    border-radius: 18px;
+}
+
+.section-title {
+    color: #0d6efd;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.radio-card-label {
+    display: block;
+    cursor: pointer;
+    height: 100%;
+}
+
+.radio-card-input {
+    display: none;
+}
+
+.radio-card-content {
+    border: 2px solid #dce6f2;
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    transition: all 0.2s ease;
+    background: #fff;
+    height: 100%;
+}
+
+.radio-card-content:hover {
+    border-color: #2563eb;
+    background-color: #f8fbff;
+}
+
+.radio-card-input:checked+.radio-card-content {
+    border-color: #2563eb;
+    background-color: #eaf2ff;
+    box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.14);
+}
+
+.radio-card-title {
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: #223044;
+}
+
+.radio-card-desc {
+    font-size: 0.9rem;
+    color: #6b7890;
+}
+
+.direct-source-box {
+    background: #f8fbff;
+    border: 1px solid #dbe7f6;
+    border-radius: 14px;
+    padding: 16px;
+    display: none;
+}
+
+.direct-source-box.show {
+    display: block;
+}
+
+.direct-source-box .form-select {
+    height: 48px;
+    border-radius: 12px;
+    border-color: #d6e1ef;
+    font-size: 1rem;
+}
+
+.direct-source-box .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.12);
+}
+
+.ctv-box {
+    background: #f8fafc;
+    border: 1px solid #dce6f2;
+    border-radius: 14px;
+    padding: 16px;
+    display: none;
+}
+
+.ctv-box.show {
+    display: block;
+}
+
+.ctv-result-card {
+    border: 1px solid #bcd3ff;
+    background: #f4f8ff;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+@media (max-width: 767.98px) {
+
+    .direct-source-box,
+    .ctv-box {
+        padding: 14px;
+        border-radius: 14px;
+    }
+}

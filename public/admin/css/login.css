@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #e5ccbe;
+    overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #b58d76;
+    border-radius: 10px;
+}
+
+.blob {
+    position: absolute;
+    filter: drop-shadow(0 20px 30px rgba(100, 50, 20, 0.2));
+    z-index: 0;
+    opacity: 0.9;
+}
+
+.blob-1 {
+    top: -15%;
+    left: -10%;
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d8ae98 40%, #995c3a 90%);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    transform: rotate(-15deg);
+}
+
+.blob-2 {
+    top: -10%;
+    right: -15%;
+    width: 550px;
+    height: 550px;
+    background: radial-gradient(circle at 25% 25%, #ffffff 0%, #cd9f86 45%, #884d2f 90%);
+    border-radius: 50% 50% 40% 60% / 60% 40% 70% 40%;
+    transform: rotate(10deg);
+}
+
+.blob-3 {
+    bottom: -20%;
+    left: 5%;
+    width: 500px;
+    height: 400px;
+    background: radial-gradient(circle at 30% 20%, #ffffff 0%, #d5a991 50%, #7e4427 100%);
+    border-radius: 60% 40% 30% 70% / 50% 60% 40% 50%;
+    transform: rotate(25deg);
+}
+
+input::placeholder {
+    color: #b59f93;
+    font-weight: 500;
+}
+
+.login-error {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #dc2626;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .blob-1 {
+        width: 300px;
+        height: 300px;
+        top: -10%;
+        left: -20%;
+    }
+
+    .blob-2 {
+        width: 350px;
+        height: 350px;
+        top: -5%;
+        right: -25%;
+    }
+
+    .blob-3 {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .blob-1 {
+        width: 200px;
+        height: 200px;
+    }
+
+    .blob-2 {
+        width: 250px;
+        height: 250px;
+    }
+}

@@ -1,0 +1,894 @@
+:root {
+    --sidebar-width: 342px;
+    --sidebar-width-tablet: 300px;
+    --topbar-height: 72px;
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-light: #eaf2ff;
+    --primary-soft: #eef5ff;
+    --sidebar-bg: #f8fafc;
+    --sidebar-border: #e2e8f0;
+    --text-dark: #1e293b;
+    --text-main: #334155;
+    --text-muted: #94a3b8;
+    --body-bg: #f1f5f9;
+    --white: #ffffff;
+    --shadow-sm: 0 4px 14px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Inter", sans-serif;
+    background: var(--body-bg);
+    color: var(--text-dark);
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    color: var(--text-main);
+    z-index: 1040;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-right: 1px solid var(--sidebar-border);
+    transition: transform 0.25s ease;
+}
+
+
+/* Logo */
+
+.brand {
+    height: 120px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 24px;
+    color: var(--text-dark);
+    font-size: 18px;
+    font-weight: 800;
+    border-bottom: 1px solid var(--sidebar-border);
+    background: var(--white);
+}
+
+.brand i {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 14px;
+    background: var(--primary-soft);
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+
+/* =========================================================
+   MENU CHÍNH
+========================================================= */
+
+.menu {
+    list-style: none;
+    padding: 22px 14px 24px;
+    margin: 0;
+}
+
+.menu li {
+    margin-bottom: 6px;
+}
+
+.menu-section-title {
+    padding: 8px 18px 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.menu-link,
+.submenu-toggle,
+.submenu-link {
+    width: 100%;
+    min-height: 50px;
+    border: 0;
+    outline: none;
+    text-decoration: none;
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #475569;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    position: relative;
+    transition: 0.22s ease;
+}
+
+.menu-link i,
+.submenu-toggle i,
+.submenu-link i {
+    width: 20px;
+    min-width: 20px;
+    text-align: center;
+    font-size: 16px;
+    color: inherit;
+}
+
+.menu-link:hover,
+.submenu-toggle:hover,
+.submenu-link:hover {
+    color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+
+/* =========================================================
+   ACTIVE MENU - BO TRÒN GIỐNG HÌNH GỬI
+========================================================= */
+
+.menu-link.active,
+.submenu-link.active {
+    color: var(--primary-color);
+    background: var(--primary-light);
+    font-weight: 800;
+    overflow: hidden;
+}
+
+
+/* Thanh xanh bên trái bo tròn theo nền active */
+
+.menu-link.active::before,
+.submenu-link.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--primary-color);
+    border-radius: 16px 0 0 16px;
+}
+
+
+/* Đẩy icon/chữ lên trên thanh active */
+
+.menu-link.active i,
+.menu-link.active span,
+.submenu-link.active i,
+.submenu-link.active span {
+    position: relative;
+    z-index: 1;
+}
+
+
+/* Mũi tên menu cha */
+
+.submenu-arrow {
+    margin-left: auto;
+    font-size: 12px !important;
+    transition: transform 0.25s ease;
+}
+
+.menu-item.open .submenu-arrow {
+    transform: rotate(180deg);
+}
+
+
+/* =========================================================
+   SUBMENU - THỤT VÀO, KHÔNG CÓ GẠCH DỌC
+========================================================= */
+
+.submenu {
+    list-style: none;
+    margin: 6px 0 8px 20px;
+    padding: 0 0 0 10px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: max-height 0.32s ease, opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
+}
+
+
+/* Bỏ gạch dọc menu con */
+
+.submenu::before {
+    display: none !important;
+    content: none !important;
+}
+
+.menu-item.open .submenu {
+    max-height: 300px;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.submenu li {
+    margin-bottom: 4px;
+}
+
+.submenu-link {
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 700;
+    gap: 10px;
+    color: #52627a;
+    background: transparent;
+}
+
+.submenu-link i {
+    width: 18px;
+    min-width: 18px;
+    font-size: 14px;
+}
+
+.submenu-link:hover {
+    color: var(--primary-color);
+    background: #edf4ff;
+}
+
+.submenu-link.active {
+    color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+
+/* Animation từng menu con */
+
+.menu-item.open .submenu li {
+    animation: submenuFadeIn 0.24s ease both;
+}
+
+.menu-item.open .submenu li:nth-child(1) {
+    animation-delay: 0.03s;
+}
+
+.menu-item.open .submenu li:nth-child(2) {
+    animation-delay: 0.06s;
+}
+
+.menu-item.open .submenu li:nth-child(3) {
+    animation-delay: 0.09s;
+}
+
+.menu-item.open .submenu li:nth-child(4) {
+    animation-delay: 0.12s;
+}
+
+@keyframes submenuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+
+/* =========================================================
+   BACKDROP MOBILE
+========================================================= */
+
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1035;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: 0.25s ease;
+}
+
+body.sidebar-open .sidebar-backdrop,
+.sidebar-backdrop.active,
+.sidebar-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+
+/* =========================================================
+   TOPBAR
+========================================================= */
+
+.topbar {
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    height: var(--topbar-height);
+    z-index: 1030;
+    background: var(--white);
+    border-bottom: 1px solid var(--sidebar-border);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    padding: 0 24px;
+}
+
+.mobile-menu-button {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 800;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    cursor: pointer;
+}
+
+.user-dropdown {
+    position: relative;
+}
+
+.user-button {
+    border: 1px solid var(--sidebar-border);
+    background: var(--white);
+    border-radius: 14px;
+    padding: 7px 10px 7px 7px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.user-button:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: var(--white);
+    font-size: 15px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.user-role {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.dropdown-menu-user {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 260px;
+    background: var(--white);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    display: none;
+    z-index: 1050;
+}
+
+.user-dropdown.open .dropdown-menu-user {
+    display: block;
+}
+
+.dropdown-user-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.dropdown-user-header .name {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.dropdown-user-header .email {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+    word-break: break-word;
+}
+
+.dropdown-item-user {
+    width: 100%;
+    border: 0;
+    background: var(--white);
+    color: var(--text-dark);
+    padding: 12px 16px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dropdown-item-user:hover {
+    background: #f1f5f9;
+}
+
+.dropdown-item-user.logout {
+    color: #dc2626;
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.empty-space {
+    margin-left: var(--sidebar-width);
+    padding: 96px 24px 24px;
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+}
+
+.empty-space>*,
+.empty-space .container,
+.empty-space .container-fluid,
+.empty-space .row,
+.empty-space .card,
+.empty-space form {
+    max-width: 100%;
+}
+
+.empty-space img,
+.empty-space video,
+.empty-space iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+.empty-space input,
+.empty-space select,
+.empty-space textarea,
+.empty-space button {
+    max-width: 100%;
+}
+
+.empty-space table {
+    width: 100%;
+}
+
+.empty-space .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.empty-space .card,
+.empty-space .alert,
+.empty-space .modal-content,
+.empty-space .dropdown-menu {
+    max-width: 100%;
+}
+
+.empty-space h1,
+.empty-space h2,
+.empty-space h3,
+.empty-space h4,
+.empty-space h5,
+.empty-space h6,
+.empty-space p,
+.empty-space span,
+.empty-space td,
+.empty-space th {
+    overflow-wrap: break-word;
+}
+
+
+/* =========================================================
+   FIX BẢNG KHÁCH HÀNG + DROPDOWN THAO TÁC
+========================================================= */
+
+.empty-space .table {
+    margin-bottom: 0;
+}
+
+.empty-space .table td,
+.empty-space .table th {
+    font-size: 14px;
+    vertical-align: middle;
+    padding: 10px 12px;
+}
+
+.empty-space .table th {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.empty-space .dropdown {
+    position: relative;
+}
+
+.empty-space .dropdown .btn,
+.empty-space .dropdown button {
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.empty-space .dropdown-menu {
+    min-width: 180px;
+    max-width: 210px;
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+    z-index: 3000;
+}
+
+.empty-space .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.25;
+    white-space: normal;
+}
+
+.empty-space .dropdown-item i {
+    width: 18px;
+    min-width: 18px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.empty-space .dropdown-item:hover {
+    background: #f1f5f9;
+}
+
+.empty-space .dropdown-item.text-success {
+    color: #059669 !important;
+}
+
+.empty-space .dropdown-item.text-danger {
+    color: #ef4444 !important;
+}
+
+.empty-space .dropdown-divider {
+    margin: 5px 0;
+}
+
+.empty-space td:last-child,
+.empty-space th:last-child {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.empty-space td .dropdown-menu {
+    white-space: normal;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1199px) {
+    .sidebar {
+        width: var(--sidebar-width-tablet);
+    }
+
+    .topbar {
+        left: var(--sidebar-width-tablet);
+        padding: 0 18px;
+    }
+
+    .empty-space {
+        margin-left: var(--sidebar-width-tablet);
+        width: calc(100% - var(--sidebar-width-tablet));
+        max-width: calc(100% - var(--sidebar-width-tablet));
+        padding: 92px 18px 22px;
+    }
+
+    .brand {
+        font-size: 17px;
+        padding: 0 22px;
+    }
+
+    .menu-link,
+    .submenu-toggle,
+    .submenu-link {
+        font-size: 13.5px;
+    }
+
+    .submenu {
+        margin-left: 18px;
+        padding-left: 8px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE / TABLET NHỎ
+========================================================= */
+
+@media (max-width: 991px) {
+    .sidebar {
+        width: 300px;
+        max-width: 88vw;
+        transform: translateX(-100%);
+        box-shadow: 8px 0 30px rgba(15, 23, 42, 0.18);
+    }
+
+    body.sidebar-open .sidebar,
+    .sidebar.active,
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .topbar {
+        left: 0;
+        height: 64px;
+        padding: 0 14px;
+        justify-content: space-between;
+    }
+
+    .empty-space {
+        margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+        padding: 84px 14px 20px;
+    }
+
+    .mobile-menu-button {
+        display: inline-flex;
+    }
+
+    .user-info {
+        display: none;
+    }
+
+    .user-button {
+        max-width: 170px;
+    }
+
+    .dropdown-menu-user {
+        right: 0;
+        left: auto;
+        max-width: calc(100vw - 24px);
+    }
+
+    .empty-space table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+
+/* =========================================================
+   MOBILE NHỎ
+========================================================= */
+
+@media (max-width: 575px) {
+    .topbar {
+        height: 60px;
+        padding: 0 10px;
+    }
+
+    .empty-space {
+        padding: 76px 10px 16px;
+    }
+
+    .mobile-menu-button {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+
+    .user-avatar {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        font-size: 14px;
+    }
+
+    .user-button {
+        gap: 6px;
+        padding: 6px 8px;
+    }
+
+    .brand {
+        height: 110px;
+        padding-left: 22px;
+        padding-right: 18px;
+        font-size: 17px;
+    }
+
+    .brand i {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        font-size: 18px;
+    }
+
+    .menu {
+        padding: 20px 12px 20px;
+    }
+
+    .menu-section-title {
+        font-size: 11px;
+        padding-left: 16px;
+    }
+
+    .menu-link,
+    .submenu-toggle {
+        min-height: 46px;
+        font-size: 13px;
+        border-radius: 14px;
+        padding: 10px 14px;
+        gap: 10px;
+    }
+
+    .menu-link i,
+    .submenu-toggle i {
+        width: 18px;
+        min-width: 18px;
+        font-size: 14px;
+    }
+
+    .submenu {
+        margin-left: 16px;
+        padding-left: 6px;
+    }
+
+    .submenu-link {
+        min-height: 40px;
+        font-size: 12.5px;
+        border-radius: 14px;
+        padding: 9px 12px;
+        gap: 9px;
+    }
+
+    .submenu-link i {
+        width: 16px;
+        min-width: 16px;
+        font-size: 13px;
+    }
+
+    .menu-link.active::before,
+    .submenu-link.active::before {
+        width: 5px;
+        border-radius: 14px 0 0 14px;
+    }
+
+    .empty-space .card {
+        border-radius: 12px;
+    }
+
+    .empty-space .btn {
+        white-space: nowrap;
+    }
+
+    .empty-space .row {
+        margin-left: -6px;
+        margin-right: -6px;
+    }
+
+    .empty-space .row>* {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .empty-space .table td,
+    .empty-space .table th {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+
+    .empty-space .dropdown .btn,
+    .empty-space .dropdown button {
+        font-size: 12.5px;
+        padding: 5px 8px;
+    }
+
+    .empty-space .dropdown-menu {
+        min-width: 170px;
+        max-width: 190px;
+    }
+
+    .empty-space .dropdown-item {
+        font-size: 13px;
+        padding: 7px 9px;
+    }
+}
+
+
+/* =========================================================
+   CHỐNG TRÀN FORM / NÚT TRÊN MOBILE
+========================================================= */
+
+@media (max-width: 767px) {
+    .empty-space .d-flex {
+        flex-wrap: wrap;
+    }
+
+    .empty-space .btn-group {
+        flex-wrap: wrap;
+    }
+
+    .empty-space .btn-group .btn {
+        margin-bottom: 6px;
+    }
+
+    .empty-space .form-control,
+    .empty-space .form-select {
+        width: 100%;
+    }
+}
