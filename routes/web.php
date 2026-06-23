@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\CtvController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\CustomerCommissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,11 +94,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         /*
         |--------------------------------------------------------------------------
         | QUẢN LÝ KHÁCH HÀNG
-        |--------------------------------------------------------------------------
-        | CHECK CTV / NGƯỜI GIỚI THIỆU
-        |--------------------------------------------------------------------------
-        | Route customers/check-referrer phải đặt trước customers/{customer}
-        | để Laravel không hiểu "check-referrer" là id khách hàng.
         |--------------------------------------------------------------------------
         */
 
@@ -211,6 +207,24 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->whereNumber('ctv')
             ->whereNumber('referred')
             ->middleware('signed');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HOA HỒNG CỘNG TÁC VIÊN
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('customer-commissions', [CustomerCommissionController::class, 'index'])
+            ->name('customer-commissions.index');
+
+        Route::post('customer-commissions/{commission}/mark-paid', [CustomerCommissionController::class, 'markPaid'])
+            ->name('customer-commissions.mark-paid')
+            ->whereNumber('commission');
+
+        Route::post('customer-commissions/{commission}/mark-unpaid', [CustomerCommissionController::class, 'markUnpaid'])
+            ->name('customer-commissions.mark-unpaid')
+            ->whereNumber('commission');
 
 
         /*

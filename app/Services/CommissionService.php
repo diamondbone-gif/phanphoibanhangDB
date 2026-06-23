@@ -2,178 +2,370 @@
 
 namespace App\Services;
 
-use App\Models\CustomerCommission;
-use App\Models\CustomerCommissionAdjustment;
-use App\Models\CustomerCommissionItem;
 use App\Models\CustomerOrder;
-use App\Models\CustomerReferral;
-use App\Models\ProductCommissionRule;
-use App\Support\StatusHelper;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class CommissionService
 {
-    public function createForCompletedOrder(CustomerOrder $order, ?int $adminId = null): void
+    /*
+    |--------------------------------------------------------------------------
+    | TẠO HOA HỒNG CHO ĐƠN HÀNG
+    |--------------------------------------------------------------------------
+    | Công thức:
+    | Hoa hồng = final_amount của đơn hàng × % hoa hồng của CTV
+    |
+    | Ví dụ:
+    | final_amount = 7.315.000
+    | CTV commission_rate = 5%
+    | Hoa hồng = 7.315.000 × 5% = 365.750
+    |--------------------------------------------------------------------------
+    */
+    public function createForOrder(CustomerOrder $order, ?int $adminId = null): ?object
     {
-        $order->load(['items.product']);
+        return DB::transaction(function () use ($order, $adminId) {
+            $order = CustomerOrder::query()
+                ->lockForUpdate()
+                ->find($order->id);
 
-        if ($order->commission_created) {
-            return;
-        }
-
-        $completedId = StatusHelper::id('order_statuses', 'completed');
-
-        if ((int) $order->order_status_id !== $completedId) {
-            return;
-        }
-
-        $activeReferral = CustomerReferral::query()
-            ->where('referred_customer_id', $order->customer_id)
-            ->where(function ($q) {
-                $q->whereNull('effective_from')->orWhere('effective_from', '<=', now()->toDateString());
-            })
-            ->where(function ($q) {
-                $q->whereNull('effective_to')->orWhere('effective_to', '>=', now()->toDateString());
-            })
-            ->latest('id')
-            ->first();
-
-        if (!$activeReferral) {
-            return;
-        }
-
-        $lineNetTotal = (float) $order->items->sum('final_total');
-        $commissionItems = [];
-        $totalBase = 0;
-        $totalCommission = 0;
-
-        foreach ($order->items as $item) {
-            $product = $item->product;
-
-            if (!$product || !$product->is_commissionable) {
-                continue;
+            if (!$order) {
+                return null;
             }
 
-            $eligibleAmount = (float) $item->final_total;
+            /*
+            |--------------------------------------------------------------------------
+            | 1. Chỉ tính hoa hồng khi đơn đã hoàn thành
+            |--------------------------------------------------------------------------
+            */
+            $completedStatusId = $this->getStatusId('order_statuses', 'completed', 2);
 
-            if ($lineNetTotal > 0 && $order->order_discount_amount > 0) {
-                $shareDiscount = round($item->final_total * $order->order_discount_amount / $lineNetTotal);
-                $eligibleAmount = max(0, $eligibleAmount - $shareDiscount);
+            if ((int) $order->order_status_id !== (int) $completedStatusId) {
+                return null;
             }
 
-            $rate = $this->getCommissionRate($product);
-            $commissionAmount = round($eligibleAmount * $rate / 100);
+            /*
+            |--------------------------------------------------------------------------
+            | 2. Nếu đơn này đã có hoa hồng chưa bị hủy thì không tạo trùng
+            |--------------------------------------------------------------------------
+            */
+            $existingCommission = DB::table('customer_commissions')
+                ->where('customer_order_id', $order->id)
+                ->when(
+                    Schema::hasColumn('customer_commissions', 'deleted_at'),
+                    fn($query) => $query->whereNull('deleted_at')
+                )
+                ->where(function ($query) {
+                    if (Schema::hasColumn('customer_commissions', 'status')) {
+                        $query->whereNull('status')
+                            ->orWhere('status', '!=', 'cancelled');
+                    }
+                })
+                ->first();
 
-            if ($eligibleAmount <= 0 || $rate <= 0 || $commissionAmount <= 0) {
-                continue;
+            if ($existingCommission) {
+                $this->markOrderCommissionCreated($order, (float) $order->final_amount, $adminId);
+
+                return $existingCommission;
             }
 
-            $commissionItems[] = [
-                'customer_order_item_id' => $item->id,
-                'product_id' => $product->id,
-                'product_name' => $item->product_name,
-                'eligible_amount' => $eligibleAmount,
-                'commission_rate' => $rate,
+            /*
+            |--------------------------------------------------------------------------
+            | 3. Tìm CTV giới thiệu khách hàng của đơn này
+            |--------------------------------------------------------------------------
+            */
+            $referral = $this->findReferralForCustomer((int) $order->customer_id);
+
+            if (!$referral || empty($referral->referrer_customer_id)) {
+                return null;
+            }
+
+            $ctv = DB::table('customers')
+                ->where('id', $referral->referrer_customer_id)
+                ->first();
+
+            if (!$ctv) {
+                return null;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 4. Lấy % hoa hồng đã cài cho CTV
+            |--------------------------------------------------------------------------
+            | Ưu tiên lấy customers.commission_rate của CTV.
+            | Nếu CTV chưa có thì lấy customer_referrals.commission_rate.
+            |--------------------------------------------------------------------------
+            */
+            $commissionRate = $this->getCommissionRate($ctv, $referral);
+
+            if ($commissionRate <= 0) {
+                return null;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 5. Lấy tổng tiền cuối cùng của đơn hàng
+            |--------------------------------------------------------------------------
+            | Đây là số sau giảm giá:
+            | - giảm theo sản phẩm
+            | - giảm combo
+            | - giảm toàn đơn
+            |
+            | Tuyệt đối không tính theo subtotal_amount.
+            |--------------------------------------------------------------------------
+            */
+            $orderFinalAmount = (float) $order->final_amount;
+
+            if ($orderFinalAmount <= 0) {
+                return null;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 6. Tính hoa hồng
+            |--------------------------------------------------------------------------
+            */
+            $commissionAmount = round($orderFinalAmount * $commissionRate / 100, 2);
+
+            /*
+            |--------------------------------------------------------------------------
+            | 7. Ghi xuống bảng customer_commissions
+            |--------------------------------------------------------------------------
+            */
+            $commissionData = [
+                'commission_code' => $this->makeCommissionCode(),
+
+                'referrer_customer_id' => $ctv->id,
+                'ctv_customer_id' => $ctv->id,
+                'referred_customer_id' => $order->customer_id,
+                'referral_id' => $referral->id,
+
+                'customer_order_id' => $order->id,
+                'order_code' => $order->order_code,
+
+                'order_amount' => $orderFinalAmount,
+                'order_final_amount' => $orderFinalAmount,
+
+                'commission_rate' => $commissionRate,
+                'commission_rate_percent' => $commissionRate,
                 'commission_amount' => $commissionAmount,
+
+                'commission_status_id' => $this->getStatusId('commission_statuses', 'pending', 1),
+                'status' => 'unpaid',
+
+                'paid_amount' => 0,
+                'commission_date' => now(),
+
+                'note' => 'Hoa hồng CTV tính theo final_amount của đơn hàng.',
+                'created_by' => $adminId,
+
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
 
-            $totalBase += $eligibleAmount;
-            $totalCommission += $commissionAmount;
+            $commissionId = DB::table('customer_commissions')->insertGetId(
+                $this->onlyExistingColumns('customer_commissions', $commissionData)
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | 8. Đánh dấu đơn hàng đã tạo hoa hồng
+            |--------------------------------------------------------------------------
+            */
+            $this->markOrderCommissionCreated($order, $orderFinalAmount, $adminId);
+
+            return DB::table('customer_commissions')->where('id', $commissionId)->first();
+        });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HÀM NÀY ĐỂ TƯƠNG THÍCH VỚI CODE CŨ
+    |--------------------------------------------------------------------------
+    | Nếu chỗ nào trong project còn gọi createForCompletedOrder()
+    | thì vẫn chạy được, không bị lỗi.
+    |--------------------------------------------------------------------------
+    */
+    public function createForCompletedOrder(CustomerOrder $order, ?int $adminId = null): ?object
+    {
+        return $this->createForOrder($order, $adminId);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HỦY HOA HỒNG KHI HỦY ĐƠN
+    |--------------------------------------------------------------------------
+    */
+    public function cancelForOrder(
+        CustomerOrder $order,
+        ?string $reason = null,
+        ?int $adminId = null
+    ): void {
+        DB::transaction(function () use ($order, $reason, $adminId) {
+            $cancelStatusId = $this->getStatusId('commission_statuses', 'cancelled', 4);
+
+            $updateData = [
+                'commission_status_id' => $cancelStatusId,
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => $adminId,
+                'cancel_reason' => $reason,
+                'cancelled_reason' => $reason,
+                'updated_at' => now(),
+            ];
+
+            DB::table('customer_commissions')
+                ->where('customer_order_id', $order->id)
+                ->when(
+                    Schema::hasColumn('customer_commissions', 'deleted_at'),
+                    fn($query) => $query->whereNull('deleted_at')
+                )
+                ->where(function ($query) {
+                    if (Schema::hasColumn('customer_commissions', 'status')) {
+                        $query->whereNull('status')
+                            ->orWhere('status', '!=', 'cancelled');
+                    }
+                })
+                ->update($this->onlyExistingColumns('customer_commissions', $updateData));
+
+            $orderUpdateData = [
+                'commission_created' => false,
+                'commission_base_amount' => 0,
+                'updated_by' => $adminId,
+                'updated_at' => now(),
+            ];
+
+            DB::table('customer_orders')
+                ->where('id', $order->id)
+                ->update($this->onlyExistingColumns('customer_orders', $orderUpdateData));
+        });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TÌM CTV GIỚI THIỆU CỦA KHÁCH HÀNG
+    |--------------------------------------------------------------------------
+    | Không lọc referral_status_id vì dữ liệu cũ của bạn có dòng bị NULL.
+    |--------------------------------------------------------------------------
+    */
+    private function findReferralForCustomer(int $customerId): ?object
+    {
+        if (!Schema::hasTable('customer_referrals')) {
+            return null;
         }
 
-        if ($totalCommission <= 0) {
-            return;
+        return DB::table('customer_referrals')
+            ->where('referred_customer_id', $customerId)
+            ->whereNotNull('referrer_customer_id')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | LẤY % HOA HỒNG CỦA CTV
+    |--------------------------------------------------------------------------
+    */
+    private function getCommissionRate(object $ctv, object $referral): float
+    {
+        $ctvRate = isset($ctv->commission_rate)
+            ? (float) $ctv->commission_rate
+            : 0;
+
+        if ($ctvRate > 0) {
+            return $ctvRate;
         }
 
-        $averageRate = $totalBase > 0 ? round($totalCommission / $totalBase * 100, 2) : 0;
+        $referralRate = isset($referral->commission_rate)
+            ? (float) $referral->commission_rate
+            : 0;
 
-        $commission = CustomerCommission::create([
-            'referrer_customer_id' => $activeReferral->referrer_customer_id,
-            'referred_customer_id' => $order->customer_id,
-            'referral_id' => $activeReferral->id,
-            'customer_order_id' => $order->id,
-            'order_code' => $order->order_code,
-            'order_amount' => $order->final_amount,
-            'commission_base_amount' => $totalBase,
-            'commission_rate' => $averageRate,
-            'commission_amount' => $totalCommission,
-            'commission_status_id' => StatusHelper::id('commission_statuses', 'pending'),
-        ]);
-
-        foreach ($commissionItems as $row) {
-            $row['customer_commission_id'] = $commission->id;
-            CustomerCommissionItem::create($row);
+        if ($referralRate > 0) {
+            return $referralRate;
         }
 
-        $order->update([
+        return 0;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ĐÁNH DẤU ĐƠN HÀNG ĐÃ TẠO HOA HỒNG
+    |--------------------------------------------------------------------------
+    */
+    private function markOrderCommissionCreated(
+        CustomerOrder $order,
+        float $orderFinalAmount,
+        ?int $adminId = null
+    ): void {
+        $updateData = [
             'commission_created' => true,
-        ]);
+            'commission_base_amount' => $orderFinalAmount,
+            'updated_by' => $adminId,
+            'updated_at' => now(),
+        ];
+
+        DB::table('customer_orders')
+            ->where('id', $order->id)
+            ->update($this->onlyExistingColumns('customer_orders', $updateData));
     }
 
-    public function reverseForCancelledOrder(CustomerOrder $order, string $reason, ?int $adminId = null): void
+    /*
+    |--------------------------------------------------------------------------
+    | LẤY ID TRẠNG THÁI THEO CODE
+    |--------------------------------------------------------------------------
+    */
+    private function getStatusId(string $table, string $code, ?int $default = null): ?int
     {
-        $commission = CustomerCommission::query()
-            ->where('customer_order_id', $order->id)
-            ->first();
-
-        if (!$commission) {
-            return;
+        if (!Schema::hasTable($table)) {
+            return $default;
         }
 
-        if ($commission->paid_at) {
-            CustomerCommissionAdjustment::create([
-                'customer_commission_id' => $commission->id,
-                'adjustment_code' => $this->makeCode('ADJ', 'customer_commission_adjustments', 'adjustment_code'),
-                'adjustment_type' => 'reverse',
-                'amount' => -abs((float) $commission->commission_amount),
-                'reason' => $reason,
-                'created_by' => $adminId,
-            ]);
+        if (!Schema::hasColumn($table, 'code')) {
+            return $default;
         }
 
-        $commission->update([
-            'commission_status_id' => StatusHelper::id('commission_statuses', 'cancelled'),
-            'cancelled_reason' => $reason,
-        ]);
+        $id = DB::table($table)
+            ->where('code', $code)
+            ->value('id');
 
-        $order->update([
-            'commission_created' => false,
-        ]);
+        return $id ? (int) $id : $default;
     }
 
-    private function getCommissionRate($product): float
-    {
-        $today = now()->toDateString();
-
-        $rule = ProductCommissionRule::query()
-            ->where('is_active', true)
-            ->where(function ($q) use ($today) {
-                $q->whereNull('start_date')->orWhere('start_date', '<=', $today);
-            })
-            ->where(function ($q) use ($today) {
-                $q->whereNull('end_date')->orWhere('end_date', '>=', $today);
-            })
-            ->where(function ($q) use ($product) {
-                $q->where('product_id', $product->id)
-                    ->orWhere('product_category_id', $product->product_category_id);
-            })
-            ->orderByRaw('product_id IS NULL')
-            ->latest('id')
-            ->first();
-
-        if ($rule) {
-            return (float) $rule->commission_rate;
-        }
-
-        return (float) $product->default_commission_rate;
-    }
-
-    private function makeCode(string $prefix, string $table, string $column): string
+    /*
+    |--------------------------------------------------------------------------
+    | TẠO MÃ HOA HỒNG
+    |--------------------------------------------------------------------------
+    */
+    private function makeCommissionCode(): string
     {
         do {
-            $code = $prefix . now()->format('ymdHis') . random_int(100, 999);
-        } while (DB::table($table)->where($column, $code)->exists());
+            $code = 'HH' . now()->format('ymdHis') . strtoupper(Str::random(4));
+        } while (
+            DB::table('customer_commissions')
+            ->where('commission_code', $code)
+            ->exists()
+        );
 
         return $code;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHỈ GHI NHỮNG CỘT CÓ TỒN TẠI TRONG DATABASE
+    |--------------------------------------------------------------------------
+    | Giúp tránh lỗi nếu database thiếu một cột nào đó.
+    |--------------------------------------------------------------------------
+    */
+    private function onlyExistingColumns(string $table, array $data): array
+    {
+        $result = [];
+
+        foreach ($data as $column => $value) {
+            if (Schema::hasColumn($table, $column)) {
+                $result[$column] = $value;
+            }
+        }
+
+        return $result;
     }
 }

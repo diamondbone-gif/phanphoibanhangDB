@@ -28,7 +28,12 @@ class OrderController extends Controller
         $keyword = trim((string) $request->get('keyword'));
 
         $orders = CustomerOrder::query()
-            ->with(['customer', 'invoice'])
+            ->with([
+                'customer',
+                'invoice',
+                'commission.ctvCustomer',
+                'commission.referredCustomer',
+            ])
             ->when($keyword !== '', function ($query) use ($keyword) {
                 $query->where('order_code', 'like', "%{$keyword}%")
                     ->orWhereHas('customer', function ($customerQuery) use ($keyword) {
@@ -143,7 +148,8 @@ class OrderController extends Controller
             'invoice',
             'payments',
             'histories',
-            'commission.items',
+            'commission.ctvCustomer',
+            'commission.referredCustomer',
         ]);
 
         return view('admin.auth.orders.show', compact('order'));
@@ -152,8 +158,6 @@ class OrderController extends Controller
     /*
     |--------------------------------------------------------------------------
     | FORM SỬA ĐƠN HÀNG
-    |--------------------------------------------------------------------------
-    | Load thêm payments để trang sửa đơn có thể hiển thị thông tin thanh toán.
     |--------------------------------------------------------------------------
     */
     public function edit(CustomerOrder $order)
@@ -164,6 +168,7 @@ class OrderController extends Controller
             'items.product',
             'invoice',
             'payments',
+            'commission.ctvCustomer',
         ]);
 
         $customers = Customer::query()
