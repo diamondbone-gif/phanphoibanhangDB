@@ -8,10 +8,23 @@ use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\ProductStockMovement;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class StockService
 {
+    /*
+    |--------------------------------------------------------------------------
+    | TRỪ KHO KHI TẠO / SỬA ĐƠN HÀNG
+    |--------------------------------------------------------------------------
+    | Hàm này nhận đơn hàng và danh sách sản phẩm đã được OrderCalculatorService
+    | tính toán sẵn.
+    |
+    | Lưu ý quan trọng:
+    | - Nên gọi hàm này bên trong DB::transaction() ở OrderService.
+    | - lockForUpdate() chỉ khóa dòng dữ liệu đúng khi đang nằm trong transaction.
+    |--------------------------------------------------------------------------
+    */
     public function deductOrderItems(CustomerOrder $order, array $calculatedItems, ?int $adminId = null): void
     {
         foreach ($calculatedItems as $line) {
@@ -19,50 +32,212 @@ class StockService
         }
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | TRỪ KHO CHO 1 SẢN PHẨM TRONG ĐƠN
+    |--------------------------------------------------------------------------
+    | Luồng xử lý:
+    | 1. Lấy sản phẩm.
+    | 2. Xác định sản phẩm là hàng vật lý hay dịch vụ.
+    | 3. Nếu là dịch vụ thì chỉ tạo dòng đơn hàng, không trừ kho.
+    | 4. Nếu là hàng vật lý không theo lô thì trừ total_quantity.
+    | 5. Nếu là hàng vật lý theo lô thì trừ product_batches.current_quantity.
+    |--------------------------------------------------------------------------
+    */
     private function deductOneProduct(CustomerOrder $order, array $line, ?int $adminId = null): void
     {
         /** @var Product $product */
-        $product = Product::query()->lockForUpdate()->findOrFail($line['product_id']);
+        $product = Product::query()
+            ->lockForUpdate()
+            ->findOrFail($line['product_id']);
 
-        if ($product->product_type !== 'physical') {
-            CustomerOrderItem::create($this->makeOrderItemData($order, $line, null, $line['quantity']));
+        // Ép số lượng tối thiểu là 1 để tránh đơn hàng có số lượng 0 hoặc âm.
+        $quantity = max(1, (int) ($line['quantity'] ?? 1));
+
+        // Chuẩn hóa loại sản phẩm: single/combo/physical đều được xem là hàng vật lý.
+        $productType = $this->productType($product);
+
+        // Kiểm tra sản phẩm có quản lý theo lô không.
+        $trackBatch = $this->trackBatch($product);
+
+        // Kiểm tra sản phẩm có cho phép bán khi thiếu tồn không.
+        $allowSellWithoutStock = $this->allowSellWithoutStock($product);
+
+        /*
+        |--------------------------------------------------------------------------
+        | DỊCH VỤ / SẢN PHẨM KHÔNG QUẢN LÝ KHO
+        |--------------------------------------------------------------------------
+        | Ví dụ: dịch vụ tư vấn, phí vận chuyển, phí xử lý...
+        | Không trừ kho, chỉ lưu vào customer_order_items.
+        |--------------------------------------------------------------------------
+        */
+        if ($productType !== 'physical') {
+            CustomerOrderItem::create(
+                $this->makeOrderItemData($order, $line, null, $quantity)
+            );
+
             return;
         }
 
-        if (!$product->allow_sell_without_stock && $product->total_quantity < $line['quantity']) {
-            throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn kho.");
-        }
-
-        if (!$product->track_batch) {
-            $before = (int) $product->total_quantity;
-            $after = max(0, $before - $line['quantity']);
-
-            $product->update(['total_quantity' => $after]);
-
-            $item = CustomerOrderItem::create($this->makeOrderItemData($order, $line, null, $line['quantity']));
-
-            $this->createMovement(
-                productId: $product->id,
-                batchId: null,
-                orderId: $order->id,
-                orderItemId: $item->id,
-                movementType: 'sale',
-                quantity: -$line['quantity'],
-                beforeQuantity: $before,
-                afterQuantity: $after,
-                note: 'Xuất kho khi lên đơn hàng',
+        /*
+        |--------------------------------------------------------------------------
+        | HÀNG VẬT LÝ NHƯNG KHÔNG QUẢN LÝ THEO LÔ
+        |--------------------------------------------------------------------------
+        | Trừ trực tiếp vào products.total_quantity.
+        |--------------------------------------------------------------------------
+        */
+        if (!$trackBatch) {
+            $this->deductWithoutBatch(
+                order: $order,
+                product: $product,
+                line: $line,
+                quantity: $quantity,
+                allowSellWithoutStock: $allowSellWithoutStock,
                 adminId: $adminId
             );
 
             return;
         }
 
-        $needQty = (int) $line['quantity'];
+        /*
+        |--------------------------------------------------------------------------
+        | HÀNG VẬT LÝ CÓ QUẢN LÝ THEO LÔ
+        |--------------------------------------------------------------------------
+        | Trừ vào product_batches.current_quantity.
+        | Ưu tiên lô gần hết hạn trước.
+        |--------------------------------------------------------------------------
+        */
+        $this->deductWithBatches(
+            order: $order,
+            product: $product,
+            line: $line,
+            quantity: $quantity,
+            allowSellWithoutStock: $allowSellWithoutStock,
+            adminId: $adminId
+        );
+    }
 
-        $batches = ProductBatch::query()
-            ->where('product_id', $product->id)
-            ->where('current_quantity', '>', 0)
-            ->whereIn('status', ['available'])
+    /*
+    |--------------------------------------------------------------------------
+    | TRỪ KHO KHÔNG THEO LÔ
+    |--------------------------------------------------------------------------
+    | Dùng cho sản phẩm có track_batch = 0.
+    |--------------------------------------------------------------------------
+    */
+    private function deductWithoutBatch(
+        CustomerOrder $order,
+        Product $product,
+        array $line,
+        int $quantity,
+        bool $allowSellWithoutStock,
+        ?int $adminId = null
+    ): void {
+        $before = (int) ($product->total_quantity ?? 0);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Không cho bán âm kho
+        |--------------------------------------------------------------------------
+        | Nếu sản phẩm không cho phép bán khi thiếu tồn và tồn hiện tại nhỏ hơn
+        | số lượng cần bán thì dừng lại, báo lỗi.
+        |--------------------------------------------------------------------------
+        */
+        if (!$allowSellWithoutStock && $before < $quantity) {
+            throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn kho.");
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tính tồn sau khi bán
+        |--------------------------------------------------------------------------
+        | Dùng max(0, ...) để tránh total_quantity bị âm nếu cột là unsigned integer.
+        |--------------------------------------------------------------------------
+        */
+        $after = max(0, $before - $quantity);
+
+        $product->update([
+            'total_quantity' => $after,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tạo dòng chi tiết đơn hàng
+        |--------------------------------------------------------------------------
+        */
+        $item = CustomerOrderItem::create(
+            $this->makeOrderItemData($order, $line, null, $quantity)
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ghi lịch sử kho
+        |--------------------------------------------------------------------------
+        */
+        $this->createMovement(
+            productId: $product->id,
+            batchId: null,
+            orderId: $order->id,
+            orderItemId: $item->id,
+            movementType: 'sale',
+            quantity: -abs($quantity),
+            beforeQuantity: $before,
+            afterQuantity: $after,
+            note: 'Xuất kho không theo lô khi lên đơn hàng',
+            adminId: $adminId
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TRỪ KHO THEO LÔ
+    |--------------------------------------------------------------------------
+    | Dùng cho sản phẩm có track_batch = 1.
+    |
+    | Quy tắc:
+    | - Lấy các lô còn hàng.
+    | - Ưu tiên lô gần hết hạn trước.
+    | - Mỗi lô bị trừ sẽ tạo 1 dòng customer_order_items riêng,
+    |   có product_batch_id để sau này hủy đơn sẽ hoàn đúng về lô đó.
+    |--------------------------------------------------------------------------
+    */
+    private function deductWithBatches(
+        CustomerOrder $order,
+        Product $product,
+        array $line,
+        int $quantity,
+        bool $allowSellWithoutStock,
+        ?int $adminId = null
+    ): void {
+        /*
+        |--------------------------------------------------------------------------
+        | Tính tổng số lượng còn trong các lô có thể xuất
+        |--------------------------------------------------------------------------
+        */
+        $availableBatchQuantity = (int) $this->availableBatchQuery($product)
+            ->sum('current_quantity');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Không cho bán nếu tổng lô không đủ
+        |--------------------------------------------------------------------------
+        */
+        if (!$allowSellWithoutStock && $availableBatchQuantity < $quantity) {
+            throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn theo lô.");
+        }
+
+        $needQty = $quantity;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lấy danh sách lô
+        |--------------------------------------------------------------------------
+        | orderByRaw('expiry_date IS NULL, expiry_date ASC'):
+        | - Lô có hạn sử dụng được đưa lên trước.
+        | - Lô gần hết hạn được xuất trước.
+        | - Lô không có hạn sử dụng đứng sau.
+        |--------------------------------------------------------------------------
+        */
+        $batches = $this->availableBatchQuery($product)
             ->orderByRaw('expiry_date IS NULL, expiry_date ASC')
             ->orderBy('id')
             ->lockForUpdate()
@@ -73,29 +248,87 @@ class StockService
                 break;
             }
 
-            $takeQty = min($needQty, (int) $batch->current_quantity);
+            $takeQty = min($needQty, (int) ($batch->current_quantity ?? 0));
 
-            $beforeBatchQty = (int) $batch->current_quantity;
-            $afterBatchQty = $beforeBatchQty - $takeQty;
+            if ($takeQty <= 0) {
+                continue;
+            }
 
-            $batch->update([
+            $beforeBatchQty = (int) ($batch->current_quantity ?? 0);
+            $afterBatchQty = max(0, $beforeBatchQty - $takeQty);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cập nhật số lượng còn lại của lô
+            |--------------------------------------------------------------------------
+            */
+            $batchUpdate = [
                 'current_quantity' => $afterBatchQty,
-                'status' => $afterBatchQty <= 0 ? 'out_of_stock' : $batch->status,
+            ];
+
+            /*
+            |--------------------------------------------------------------------------
+            | Nếu bảng product_batches có cột status thì cập nhật trạng thái lô.
+            | Làm kiểu này để code không chết nếu database cũ chưa có cột status.
+            |--------------------------------------------------------------------------
+            */
+            if (Schema::hasColumn('product_batches', 'status')) {
+                $batchUpdate['status'] = $afterBatchQty <= 0
+                    ? $this->outOfStockStatus($batch->status ?? null)
+                    : $this->keepAvailableStatus($batch->status ?? null);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Nếu bảng product_batches có cột is_active thì giữ lô đang active.
+            |--------------------------------------------------------------------------
+            */
+            if (Schema::hasColumn('product_batches', 'is_active')) {
+                $batchUpdate['is_active'] = true;
+            }
+
+            $batch->update($batchUpdate);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cập nhật tổng tồn của sản phẩm
+            |--------------------------------------------------------------------------
+            | Vì sản phẩm có thể bị cập nhật ở vòng lặp trước, refresh lại để lấy số mới.
+            |--------------------------------------------------------------------------
+            */
+            $product->refresh();
+
+            $beforeProductQty = (int) ($product->total_quantity ?? 0);
+            $afterProductQty = max(0, $beforeProductQty - $takeQty);
+
+            $product->update([
+                'total_quantity' => $afterProductQty,
             ]);
 
-            $product->decrement('total_quantity', $takeQty);
-
+            /*
+            |--------------------------------------------------------------------------
+            | Tạo dòng chi tiết đơn hàng theo từng lô
+            |--------------------------------------------------------------------------
+            | Nếu một sản phẩm lấy từ 2 lô khác nhau, sẽ có 2 dòng item.
+            | Nhờ vậy khi hủy đơn, hệ thống biết phải hoàn về đúng lô nào.
+            |--------------------------------------------------------------------------
+            */
             $item = CustomerOrderItem::create(
                 $this->makeOrderItemData($order, $line, $batch->id, $takeQty)
             );
 
+            /*
+            |--------------------------------------------------------------------------
+            | Ghi lịch sử xuất kho theo lô
+            |--------------------------------------------------------------------------
+            */
             $this->createMovement(
                 productId: $product->id,
                 batchId: $batch->id,
                 orderId: $order->id,
                 orderItemId: $item->id,
                 movementType: 'sale',
-                quantity: -$takeQty,
+                quantity: -abs($takeQty),
                 beforeQuantity: $beforeBatchQty,
                 afterQuantity: $afterBatchQty,
                 note: 'Xuất kho theo lô khi lên đơn hàng',
@@ -105,95 +338,211 @@ class StockService
             $needQty -= $takeQty;
         }
 
-        if ($needQty > 0 && !$product->allow_sell_without_stock) {
-            throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn theo lô.");
+        /*
+        |--------------------------------------------------------------------------
+        | Trường hợp cho phép bán khi thiếu tồn theo lô
+        |--------------------------------------------------------------------------
+        | Phần thiếu vẫn tạo dòng đơn hàng nhưng không có product_batch_id.
+        | Lưu ý: phần này không trừ vào lô vì không còn lô để trừ.
+        |--------------------------------------------------------------------------
+        */
+        if ($needQty > 0 && $allowSellWithoutStock) {
+            CustomerOrderItem::create(
+                $this->makeOrderItemData($order, $line, null, $needQty)
+            );
+
+            return;
         }
 
-        if ($needQty > 0 && $product->allow_sell_without_stock) {
-            CustomerOrderItem::create($this->makeOrderItemData($order, $line, null, $needQty));
+        /*
+        |--------------------------------------------------------------------------
+        | Nếu vẫn còn thiếu mà không cho bán âm kho thì báo lỗi.
+        |--------------------------------------------------------------------------
+        */
+        if ($needQty > 0 && !$allowSellWithoutStock) {
+            throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn theo lô.");
         }
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | HOÀN KHO KHI HỦY / SỬA ĐƠN HÀNG
+    |--------------------------------------------------------------------------
+    | Khi hủy đơn hoặc sửa đơn:
+    | - Nếu item có product_batch_id thì hoàn đúng về lô.
+    | - Nếu item không có product_batch_id thì hoàn về tổng tồn sản phẩm.
+    |--------------------------------------------------------------------------
+    */
     public function returnOrderStock(CustomerOrder $order, string $movementType = 'cancel_return', ?int $adminId = null): void
     {
-        foreach ($order->items as $item) {
-            $product = Product::query()->lockForUpdate()->find($item->product_id);
+        $order->loadMissing('items');
 
-            if (!$product || $product->product_type !== 'physical') {
+        foreach ($order->items as $item) {
+            $product = Product::query()
+                ->lockForUpdate()
+                ->find($item->product_id);
+
+            if (!$product) {
                 continue;
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Dịch vụ thì không có kho để hoàn.
+            |--------------------------------------------------------------------------
+            */
+            if ($this->productType($product) !== 'physical') {
+                continue;
+            }
+
+            $quantity = max(0, (int) ($item->quantity ?? 0));
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Hoàn kho đúng về lô nếu item có product_batch_id.
+            |--------------------------------------------------------------------------
+            */
             if ($item->product_batch_id) {
-                $batch = ProductBatch::query()->lockForUpdate()->find($item->product_batch_id);
+                $batch = ProductBatch::query()
+                    ->lockForUpdate()
+                    ->find($item->product_batch_id);
 
                 if ($batch) {
-                    $before = (int) $batch->current_quantity;
-                    $after = $before + (int) $item->quantity;
+                    $beforeBatchQty = (int) ($batch->current_quantity ?? 0);
+                    $afterBatchQty = $beforeBatchQty + $quantity;
 
-                    $batch->update([
-                        'current_quantity' => $after,
-                        'status' => 'available',
+                    $batchUpdate = [
+                        'current_quantity' => $afterBatchQty,
+                    ];
+
+                    if (Schema::hasColumn('product_batches', 'status')) {
+                        $batchUpdate['status'] = $this->keepAvailableStatus($batch->status ?? null);
+                    }
+
+                    if (Schema::hasColumn('product_batches', 'is_active')) {
+                        $batchUpdate['is_active'] = true;
+                    }
+
+                    $batch->update($batchUpdate);
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Cập nhật lại tổng tồn sản phẩm
+                    |--------------------------------------------------------------------------
+                    */
+                    $product->refresh();
+
+                    $beforeProductQty = (int) ($product->total_quantity ?? 0);
+                    $afterProductQty = $beforeProductQty + $quantity;
+
+                    $product->update([
+                        'total_quantity' => $afterProductQty,
                     ]);
 
-                    $product->increment('total_quantity', (int) $item->quantity);
-
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Ghi lịch sử hoàn kho về đúng lô
+                    |--------------------------------------------------------------------------
+                    */
                     $this->createMovement(
                         productId: $product->id,
                         batchId: $batch->id,
                         orderId: $order->id,
                         orderItemId: $item->id,
                         movementType: $movementType,
-                        quantity: (int) $item->quantity,
-                        beforeQuantity: $before,
-                        afterQuantity: $after,
-                        note: 'Hoàn kho từ đơn hàng',
+                        quantity: $quantity,
+                        beforeQuantity: $beforeBatchQty,
+                        afterQuantity: $afterBatchQty,
+                        note: 'Hoàn kho về đúng lô từ đơn hàng',
                         adminId: $adminId
                     );
+
+                    continue;
                 }
-            } else {
-                $before = (int) $product->total_quantity;
-                $after = $before + (int) $item->quantity;
-
-                $product->update(['total_quantity' => $after]);
-
-                $this->createMovement(
-                    productId: $product->id,
-                    batchId: null,
-                    orderId: $order->id,
-                    orderItemId: $item->id,
-                    movementType: $movementType,
-                    quantity: (int) $item->quantity,
-                    beforeQuantity: $before,
-                    afterQuantity: $after,
-                    note: 'Hoàn kho không theo lô',
-                    adminId: $adminId
-                );
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Hoàn kho không theo lô
+            |--------------------------------------------------------------------------
+            | Trường hợp này xảy ra khi:
+            | - Sản phẩm không quản lý theo lô.
+            | - Đơn cũ chưa lưu product_batch_id.
+            | - Phần bán vượt tồn được tạo item nhưng không có lô.
+            |--------------------------------------------------------------------------
+            */
+            $beforeProductQty = (int) ($product->total_quantity ?? 0);
+            $afterProductQty = $beforeProductQty + $quantity;
+
+            $product->update([
+                'total_quantity' => $afterProductQty,
+            ]);
+
+            $this->createMovement(
+                productId: $product->id,
+                batchId: null,
+                orderId: $order->id,
+                orderItemId: $item->id,
+                movementType: $movementType,
+                quantity: $quantity,
+                beforeQuantity: $beforeProductQty,
+                afterQuantity: $afterProductQty,
+                note: 'Hoàn kho không theo lô từ đơn hàng',
+                adminId: $adminId
+            );
         }
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | TẠO DỮ LIỆU DÒNG ĐƠN HÀNG
+    |--------------------------------------------------------------------------
+    | Hàm này gom dữ liệu để insert vào customer_order_items.
+    |--------------------------------------------------------------------------
+    */
     private function makeOrderItemData(CustomerOrder $order, array $line, ?int $batchId, int $quantity): array
     {
-        $originalTotal = $line['unit_price'] * $quantity;
-        $discountAmount = round($originalTotal * $line['discount_percent'] / 100);
+        $unitPrice = (float) ($line['unit_price'] ?? 0);
+        $discountPercent = (float) ($line['discount_percent'] ?? 0);
+
+        $originalTotal = $unitPrice * $quantity;
+        $discountAmount = round($originalTotal * $discountPercent / 100);
         $finalTotal = max(0, $originalTotal - $discountAmount);
 
         return [
             'customer_order_id' => $order->id,
             'product_id' => $line['product_id'],
             'product_batch_id' => $batchId,
-            'product_code' => $line['product_code'],
-            'product_name' => $line['product_name'],
+            'product_code' => $line['product_code'] ?? '',
+            'product_name' => $line['product_name'] ?? '',
             'quantity' => $quantity,
-            'unit_price' => $line['unit_price'],
+            'unit_price' => $unitPrice,
             'original_total' => $originalTotal,
-            'discount_type' => $line['discount_type'],
-            'discount_percent' => $line['discount_percent'],
+            'discount_type' => $line['discount_type'] ?? 'none',
+            'discount_percent' => $discountPercent,
             'discount_amount' => $discountAmount,
             'final_total' => $finalTotal,
+            'note' => $line['note'] ?? null,
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | GHI LỊCH SỬ KHO
+    |--------------------------------------------------------------------------
+    | Hàm này đã được viết an toàn cho database cũ và mới.
+    |
+    | Nếu bảng product_stock_movements có cột nào thì mới insert cột đó.
+    | Điều này tránh lỗi:
+    | - Unknown column 'movement_code'
+    | - Unknown column 'customer_order_id'
+    | - Unknown column 'customer_order_item_id'
+    |--------------------------------------------------------------------------
+    */
     private function createMovement(
         int $productId,
         ?int $batchId,
@@ -206,12 +555,14 @@ class StockService
         ?string $note = null,
         ?int $adminId = null
     ): void {
-        ProductStockMovement::create([
+        /*
+        |--------------------------------------------------------------------------
+        | Dữ liệu bắt buộc, gần như bảng product_stock_movements nào cũng có.
+        |--------------------------------------------------------------------------
+        */
+        $data = [
             'product_id' => $productId,
             'product_batch_id' => $batchId,
-            'customer_order_id' => $orderId,
-            'customer_order_item_id' => $orderItemId,
-            'movement_code' => $this->makeCode('MV', 'product_stock_movements', 'movement_code'),
             'movement_type' => $movementType,
             'quantity' => $quantity,
             'before_quantity' => $beforeQuantity,
@@ -221,15 +572,218 @@ class StockService
             'movement_date' => now(),
             'note' => $note,
             'created_by' => $adminId,
-        ]);
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nếu database có cột movement_code thì mới tạo mã lịch sử kho.
+        |--------------------------------------------------------------------------
+        */
+        if (Schema::hasColumn('product_stock_movements', 'movement_code')) {
+            $data['movement_code'] = $this->makeCode('MV', 'product_stock_movements', 'movement_code');
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nếu database có cột customer_order_id thì lưu liên kết đơn hàng.
+        |--------------------------------------------------------------------------
+        */
+        if (Schema::hasColumn('product_stock_movements', 'customer_order_id')) {
+            $data['customer_order_id'] = $orderId;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nếu database có cột customer_order_item_id thì lưu liên kết dòng đơn hàng.
+        |--------------------------------------------------------------------------
+        */
+        if (Schema::hasColumn('product_stock_movements', 'customer_order_item_id')) {
+            $data['customer_order_item_id'] = $orderItemId;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trước khi insert, lọc lại theo danh sách cột thật đang có trong database.
+        | Cách này giúp tránh lỗi nếu database của bạn đang thiếu một vài cột phụ.
+        |--------------------------------------------------------------------------
+        */
+        $data = $this->onlyExistingColumns('product_stock_movements', $data);
+
+        ProductStockMovement::create($data);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | QUERY LÔ CÒN HÀNG CÓ THỂ XUẤT
+    |--------------------------------------------------------------------------
+    | Chỉ lấy các lô:
+    | - Thuộc đúng sản phẩm.
+    | - current_quantity > 0.
+    | - is_active = true hoặc null.
+    | - status còn khả dụng.
+    |--------------------------------------------------------------------------
+    */
+    private function availableBatchQuery(Product $product)
+    {
+        $query = ProductBatch::query()
+            ->where('product_id', $product->id)
+            ->where('current_quantity', '>', 0);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Database cũ có thể chưa có cột is_active.
+        |--------------------------------------------------------------------------
+        */
+        if (Schema::hasColumn('product_batches', 'is_active')) {
+            $query->where(function ($q) {
+                $q->whereNull('is_active')
+                    ->orWhere('is_active', true);
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Database cũ/mới có thể dùng nhiều tên status khác nhau.
+        |--------------------------------------------------------------------------
+        */
+        if (Schema::hasColumn('product_batches', 'status')) {
+            $query->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhere('status', '')
+                    ->orWhereIn('status', [
+                        'active',
+                        'available',
+                        'near_expiry',
+                        'near_expired',
+                    ]);
+            });
+        }
+
+        return $query;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | QUY ĐỔI LOẠI SẢN PHẨM
+    |--------------------------------------------------------------------------
+    | Database của bạn đang lưu:
+    | - single: sản phẩm bán lẻ, cần trừ kho.
+    | - combo: combo sản phẩm, mặc định vẫn xử lý như hàng vật lý.
+    | - physical/product: hàng vật lý.
+    | - service/digital: không trừ kho.
+    |--------------------------------------------------------------------------
+    */
+    private function productType(Product $product): string
+    {
+        $type = strtolower(trim((string) ($product->product_type ?? '')));
+
+        if (in_array($type, ['single', 'physical', 'product', 'combo'], true)) {
+            return 'physical';
+        }
+
+        if (in_array($type, ['service', 'digital'], true)) {
+            return 'service';
+        }
+
+        return 'physical';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | KIỂM TRA SẢN PHẨM CÓ QUẢN LÝ THEO LÔ KHÔNG
+    |--------------------------------------------------------------------------
+    */
+    private function trackBatch(Product $product): bool
+    {
+        return (bool) ($product->track_batch ?? false);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | KIỂM TRA CÓ CHO BÁN KHI THIẾU TỒN KHÔNG
+    |--------------------------------------------------------------------------
+    */
+    private function allowSellWithoutStock(Product $product): bool
+    {
+        return (bool) ($product->allow_sell_without_stock ?? false);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | GIỮ TRẠNG THÁI LÔ CÒN KHẢ DỤNG
+    |--------------------------------------------------------------------------
+    */
+    private function keepAvailableStatus(?string $status): string
+    {
+        $status = strtolower(trim((string) $status));
+
+        if (in_array($status, ['near_expiry', 'near_expired'], true)) {
+            return $status;
+        }
+
+        if ($status === 'active') {
+            return 'active';
+        }
+
+        return 'available';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TRẠNG THÁI KHI LÔ HẾT HÀNG
+    |--------------------------------------------------------------------------
+    */
+    private function outOfStockStatus(?string $status): string
+    {
+        $status = strtolower(trim((string) $status));
+
+        if ($status === 'sold_out') {
+            return 'sold_out';
+        }
+
+        return 'out_of_stock';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TẠO MÃ TỰ ĐỘNG
+    |--------------------------------------------------------------------------
+    | Ví dụ: MV260623040039274
+    |
+    | Hàm này chỉ nên gọi khi chắc chắn cột cần kiểm tra đang tồn tại.
+    |--------------------------------------------------------------------------
+    */
     private function makeCode(string $prefix, string $table, string $column): string
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Nếu cột chưa tồn tại thì trả về chuỗi rỗng để tránh lỗi SQL.
+        |--------------------------------------------------------------------------
+        */
+        if (!Schema::hasColumn($table, $column)) {
+            return '';
+        }
+
         do {
             $code = $prefix . now()->format('ymdHis') . random_int(100, 999);
         } while (DB::table($table)->where($column, $code)->exists());
 
         return $code;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | LỌC DATA CHỈ GIỮ CÁC CỘT ĐANG CÓ TRONG DATABASE
+    |--------------------------------------------------------------------------
+    | Dùng để chống lỗi Unknown column khi database cũ/mới chưa đồng bộ.
+    |--------------------------------------------------------------------------
+    */
+    private function onlyExistingColumns(string $table, array $data): array
+    {
+        return array_filter(
+            $data,
+            fn($value, $column) => Schema::hasColumn($table, $column),
+            ARRAY_FILTER_USE_BOTH
+        );
     }
 }
