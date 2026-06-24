@@ -332,6 +332,465 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('admin/css/customerForm.css') }}">
+
+<style>
+    :root {
+
+        /* ===== Màu chữ ===== */
+        --commission-text: #111827;
+        --commission-title: #0f172a;
+        --commission-muted: #64748b;
+        --commission-white: #ffffff;
+
+        /* ===== Màu nền tổng thể ===== */
+        --commission-bg-main: #eef5ff;
+        --commission-bg-light: #f8fbff;
+        --commission-bg-white: #ffffff;
+        --commission-bg-table-head: #e6f0fe;
+        --commission-bg-soft-blue: #eff6ff;
+        --commission-bg-soft-card: #f2f9ff;
+
+        /* ===== Viền ===== */
+        --commission-border: #dbeafe;
+        --commission-border-soft: #edf4ff;
+        --commission-border-blue: #cfe0ff;
+
+        /* ===== Màu xanh dương ===== */
+        --commission-blue: #2563eb;
+        --commission-blue-dark: #1e3a8a;
+        --commission-blue-1: #236ae9;
+        --commission-blue-2: #1984e2;
+        --commission-blue-3: #42b8e1;
+        --commission-cyan: #06b6d4;
+
+        /* ===== Màu xanh lá ===== */
+        --commission-green: #16a34a;
+        --commission-green-1: #17a64c;
+        --commission-green-2: #1baf51;
+        --commission-green-3: #51cc7e;
+        --commission-green-light: #22c55e;
+
+        /* ===== Màu đỏ / cam ===== */
+        --commission-red: #ef4444;
+        --commission-red-1: #f04840;
+        --commission-orange: #f97316;
+        --commission-orange-1: #f35831;
+        --commission-orange-2: #f98a51;
+
+        /* ===== Màu phụ ===== */
+        --commission-purple: #7c3aed;
+        --commission-teal: #0f766e;
+        --commission-warning: #facc15;
+        --commission-danger-bg: #fff7ed;
+
+        /* ===== Shadow ===== */
+        --commission-shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.045);
+        --commission-shadow-md: 0 10px 28px rgba(37, 99, 235, 0.10);
+        --commission-shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.10);
+        --commission-shadow-modal: 0 30px 90px rgba(15, 23, 42, 0.26);
+
+        /* ===== Gradient chính ===== */
+        --commission-gradient-page:
+            radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30%),
+            radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 34%),
+            linear-gradient(135deg, #eef5ff 0%, #f8fbff 55%, #ffffff 100%);
+
+        --commission-gradient-total: linear-gradient(135deg, #236ae9 0%, #1984e2 45%, #42b8e1 100%);
+        --commission-gradient-paid: linear-gradient(135deg, #17a64c 0%, #1baf51 45%, #51cc7e 100%);
+        --commission-gradient-debt: linear-gradient(135deg, #f04840 0%, #f35831 55%, #f98a51 100%);
+
+        --commission-gradient-icon: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+        --commission-gradient-modal-header: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        --commission-gradient-box: linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%);
+        --commission-gradient-table-head: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+    }
+
+    .customer-create-page {
+        min-height: calc(100vh - 80px);
+        padding: 22px;
+        color: var(--commission-text);
+        background: var(--commission-gradient-page);
+        border-radius: 24px;
+    }
+
+    .customer-create-page .breadcrumb {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 14px;
+        margin-bottom: 18px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--commission-border);
+        border-radius: 999px;
+        box-shadow: var(--commission-shadow-sm);
+    }
+
+    .customer-create-page .breadcrumb-item,
+    .customer-create-page .breadcrumb-item.active {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--commission-muted);
+    }
+
+    .customer-create-page .breadcrumb-item a {
+        color: var(--commission-blue);
+        text-decoration: none;
+    }
+
+    .customer-create-page .breadcrumb-item a:hover {
+        color: var(--commission-blue-dark);
+    }
+
+    .customer-create-page>h3 {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px !important;
+        color: var(--commission-title);
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .customer-create-page>h3::before {
+        content: "";
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+        border-radius: 16px;
+        background: var(--commission-gradient-icon);
+        box-shadow: var(--commission-shadow-md);
+    }
+
+    .customer-create-page .alert-danger {
+        color: var(--commission-red-1);
+        background: var(--commission-danger-bg);
+        border: 1px solid rgba(239, 68, 68, 0.22);
+        border-radius: 18px;
+        box-shadow: var(--commission-shadow-sm);
+    }
+
+    .customer-create-page .card {
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--commission-border-soft) !important;
+        border-radius: 24px;
+        box-shadow: var(--commission-shadow-md) !important;
+        backdrop-filter: blur(10px);
+    }
+
+    .customer-create-page .card-body {
+        padding: 24px;
+    }
+
+    .customer-create-page .section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 14px;
+        padding-bottom: 14px;
+        color: var(--commission-title);
+        font-size: 18px;
+        font-weight: 800;
+        border-bottom: 1px solid var(--commission-border-soft);
+    }
+
+    .customer-create-page .section-title i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        color: var(--commission-white);
+        font-size: 15px;
+        background: var(--commission-gradient-icon);
+        border-radius: 14px;
+        box-shadow: var(--commission-shadow-sm);
+    }
+
+    .customer-create-page .form-label {
+        margin-bottom: 7px;
+        color: var(--commission-title);
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .customer-create-page .text-muted {
+        color: var(--commission-muted) !important;
+    }
+
+    .customer-create-page .text-danger {
+        color: var(--commission-red) !important;
+    }
+
+    .customer-create-page .form-control,
+    .customer-create-page .form-select {
+        min-height: 44px;
+        color: var(--commission-text);
+        font-size: 14px;
+        background-color: var(--commission-bg-light);
+        border: 1px solid var(--commission-border-blue);
+        border-radius: 14px;
+        box-shadow: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    .customer-create-page textarea.form-control {
+        min-height: auto;
+        resize: vertical;
+    }
+
+    .customer-create-page .form-control::placeholder {
+        color: #94a3b8;
+    }
+
+    .customer-create-page .form-control:focus,
+    .customer-create-page .form-select:focus {
+        background-color: var(--commission-white);
+        border-color: var(--commission-blue);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .customer-create-page .form-control.is-invalid,
+    .customer-create-page .form-select.is-invalid {
+        border-color: var(--commission-red);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+    }
+
+    .customer-create-page .invalid-feedback,
+    .customer-create-page .text-danger.small {
+        font-weight: 600;
+    }
+
+    .customer-create-page .border-danger-subtle {
+        background: var(--commission-danger-bg);
+        border-color: rgba(239, 68, 68, 0.25) !important;
+    }
+
+    .customer-create-page .radio-card-label {
+        position: relative;
+        display: block;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .customer-create-page .radio-card-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .customer-create-page .radio-card-content {
+        height: 100%;
+        padding: 18px 18px 18px 54px;
+        background: var(--commission-gradient-box);
+        border: 1px solid var(--commission-border);
+        border-radius: 20px;
+        box-shadow: var(--commission-shadow-sm);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .customer-create-page .radio-card-content::before {
+        content: "";
+        position: absolute;
+        top: 21px;
+        left: 18px;
+        width: 22px;
+        height: 22px;
+        background: var(--commission-white);
+        border: 2px solid var(--commission-border-blue);
+        border-radius: 50%;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .customer-create-page .radio-card-content::after {
+        content: "";
+        position: absolute;
+        top: 27px;
+        left: 24px;
+        width: 10px;
+        height: 10px;
+        background: var(--commission-blue);
+        border-radius: 50%;
+        opacity: 0;
+        transform: scale(0.5);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .customer-create-page .radio-card-label:hover .radio-card-content {
+        transform: translateY(-2px);
+        border-color: var(--commission-blue);
+        box-shadow: var(--commission-shadow-md);
+    }
+
+    .customer-create-page .radio-card-input:checked+.radio-card-content {
+        background:
+            linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(6, 182, 212, 0.08)),
+            var(--commission-bg-white);
+        border-color: var(--commission-blue);
+        box-shadow: var(--commission-shadow-md);
+    }
+
+    .customer-create-page .radio-card-input:checked+.radio-card-content::before {
+        border-color: var(--commission-blue);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .customer-create-page .radio-card-input:checked+.radio-card-content::after {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .customer-create-page .radio-card-title {
+        color: var(--commission-title);
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .customer-create-page .radio-card-desc {
+        margin-top: 5px;
+        color: var(--commission-muted);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .customer-create-page .direct-source-box,
+    .customer-create-page .ctv-box {
+        padding: 20px;
+        background: var(--commission-bg-soft-card);
+        border: 1px solid var(--commission-border);
+        border-radius: 22px;
+        box-shadow: var(--commission-shadow-sm);
+    }
+
+    .customer-create-page .direct-source-box h6,
+    .customer-create-page .ctv-box h6 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--commission-blue-dark);
+        font-size: 15px;
+    }
+
+    .customer-create-page .direct-source-box h6::before,
+    .customer-create-page .ctv-box h6::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        background: var(--commission-gradient-icon);
+        border-radius: 999px;
+        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.10);
+    }
+
+    .customer-create-page #ctvCheckText {
+        min-height: 24px;
+        padding: 10px 12px;
+        color: var(--commission-muted);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px dashed var(--commission-border-blue);
+        border-radius: 14px;
+    }
+
+    .customer-create-page .btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 800;
+        border-radius: 14px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .customer-create-page .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .customer-create-page .btn-primary {
+        color: var(--commission-white);
+        background: var(--commission-gradient-total);
+        border: 0;
+        box-shadow: var(--commission-shadow-md);
+    }
+
+    .customer-create-page .btn-primary:hover,
+    .customer-create-page .btn-primary:focus {
+        color: var(--commission-white);
+        box-shadow: var(--commission-shadow-lg);
+    }
+
+    .customer-create-page .btn-outline-primary {
+        color: var(--commission-blue);
+        background: var(--commission-bg-white);
+        border-color: var(--commission-blue);
+    }
+
+    .customer-create-page .btn-outline-primary:hover,
+    .customer-create-page .btn-outline-primary:focus {
+        color: var(--commission-white);
+        background: var(--commission-gradient-total);
+        border-color: transparent;
+        box-shadow: var(--commission-shadow-md);
+    }
+
+    .customer-create-page .btn-light {
+        color: var(--commission-title);
+        background: var(--commission-bg-white);
+        border-color: var(--commission-border-blue) !important;
+        box-shadow: var(--commission-shadow-sm);
+    }
+
+    .customer-create-page .btn-light:hover {
+        color: var(--commission-blue-dark);
+        background: var(--commission-bg-soft-blue);
+        border-color: var(--commission-blue) !important;
+    }
+
+    .customer-create-page .d-flex.justify-content-end {
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--commission-border-soft);
+        border-radius: 22px;
+        box-shadow: var(--commission-shadow-sm);
+        backdrop-filter: blur(10px);
+    }
+
+    @media (max-width: 767.98px) {
+        .customer-create-page {
+            padding: 14px;
+            border-radius: 18px;
+        }
+
+        .customer-create-page>h3 {
+            font-size: 22px;
+        }
+
+        .customer-create-page .card-body {
+            padding: 18px;
+        }
+
+        .customer-create-page .section-title {
+            font-size: 16px;
+        }
+
+        .customer-create-page .direct-source-box,
+        .customer-create-page .ctv-box {
+            padding: 16px;
+        }
+
+        .customer-create-page .d-flex.justify-content-end {
+            flex-direction: column-reverse;
+        }
+
+        .customer-create-page .d-flex.justify-content-end .btn,
+        .customer-create-page .btn.px-4 {
+            width: 100%;
+        }
+    }
+</style>
 @endpush
 
 @push('scripts')
