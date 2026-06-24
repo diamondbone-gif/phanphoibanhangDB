@@ -28,6 +28,12 @@
     @php
     $admin = auth('admin')->user();
 
+    /*
+    |--------------------------------------------------------------------------
+    | ACTIVE MENU - KHÁCH HÀNG
+    |--------------------------------------------------------------------------
+    */
+
     $isCustomerListActive =
     request()->routeIs('admin.customers.index') ||
     request()->is('admin/customers');
@@ -40,25 +46,64 @@
     request()->routeIs('admin.role-status-options.*') ||
     request()->is('admin/role-status-options*');
 
-    $isCustomerCareActive =
-    request()->routeIs('admin.customer-care.*') ||
-    request()->is('admin/customer-care*');
-
     $isCustomerMenuOpen =
     request()->routeIs('admin.customers.*') ||
     $isCustomerOptionsActive ||
-    $isRoleStatusOptionsActive ||
-    $isCustomerCareActive;
+    $isRoleStatusOptionsActive;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACTIVE MENU - BÁN HÀNG
+    |--------------------------------------------------------------------------
+    */
+
+    $isSalesCreateActive =
+    request()->routeIs('admin.orders.create') ||
+    request()->is('admin/sales/orders/create');
+
+    $isSalesListActive =
+    request()->routeIs('admin.orders.index') ||
+    request()->routeIs('admin.orders.show') ||
+    request()->routeIs('admin.orders.edit') ||
+    request()->routeIs('admin.orders.update') ||
+    request()->routeIs('admin.orders.complete') ||
+    request()->routeIs('admin.orders.cancel') ||
+    request()->is('admin/sales/orders');
+
+    $isSalesMenuOpen =
+    $isSalesCreateActive ||
+    $isSalesListActive ||
+    request()->is('admin/sales/orders*');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACTIVE MENU - KHO SẢN PHẨM
+    |--------------------------------------------------------------------------
+    */
+
+    $isProductListActive =
+    request()->routeIs('admin.products.*') ||
+    request()->is('admin/products*');
+
+    $isInventoryActive =
+    request()->routeIs('admin.inventory.*') ||
+    request()->is('admin/inventory*');
+
+    $isProductCategoryActive =
+    request()->routeIs('admin.product-categories.*') ||
+    request()->is('admin/product-categories*');
+
+    $isProductComboActive =
+    request()->routeIs('admin.product-events.*') ||
+    request()->is('admin/product-events*');
 
     $isProductWarehouseActive =
-    request()->routeIs('admin.products.*') ||
-    request()->routeIs('admin.inventories.*') ||
-    request()->routeIs('admin.product-categories.*') ||
-    request()->routeIs('admin.product-combos.*') ||
-    request()->is('admin/products*') ||
-    request()->is('admin/inventories*') ||
-    request()->is('admin/product-categories*') ||
-    request()->is('admin/product-combos*');
+    $isProductListActive ||
+    $isInventoryActive ||
+    $isProductCategoryActive ||
+    $isProductComboActive;
     @endphp
 
     {{-- MENU BÊN TRÁI --}}
@@ -69,6 +114,7 @@
         </div>
 
         <ul class="menu">
+            {{-- Dashboard --}}
             <li>
                 <a href="{{ route('admin.dashboard') }}"
                     class="menu-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
@@ -77,6 +123,7 @@
                 </a>
             </li>
 
+            {{-- Khách hàng --}}
             <li class="menu-section-title">Khách hàng</li>
 
             <li class="menu-item has-submenu {{ $isCustomerMenuOpen ? 'open' : '' }}">
@@ -111,16 +158,10 @@
                             <span>Vai trò</span>
                         </a>
                     </li>
-
-                    <li>
-                        <a href="javascript:void(0)" class="submenu-link {{ $isCustomerCareActive ? 'active' : '' }}">
-                            <i class="fa-solid fa-headset"></i>
-                            <span>Chăm sóc khách hàng</span>
-                        </a>
-                    </li>
                 </ul>
             </li>
 
+            {{-- Cộng tác viên --}}
             <li>
                 <a href="{{ route('admin.ctvs.index') }}"
                     class="menu-link {{ request()->routeIs('admin.ctvs.*') ? 'active' : '' }}">
@@ -129,40 +170,58 @@
                 </a>
             </li>
 
-            <li>
-                <a href="javascript:void(0)" class="menu-link">
+            {{-- Quản lý --}}
+            <li class="menu-section-title">Quản lý</li>
+
+            {{-- Bán hàng --}}
+            <li class="menu-item has-submenu {{ $isSalesMenuOpen ? 'open' : '' }}">
+                <button class="submenu-toggle {{ $isSalesMenuOpen ? 'active' : '' }}" type="button"
+                    aria-expanded="{{ $isSalesMenuOpen ? 'true' : 'false' }}">
                     <i class="fa-solid fa-cart-shopping"></i>
                     <span>Bán hàng</span>
-                </a>
+                    <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                </button>
+
+                <ul class="submenu">
+                    <li>
+                        <a href="{{ route('admin.orders.create') }}"
+                            class="submenu-link {{ $isSalesCreateActive ? 'active' : '' }}">
+                            <i class="fa-solid fa-cart-plus"></i>
+                            <span>Lên đơn hàng</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('admin.orders.index') }}"
+                            class="submenu-link {{ $isSalesListActive ? 'active' : '' }}">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>Danh sách đơn hàng</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
 
-            <li>
-                <a href="javascript:void(0)" class="menu-link">
-                    <i class="fa-solid fa-file-invoice-dollar"></i>
-                    <span>Hóa đơn</span>
-                </a>
-            </li>
-
+            {{-- Kho sản phẩm --}}
             <li class="menu-item has-submenu {{ $isProductWarehouseActive ? 'open' : '' }}">
                 <button class="submenu-toggle {{ $isProductWarehouseActive ? 'active' : '' }}" type="button"
                     aria-expanded="{{ $isProductWarehouseActive ? 'true' : 'false' }}">
-                    <i class="fa-solid fa-box-open"></i>
+                    <i class="fa-solid fa-boxes-stacked"></i>
                     <span>Kho sản phẩm</span>
                     <i class="fa-solid fa-chevron-down submenu-arrow"></i>
                 </button>
 
                 <ul class="submenu">
                     <li>
-                        <a href="javascript:void(0)"
-                            class="submenu-link {{ request()->routeIs('admin.products.*') || request()->is('admin/products*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.products.index') }}"
+                            class="submenu-link {{ $isProductListActive ? 'active' : '' }}">
                             <i class="fa-solid fa-box"></i>
                             <span>Danh sách sản phẩm</span>
                         </a>
                     </li>
 
                     <li>
-                        <a href="javascript:void(0)"
-                            class="submenu-link {{ request()->routeIs('admin.inventories.*') || request()->is('admin/inventories*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.inventory.index') }}"
+                            class="submenu-link {{ $isInventoryActive ? 'active' : '' }}">
                             <i class="fa-solid fa-warehouse"></i>
                             <span>Quản lý tồn kho</span>
                         </a>
@@ -170,15 +229,14 @@
 
                     <li>
                         <a href="javascript:void(0)"
-                            class="submenu-link {{ request()->routeIs('admin.product-categories.*') || request()->is('admin/product-categories*') ? 'active' : '' }}">
+                            class="submenu-link {{ $isProductCategoryActive ? 'active' : '' }}">
                             <i class="fa-solid fa-layer-group"></i>
                             <span>Danh mục sản phẩm</span>
                         </a>
                     </li>
 
                     <li>
-                        <a href="javascript:void(0)"
-                            class="submenu-link {{ request()->routeIs('admin.product-combos.*') || request()->is('admin/product-combos*') ? 'active' : '' }}">
+                        <a href="javascript:void(0)" class="submenu-link {{ $isProductComboActive ? 'active' : '' }}">
                             <i class="fa-solid fa-tags"></i>
                             <span>Combo / Khuyến mãi</span>
                         </a>
@@ -186,6 +244,15 @@
                 </ul>
             </li>
 
+            {{-- Hóa đơn --}}
+            <li>
+                <a href="javascript:void(0)" class="menu-link">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Hóa đơn</span>
+                </a>
+            </li>
+
+            {{-- Hoa hồng --}}
             <li>
                 <a href="javascript:void(0)" class="menu-link">
                     <i class="fa-solid fa-money-bill-trend-up"></i>
@@ -193,6 +260,7 @@
                 </a>
             </li>
 
+            {{-- Báo cáo --}}
             <li>
                 <a href="javascript:void(0)" class="menu-link">
                     <i class="fa-solid fa-chart-line"></i>
@@ -200,6 +268,7 @@
                 </a>
             </li>
 
+            {{-- Cài đặt --}}
             <li>
                 <a href="javascript:void(0)" class="menu-link">
                     <i class="fa-solid fa-gear"></i>
@@ -229,6 +298,7 @@
                     <span class="user-name">
                         {{ $admin->name ?? 'Admin' }}
                     </span>
+
                     <span class="user-role">
                         {{ $admin->account_type ?? 'Quản lý vận hành' }}
                     </span>
@@ -242,6 +312,7 @@
                     <div class="name">
                         {{ $admin->name ?? 'Admin' }}
                     </div>
+
                     <div class="email">
                         {{ $admin->email ?? '' }}
                     </div>
@@ -259,6 +330,7 @@
 
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
+
                     <button class="dropdown-item-user logout" type="submit">
                         <i class="fa-solid fa-right-from-bracket"></i>
                         Đăng xuất

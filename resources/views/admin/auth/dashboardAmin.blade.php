@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     {{-- FontAwesome --}}
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     {{-- Google Font --}}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -104,6 +104,17 @@
     $isInventoryActive ||
     $isProductCategoryActive ||
     $isProductComboActive;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACTIVE MENU - HOA HỒNG
+    |--------------------------------------------------------------------------
+    */
+
+    $isCommissionActive =
+    request()->routeIs('admin.commissions.*') ||
+    request()->is('admin/commissions*');
     @endphp
 
     {{-- MENU BÊN TRÁI --}}
@@ -254,7 +265,8 @@
 
             {{-- Hoa hồng --}}
             <li>
-                <a href="javascript:void(0)" class="menu-link">
+                <a href="{{ route('admin.commissions.index') }}"
+                    class="menu-link {{ $isCommissionActive ? 'active' : '' }}">
                     <i class="fa-solid fa-money-bill-trend-up"></i>
                     <span>Hoa hồng</span>
                 </a>

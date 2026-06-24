@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\CustomerCommissionController;
+use App\Http\Controllers\Admin\CommissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -211,7 +212,39 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | HOA HỒNG CỘNG TÁC VIÊN
+        | HOA HỒNG CỘNG TÁC VIÊN - GIAO DIỆN MỚI
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('commissions', [CommissionController::class, 'index'])
+            ->name('commissions.index');
+
+        Route::get('commissions/{ctv}/detail', [CommissionController::class, 'detail'])
+            ->whereNumber('ctv')
+            ->name('commissions.detail');
+
+        Route::post('commissions/{ctv}/pay', [CommissionController::class, 'pay'])
+            ->whereNumber('ctv')
+            ->name('commissions.pay');
+
+        Route::get('commissions/{ctv}/history', [CommissionController::class, 'history'])
+            ->whereNumber('ctv')
+            ->name('commissions.history');
+
+        Route::get('commissions/{ctv}/history/{payout}/edit', [CommissionController::class, 'editHistory'])
+            ->whereNumber('ctv')
+            ->whereNumber('payout')
+            ->name('commissions.history.edit');
+
+        Route::put('commissions/{ctv}/history/{payout}', [CommissionController::class, 'updateHistory'])
+            ->whereNumber('ctv')
+            ->whereNumber('payout')
+            ->name('commissions.history.update');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HOA HỒNG CỘNG TÁC VIÊN - ROUTE CŨ
         |--------------------------------------------------------------------------
         */
 

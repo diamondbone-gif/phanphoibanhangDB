@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\CtvController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\CustomerCommissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,11 +94,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         /*
         |--------------------------------------------------------------------------
         | QUẢN LÝ KHÁCH HÀNG
-        |--------------------------------------------------------------------------
-        | CHECK CTV / NGƯỜI GIỚI THIỆU
-        |--------------------------------------------------------------------------
-        | Route customers/check-referrer phải đặt trước customers/{customer}
-        | để Laravel không hiểu "check-referrer" là id khách hàng.
         |--------------------------------------------------------------------------
         */
 
@@ -215,6 +211,24 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
+        | HOA HỒNG CỘNG TÁC VIÊN
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('customer-commissions', [CustomerCommissionController::class, 'index'])
+            ->name('customer-commissions.index');
+
+        Route::post('customer-commissions/{commission}/mark-paid', [CustomerCommissionController::class, 'markPaid'])
+            ->name('customer-commissions.mark-paid')
+            ->whereNumber('commission');
+
+        Route::post('customer-commissions/{commission}/mark-unpaid', [CustomerCommissionController::class, 'markUnpaid'])
+            ->name('customer-commissions.mark-unpaid')
+            ->whereNumber('commission');
+
+
+        /*
+        |--------------------------------------------------------------------------
         | KHO SẢN PHẨM - DANH SÁCH SẢN PHẨM
         |--------------------------------------------------------------------------
         */
@@ -243,7 +257,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])
             ->name('products.toggle-status')
             ->whereNumber('product');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -278,7 +291,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('inventory/movement-history', [ProductController::class, 'movementHistory'])
             ->name('inventory.movement-history');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -315,7 +327,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::delete('sales/orders/{order:order_code}', [OrderController::class, 'destroy'])
             ->name('orders.destroy');
-
 
         /*
         |--------------------------------------------------------------------------
