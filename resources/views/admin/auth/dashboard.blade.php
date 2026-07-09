@@ -1,0 +1,2232 @@
+@extends('admin.auth.dashboardAmin')
+
+@section('title', 'Dashboard | BoneCare CRM')
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('admin/css/bonecare-dashboard.css') }}">
+
+<style>
+    :root {
+
+        /* ===== Màu chữ ===== */
+
+        --commission-text: #111827;
+
+        --commission-title: #0f172a;
+
+        --commission-muted: #64748b;
+
+        --commission-white: #ffffff;
+
+
+
+        /* ===== Màu nền tổng thể ===== */
+
+        --commission-bg-main: #eef5ff;
+
+        --commission-bg-light: #f8fbff;
+
+        --commission-bg-white: #ffffff;
+
+        --commission-bg-table-head: #e6f0fe;
+
+        --commission-bg-soft-blue: #eff6ff;
+
+        --commission-bg-soft-card: #f2f9ff;
+
+
+
+        /* ===== Viền ===== */
+
+        --commission-border: #dbeafe;
+
+        --commission-border-soft: #edf4ff;
+
+        --commission-border-blue: #cfe0ff;
+
+
+
+        /* ===== Màu xanh dương ===== */
+
+        --commission-blue: #2563eb;
+
+        --commission-blue-dark: #1e3a8a;
+
+        --commission-blue-1: #236ae9;
+
+        --commission-blue-2: #1984e2;
+
+        --commission-blue-3: #42b8e1;
+
+        --commission-cyan: #06b6d4;
+
+
+
+        /* ===== Màu xanh lá ===== */
+
+        --commission-green: #16a34a;
+
+        --commission-green-1: #17a64c;
+
+        --commission-green-2: #1baf51;
+
+        --commission-green-3: #51cc7e;
+
+        --commission-green-light: #22c55e;
+
+
+
+        /* ===== Màu đỏ / cam ===== */
+
+        --commission-red: #ef4444;
+
+        --commission-red-1: #f04840;
+
+        --commission-orange: #f97316;
+
+        --commission-orange-1: #f35831;
+
+        --commission-orange-2: #f98a51;
+
+
+
+        /* ===== Màu phụ ===== */
+
+        --commission-purple: #7c3aed;
+
+        --commission-teal: #0f766e;
+
+        --commission-warning: #facc15;
+
+        --commission-danger-bg: #fff7ed;
+
+
+
+        /* ===== Shadow ===== */
+
+        --commission-shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.045);
+
+        --commission-shadow-md: 0 10px 28px rgba(37, 99, 235, 0.10);
+
+        --commission-shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.10);
+
+        --commission-shadow-modal: 0 30px 90px rgba(15, 23, 42, 0.26);
+
+
+
+        /* ===== Gradient chính ===== */
+
+        --commission-gradient-page:
+
+            radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30%),
+
+            radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 34%),
+
+            linear-gradient(135deg, #eef5ff 0%, #f8fbff 55%, #ffffff 100%);
+
+
+
+        --commission-gradient-total: linear-gradient(135deg, #236ae9 0%, #1984e2 45%, #42b8e1 100%);
+
+        --commission-gradient-paid: linear-gradient(135deg, #17a64c 0%, #1baf51 45%, #51cc7e 100%);
+
+        --commission-gradient-debt: linear-gradient(135deg, #f04840 0%, #f35831 55%, #f98a51 100%);
+
+
+
+        --commission-gradient-icon: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+
+        --commission-gradient-modal-header: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+
+        --commission-gradient-box: linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%);
+
+        --commission-gradient-table-head: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | KHUNG TỔNG THỂ
+    |--------------------------------------------------------------------------
+    */
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    html {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    body {
+        max-width: 100%;
+        overflow-x: hidden;
+        color: var(--commission-text);
+        background: var(--commission-gradient-page);
+        background-attachment: fixed;
+    }
+
+    .empty-space {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        min-height: 100vh;
+        padding: clamp(18px, 2.3vw, 32px);
+        overflow: hidden;
+        isolation: isolate;
+        background: var(--commission-gradient-page);
+    }
+
+    .empty-space::before {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        content: "";
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 16% 10%,
+                color-mix(in srgb,
+                    var(--commission-blue) 18%,
+                    transparent),
+                transparent 31%),
+            radial-gradient(circle at 88% 16%,
+                color-mix(in srgb,
+                    var(--commission-cyan) 16%,
+                    transparent),
+                transparent 33%),
+            radial-gradient(circle at 54% 92%,
+                color-mix(in srgb,
+                    var(--commission-purple) 10%,
+                    transparent),
+                transparent 35%);
+    }
+
+    .empty-space::after {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        content: "";
+        pointer-events: none;
+        opacity: 0.32;
+        background-image:
+            linear-gradient(color-mix(in srgb,
+                    var(--commission-border) 44%,
+                    transparent) 1px,
+                transparent 1px),
+            linear-gradient(90deg,
+                color-mix(in srgb,
+                    var(--commission-border) 44%,
+                    transparent) 1px,
+                transparent 1px);
+        background-size: 42px 42px;
+    }
+
+    .empty-space>.row {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .empty-space [class*="col-"] {
+        min-width: 0;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | THANH TIÊU ĐỀ
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-topbar {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 26px;
+        padding: clamp(18px, 2vw, 24px);
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-white) 74%,
+                var(--commission-border));
+        border-radius: 24px;
+        background: var(--commission-bg-white);
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-bg-white) 82%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-blue) 68%,
+                    transparent));
+        box-shadow:
+            var(--commission-shadow-md),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 94%,
+                transparent);
+        -webkit-backdrop-filter: blur(24px) saturate(165%);
+        backdrop-filter: blur(24px) saturate(165%);
+    }
+
+    .bc-topbar::before {
+        position: absolute;
+        top: -80%;
+        left: -18%;
+        width: 48%;
+        height: 220%;
+        content: "";
+        pointer-events: none;
+        opacity: 0.5;
+        transform: rotate(18deg);
+        background:
+            linear-gradient(90deg,
+                transparent,
+                color-mix(in srgb,
+                    var(--commission-white) 84%,
+                    transparent),
+                transparent);
+    }
+
+    .bc-topbar>div {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .bc-page-title {
+        max-width: 100%;
+        margin: 0;
+        color: var(--commission-title);
+        font-size: clamp(1.45rem, 2.3vw, 2rem);
+        font-weight: 800;
+        line-height: 1.25;
+        letter-spacing: -0.035em;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-page-subtitle {
+        max-width: 100%;
+        margin: 7px 0 0;
+        color: var(--commission-muted);
+        font-size: clamp(0.82rem, 1.2vw, 0.94rem);
+        font-weight: 500;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-top-actions {
+        display: flex;
+        flex: 0 0 auto;
+        min-width: 0;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NÚT
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-btn {
+        position: relative;
+        display: inline-flex;
+        min-width: 0;
+        min-height: 42px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 16px;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-border-blue) 82%,
+                var(--commission-white));
+        border-radius: 14px;
+        color: var(--commission-blue-dark);
+        background: var(--commission-bg-white);
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-bg-white) 84%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-blue) 72%,
+                    transparent));
+        box-shadow:
+            var(--commission-shadow-sm),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 92%,
+                transparent);
+        font-size: 0.88rem;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+        text-decoration: none;
+        white-space: normal;
+        transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            border-color 0.25s ease,
+            background 0.25s ease,
+            color 0.25s ease;
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        backdrop-filter: blur(16px) saturate(150%);
+    }
+
+    .bc-btn::before {
+        position: absolute;
+        top: -100%;
+        left: -45%;
+        width: 48%;
+        height: 280%;
+        content: "";
+        pointer-events: none;
+        opacity: 0;
+        transform: rotate(25deg);
+        background:
+            linear-gradient(90deg,
+                transparent,
+                color-mix(in srgb,
+                    var(--commission-white) 80%,
+                    transparent),
+                transparent);
+        transition:
+            left 0.55s ease,
+            opacity 0.35s ease;
+    }
+
+    .bc-btn:hover {
+        color: var(--commission-blue);
+        border-color: var(--commission-blue);
+        box-shadow: var(--commission-shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .bc-btn:hover::before {
+        left: 110%;
+        opacity: 1;
+    }
+
+    .bc-btn:focus-visible {
+        outline: 3px solid color-mix(in srgb,
+                var(--commission-blue) 25%,
+                transparent);
+        outline-offset: 3px;
+    }
+
+    .bc-btn-primary {
+        color: var(--commission-white);
+        border-color:
+            color-mix(in srgb,
+                var(--commission-blue) 74%,
+                var(--commission-white));
+        background: var(--commission-gradient-total);
+        box-shadow:
+            var(--commission-shadow-md),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 30%,
+                transparent);
+    }
+
+    .bc-btn-primary:hover {
+        color: var(--commission-white);
+        border-color: var(--commission-cyan);
+        background: var(--commission-gradient-icon);
+        box-shadow: var(--commission-shadow-lg);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | THẺ LIQUID GLASS
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-card {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-white) 72%,
+                var(--commission-border));
+        border-radius: 24px;
+        background: var(--commission-bg-white);
+        background:
+            linear-gradient(145deg,
+                color-mix(in srgb,
+                    var(--commission-bg-white) 84%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-card) 68%,
+                    transparent));
+        box-shadow:
+            var(--commission-shadow-md),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 94%,
+                transparent),
+            inset 0 -1px 0 color-mix(in srgb,
+                var(--commission-border) 48%,
+                transparent);
+        transition:
+            transform 0.3s ease,
+            box-shadow 0.3s ease,
+            border-color 0.3s ease;
+        -webkit-backdrop-filter: blur(24px) saturate(165%);
+        backdrop-filter: blur(24px) saturate(165%);
+    }
+
+    .bc-card::before {
+        position: absolute;
+        top: -90px;
+        right: -70px;
+        width: 180px;
+        height: 180px;
+        content: "";
+        pointer-events: none;
+        opacity: 0.62;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle,
+                color-mix(in srgb,
+                    var(--commission-blue-3) 18%,
+                    transparent),
+                transparent 68%);
+    }
+
+    .bc-card::after {
+        position: absolute;
+        top: 0;
+        left: 9%;
+        width: 62%;
+        height: 1px;
+        content: "";
+        pointer-events: none;
+        background:
+            linear-gradient(90deg,
+                transparent,
+                color-mix(in srgb,
+                    var(--commission-white) 92%,
+                    transparent),
+                transparent);
+    }
+
+    .bc-card:hover {
+        border-color:
+            color-mix(in srgb,
+                var(--commission-blue) 30%,
+                var(--commission-border));
+        box-shadow:
+            var(--commission-shadow-lg),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 96%,
+                transparent);
+        transform: translateY(-4px);
+    }
+
+    .bc-card>* {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .bc-card-body {
+        min-width: 0;
+        padding: clamp(17px, 2vw, 22px);
+    }
+
+    .bc-card-header {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        min-height: 68px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 18px 22px;
+        border-bottom: 1px solid color-mix(in srgb,
+                var(--commission-border) 72%,
+                transparent);
+        background:
+            linear-gradient(180deg,
+                color-mix(in srgb,
+                    var(--commission-bg-white) 52%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-blue) 30%,
+                    transparent));
+    }
+
+    .bc-card-title {
+        min-width: 0;
+        max-width: 100%;
+        margin: 0;
+        color: var(--commission-title);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.4;
+        letter-spacing: -0.018em;
+        overflow-wrap: anywhere;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHỮ VÀ SỐ LIỆU
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-mini-label {
+        max-width: 100%;
+        color: var(--commission-muted);
+        font-size: 0.76rem;
+        font-weight: 800;
+        line-height: 1.45;
+        letter-spacing: 0.055em;
+        text-transform: uppercase;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-big-number {
+        max-width: 100%;
+        margin-top: 7px;
+        color: var(--commission-title);
+        font-size: clamp(1.65rem, 3vw, 2.5rem);
+        font-weight: 800;
+        line-height: 1.12;
+        letter-spacing: -0.045em;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-muted {
+        color: var(--commission-muted);
+    }
+
+    .bc-row-title {
+        max-width: 100%;
+        color: var(--commission-title);
+        font-size: 0.9rem;
+        font-weight: 750;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-row-subtitle {
+        max-width: 100%;
+        margin-top: 3px;
+        color: var(--commission-muted);
+        font-size: 0.79rem;
+        font-weight: 500;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-row-number {
+        flex: 0 0 auto;
+        max-width: 46%;
+        color: var(--commission-title);
+        font-size: 0.92rem;
+        font-weight: 800;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-stat-value {
+        max-width: 100%;
+        margin-top: 5px;
+        color: var(--commission-title);
+        font-size: clamp(1.3rem, 2.3vw, 1.55rem);
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.035em;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-stat-change {
+        display: inline-flex;
+        max-width: 100%;
+        align-items: center;
+        gap: 5px;
+        margin-top: 7px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        flex-wrap: wrap;
+    }
+
+    .bc-percent-green {
+        color: var(--commission-green);
+    }
+
+    .bc-percent-red {
+        color: var(--commission-red);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NHÃN VÀ BADGE
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-pill,
+    .bc-alert-pill,
+    .bc-badge {
+        display: inline-flex;
+        flex: 0 0 auto;
+        max-width: 100%;
+        min-height: 31px;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-border-blue) 80%,
+                var(--commission-white));
+        border-radius: 999px;
+        color: var(--commission-blue-dark);
+        background: var(--commission-bg-white);
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-bg-white) 82%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-blue) 72%,
+                    transparent));
+        box-shadow:
+            var(--commission-shadow-sm),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 90%,
+                transparent);
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1.2;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        -webkit-backdrop-filter: blur(14px) saturate(145%);
+        backdrop-filter: blur(14px) saturate(145%);
+    }
+
+    .bc-alert-pill {
+        color: var(--commission-orange-1);
+        border-color:
+            color-mix(in srgb,
+                var(--commission-orange-2) 35%,
+                var(--commission-border));
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-danger-bg) 88%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-white) 76%,
+                    transparent));
+    }
+
+    .bc-badge {
+        min-height: 27px;
+        padding: 6px 9px;
+        font-size: 0.68rem;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | THANH TIẾN ĐỘ
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-progress {
+        position: relative;
+        width: 100%;
+        height: 12px;
+        margin-top: 22px;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-border-blue) 68%,
+                var(--commission-white));
+        border-radius: 999px;
+        background:
+            color-mix(in srgb,
+                var(--commission-bg-table-head) 75%,
+                transparent);
+        box-shadow:
+            inset 0 2px 6px color-mix(in srgb,
+                var(--commission-blue-dark) 8%,
+                transparent);
+    }
+
+    .bc-progress-bar {
+        position: relative;
+        max-width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: inherit;
+        background: var(--commission-gradient-total);
+        box-shadow:
+            0 5px 14px color-mix(in srgb,
+                var(--commission-blue) 26%,
+                transparent);
+        transition: width 0.6s ease;
+    }
+
+    .bc-progress-bar::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        background:
+            linear-gradient(110deg,
+                transparent 20%,
+                color-mix(in srgb,
+                    var(--commission-white) 46%,
+                    transparent) 48%,
+                transparent 72%);
+        transform: translateX(-100%);
+        animation: bcGlassProgress 2.8s ease-in-out infinite;
+    }
+
+    @keyframes bcGlassProgress {
+        0% {
+            transform: translateX(-100%);
+        }
+
+        55%,
+        100% {
+            transform: translateX(100%);
+        }
+    }
+
+    .bc-progress-footer {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+        gap: 10px;
+        margin-top: 9px;
+        color: var(--commission-muted);
+        font-size: 0.72rem;
+        font-weight: 650;
+    }
+
+    .bc-progress-footer span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-progress-footer span:nth-child(2) {
+        text-align: center;
+    }
+
+    .bc-progress-footer span:last-child {
+        text-align: right;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BIỂU TƯỢNG
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-square-icon {
+        position: relative;
+        display: inline-flex;
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-white) 66%,
+                var(--commission-border-blue));
+        border-radius: 15px;
+        color: var(--commission-white);
+        background: var(--commission-gradient-icon);
+        box-shadow:
+            var(--commission-shadow-sm),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 36%,
+                transparent);
+        font-size: 1rem;
+    }
+
+    .bc-square-icon::before {
+        position: absolute;
+        top: -34%;
+        left: -25%;
+        width: 80%;
+        height: 70%;
+        content: "";
+        border-radius: 50%;
+        background:
+            color-mix(in srgb,
+                var(--commission-white) 28%,
+                transparent);
+        filter: blur(4px);
+    }
+
+    .bc-square-icon i {
+        position: relative;
+        z-index: 1;
+    }
+
+    .bc-square-icon.soft-blue,
+    .soft-blue {
+        color: var(--commission-blue);
+        border-color: var(--commission-border-blue);
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-bg-soft-blue) 92%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-white) 76%,
+                    transparent));
+    }
+
+    .bc-square-icon.soft-green,
+    .soft-green {
+        color: var(--commission-green);
+        border-color:
+            color-mix(in srgb,
+                var(--commission-green-3) 35%,
+                var(--commission-border));
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-green-3) 17%,
+                    var(--commission-bg-white)),
+                color-mix(in srgb,
+                    var(--commission-bg-white) 82%,
+                    transparent));
+    }
+
+    .bc-square-icon.soft-red,
+    .soft-red {
+        color: var(--commission-red);
+        border-color:
+            color-mix(in srgb,
+                var(--commission-red) 28%,
+                var(--commission-border));
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-red) 11%,
+                    var(--commission-bg-white)),
+                color-mix(in srgb,
+                    var(--commission-danger-bg) 82%,
+                    transparent));
+    }
+
+    .bc-square-icon.soft-orange,
+    .soft-orange {
+        color: var(--commission-orange);
+        border-color:
+            color-mix(in srgb,
+                var(--commission-orange-2) 32%,
+                var(--commission-border));
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-orange-2) 14%,
+                    var(--commission-bg-white)),
+                color-mix(in srgb,
+                    var(--commission-danger-bg) 86%,
+                    transparent));
+    }
+
+    .bc-square-icon.soft-purple,
+    .soft-purple {
+        color: var(--commission-purple);
+        border-color:
+            color-mix(in srgb,
+                var(--commission-purple) 26%,
+                var(--commission-border));
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-purple) 12%,
+                    var(--commission-bg-white)),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-blue) 84%,
+                    transparent));
+    }
+
+    .bc-square-icon.soft-cyan,
+    .soft-cyan {
+        color: var(--commission-cyan);
+        border-color:
+            color-mix(in srgb,
+                var(--commission-cyan) 28%,
+                var(--commission-border));
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-cyan) 12%,
+                    var(--commission-bg-white)),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-card) 86%,
+                    transparent));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PHỄU CHUYỂN ĐỔI VÀ THỐNG KÊ
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-conversion-row,
+    .bc-stat-card {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        align-items: center;
+        gap: 13px;
+    }
+
+    .bc-conversion-row {
+        justify-content: space-between;
+        padding: 13px 0;
+        border-bottom: 1px solid color-mix(in srgb,
+                var(--commission-border-soft) 90%,
+                transparent);
+    }
+
+    .bc-conversion-row:last-child {
+        border-bottom: 0;
+    }
+
+    .bc-conversion-left {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .bc-conversion-left>div:last-child {
+        min-width: 0;
+    }
+
+    .bc-stat-card {
+        min-height: 116px;
+        padding: 20px;
+    }
+
+    .bc-stat-card>div:last-child {
+        min-width: 0;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BIỂU ĐỒ
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-chart-box {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        height: clamp(270px, 34vw, 360px);
+        padding: 18px 20px 22px;
+    }
+
+    .bc-chart-box canvas {
+        display: block;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+    }
+
+    .bc-donut-wrap {
+        position: relative;
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        min-height: 210px;
+        align-items: center;
+        justify-content: center;
+        padding: 18px 22px 8px;
+    }
+
+    .bc-donut-wrap canvas {
+        display: block;
+        width: min(100%, 210px) !important;
+        max-width: 210px !important;
+        height: auto !important;
+        max-height: 210px !important;
+    }
+
+    .bc-legend-list {
+        width: 100%;
+        min-width: 0;
+        padding: 8px 22px 20px;
+    }
+
+    .bc-legend-row {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 9px 0;
+        color: var(--commission-muted);
+        border-bottom: 1px solid color-mix(in srgb,
+                var(--commission-border-soft) 88%,
+                transparent);
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .bc-legend-row:last-child {
+        border-bottom: 0;
+    }
+
+    .bc-legend-row strong {
+        flex: 0 0 auto;
+        color: var(--commission-title);
+        font-weight: 800;
+    }
+
+    .bc-legend-left {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        align-items: center;
+        gap: 9px;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-dot {
+        display: inline-block;
+        flex: 0 0 10px;
+        width: 10px;
+        height: 10px;
+        border: 2px solid color-mix(in srgb,
+                var(--commission-white) 84%,
+                transparent);
+        border-radius: 50%;
+        background: var(--commission-blue);
+        box-shadow:
+            0 0 0 3px color-mix(in srgb,
+                var(--commission-blue) 12%,
+                transparent);
+    }
+
+    .bc-dot.blue,
+    .bc-dot.primary {
+        background: var(--commission-blue);
+    }
+
+    .bc-dot.green,
+    .bc-dot.success {
+        background: var(--commission-green);
+    }
+
+    .bc-dot.red,
+    .bc-dot.danger {
+        background: var(--commission-red);
+    }
+
+    .bc-dot.orange,
+    .bc-dot.warning {
+        background: var(--commission-orange);
+    }
+
+    .bc-dot.purple {
+        background: var(--commission-purple);
+    }
+
+    .bc-dot.cyan,
+    .bc-dot.info {
+        background: var(--commission-cyan);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DANH SÁCH
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-list {
+        width: 100%;
+        min-width: 0;
+        padding: 4px 18px 18px;
+    }
+
+    .bc-list-row {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-top: 10px;
+        padding: 12px;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-border-soft) 88%,
+                transparent);
+        border-radius: 16px;
+        background: var(--commission-bg-white);
+        background:
+            linear-gradient(135deg,
+                color-mix(in srgb,
+                    var(--commission-bg-white) 72%,
+                    transparent),
+                color-mix(in srgb,
+                    var(--commission-bg-soft-card) 54%,
+                    transparent));
+        box-shadow:
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 88%,
+                transparent);
+        transition:
+            transform 0.25s ease,
+            border-color 0.25s ease,
+            box-shadow 0.25s ease,
+            background 0.25s ease;
+        -webkit-backdrop-filter: blur(14px) saturate(145%);
+        backdrop-filter: blur(14px) saturate(145%);
+    }
+
+    .bc-list-row:hover {
+        border-color:
+            color-mix(in srgb,
+                var(--commission-blue) 28%,
+                var(--commission-border));
+        box-shadow: var(--commission-shadow-sm);
+        transform: translateY(-2px);
+    }
+
+    .bc-list-left {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .bc-list-left>div:last-child {
+        min-width: 0;
+    }
+
+    .bc-list-price {
+        flex: 0 0 auto;
+        max-width: 44%;
+        color: var(--commission-green);
+        font-size: 0.84rem;
+        font-weight: 800;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .bc-link-small {
+        flex: 0 0 auto;
+        max-width: 45%;
+        color: var(--commission-blue);
+        font-size: 0.76rem;
+        font-weight: 750;
+        text-align: right;
+        text-decoration: none;
+        overflow-wrap: anywhere;
+        transition:
+            color 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    .bc-link-small:hover {
+        color: var(--commission-blue-dark);
+        transform: translateX(2px);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TIMELINE
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-timeline {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        padding: 18px 22px 22px;
+    }
+
+    .bc-timeline::before {
+        position: absolute;
+        top: 30px;
+        bottom: 34px;
+        left: 43px;
+        width: 2px;
+        content: "";
+        border-radius: 999px;
+        background:
+            linear-gradient(to bottom,
+                var(--commission-blue),
+                var(--commission-cyan),
+                color-mix(in srgb,
+                    var(--commission-border) 62%,
+                    transparent));
+    }
+
+    .bc-timeline-item {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        min-height: 58px;
+        padding: 6px 4px 16px 58px;
+    }
+
+    .bc-timeline-item:last-child {
+        padding-bottom: 4px;
+    }
+
+    .bc-timeline-icon {
+        position: absolute;
+        top: 3px;
+        left: 0;
+        z-index: 1;
+        display: inline-flex;
+        width: 42px;
+        height: 42px;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid color-mix(in srgb,
+                var(--commission-bg-white) 88%,
+                transparent);
+        border-radius: 14px;
+        color: var(--commission-white);
+        background: var(--commission-gradient-icon);
+        box-shadow: var(--commission-shadow-sm);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NÚT GỌI
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-phone-btn {
+        position: relative;
+        display: inline-flex;
+        flex: 0 0 42px;
+        width: 42px;
+        height: 42px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,
+                var(--commission-green-3) 50%,
+                var(--commission-white));
+        border-radius: 14px;
+        color: var(--commission-white);
+        background: var(--commission-gradient-paid);
+        box-shadow:
+            var(--commission-shadow-sm),
+            inset 0 1px 0 color-mix(in srgb,
+                var(--commission-white) 34%,
+                transparent);
+        text-decoration: none;
+        transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease;
+    }
+
+    .bc-phone-btn::before {
+        position: absolute;
+        inset: 3px;
+        content: "";
+        border: 1px solid color-mix(in srgb,
+                var(--commission-white) 22%,
+                transparent);
+        border-radius: 11px;
+    }
+
+    .bc-phone-btn i {
+        position: relative;
+        z-index: 1;
+    }
+
+    .bc-phone-btn:hover {
+        color: var(--commission-white);
+        box-shadow: var(--commission-shadow-md);
+        transform: translateY(-2px) scale(1.04);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BOOTSTRAP BỔ TRỢ
+    |--------------------------------------------------------------------------
+    */
+
+    .text-primary {
+        color: var(--commission-blue) !important;
+    }
+
+    .text-secondary {
+        color: var(--commission-muted) !important;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HIỆU ỨNG
+    |--------------------------------------------------------------------------
+    */
+
+    .bc-topbar,
+    .bc-card {
+        animation: bcGlassAppear 0.52s ease both;
+    }
+
+    @keyframes bcGlassAppear {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.988);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSIVE - MÀN HÌNH LAPTOP NHỎ
+    |--------------------------------------------------------------------------
+    */
+
+    @media (max-width: 1399.98px) {
+        .empty-space {
+            padding: 24px;
+        }
+
+        .bc-card-header {
+            padding-right: 18px;
+            padding-left: 18px;
+        }
+
+        .bc-list {
+            padding-right: 14px;
+            padding-left: 14px;
+        }
+
+        .bc-chart-box {
+            height: 320px;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSIVE - TABLET NGANG / LAPTOP
+    |--------------------------------------------------------------------------
+    */
+
+    @media (max-width: 1199.98px) {
+        .bc-topbar {
+            align-items: flex-start;
+        }
+
+        .bc-top-actions {
+            max-width: 48%;
+        }
+
+        .bc-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .bc-chart-box {
+            height: 310px;
+        }
+
+        .bc-donut-wrap {
+            min-height: 200px;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSIVE - TABLET
+    |--------------------------------------------------------------------------
+    */
+
+    @media (max-width: 991.98px) {
+        .empty-space {
+            padding: 20px 18px 26px;
+        }
+
+        .bc-topbar {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 17px;
+            border-radius: 21px;
+        }
+
+        .bc-top-actions {
+            width: 100%;
+            max-width: none;
+            justify-content: flex-start;
+        }
+
+        .bc-top-actions .bc-btn {
+            flex: 1 1 190px;
+        }
+
+        .bc-card {
+            border-radius: 21px;
+        }
+
+        .bc-card-header {
+            min-height: 64px;
+        }
+
+        .bc-stat-card {
+            min-height: 108px;
+        }
+
+        .bc-chart-box {
+            height: 300px;
+        }
+
+        .bc-donut-wrap {
+            min-height: 190px;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSIVE - ĐIỆN THOẠI LỚN
+    |--------------------------------------------------------------------------
+    */
+
+    @media (max-width: 767.98px) {
+        .empty-space {
+            padding: 16px 14px 24px;
+        }
+
+        .empty-space .row {
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 1rem;
+        }
+
+        .bc-topbar {
+            margin-bottom: 18px;
+            padding: 18px;
+            border-radius: 19px;
+        }
+
+        .bc-top-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 9px;
+        }
+
+        .bc-top-actions .bc-btn {
+            width: 100%;
+        }
+
+        .bc-card {
+            border-radius: 19px;
+        }
+
+        .bc-card-body {
+            padding: 18px;
+        }
+
+        .bc-card-header {
+            min-height: 60px;
+            flex-wrap: wrap;
+            padding: 16px 18px;
+        }
+
+        .bc-card-title {
+            flex: 1 1 180px;
+            font-size: 0.94rem;
+        }
+
+        .bc-stat-card {
+            min-height: 100px;
+            padding: 18px;
+        }
+
+        .bc-chart-box {
+            height: 280px;
+            padding: 14px;
+        }
+
+        .bc-donut-wrap {
+            min-height: 180px;
+            padding: 14px 18px 6px;
+        }
+
+        .bc-donut-wrap canvas {
+            max-width: 180px !important;
+            max-height: 180px !important;
+        }
+
+        .bc-legend-list {
+            padding: 6px 18px 17px;
+        }
+
+        .bc-list {
+            padding: 3px 13px 15px;
+        }
+
+        .bc-list-row {
+            flex-wrap: wrap;
+            gap: 11px;
+            padding: 11px;
+        }
+
+        .bc-list-left {
+            flex: 1 1 220px;
+        }
+
+        .bc-list-price,
+        .bc-badge {
+            margin-left: auto;
+        }
+
+        .bc-timeline {
+            padding: 16px 18px 19px;
+        }
+
+        .bc-timeline::before {
+            left: 39px;
+        }
+
+        .bc-timeline-item {
+            padding-left: 54px;
+        }
+
+        .bc-timeline-icon {
+            width: 40px;
+            height: 40px;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSIVE - ĐIỆN THOẠI
+    |--------------------------------------------------------------------------
+    */
+
+    @media (max-width: 575.98px) {
+        .empty-space {
+            padding: 12px 10px 22px;
+        }
+
+        .empty-space .row {
+            --bs-gutter-x: 0.8rem;
+            --bs-gutter-y: 0.8rem;
+        }
+
+        .bc-topbar {
+            padding: 16px;
+            border-radius: 18px;
+        }
+
+        .bc-page-title {
+            font-size: 1.35rem;
+        }
+
+        .bc-page-subtitle {
+            font-size: 0.82rem;
+        }
+
+        .bc-top-actions {
+            grid-template-columns: 1fr;
+        }
+
+        .bc-btn {
+            width: 100%;
+            min-height: 43px;
+            padding: 10px 13px;
+        }
+
+        .bc-card {
+            border-radius: 18px;
+        }
+
+        .bc-card-body {
+            padding: 16px;
+        }
+
+        .bc-card-header {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 8px;
+            padding: 15px 16px;
+        }
+
+        .bc-card-header .bc-pill,
+        .bc-card-header .bc-alert-pill,
+        .bc-card-header .bc-link-small {
+            align-self: flex-start;
+            max-width: 100%;
+            text-align: left;
+        }
+
+        .bc-big-number {
+            font-size: 1.65rem;
+        }
+
+        .bc-pill,
+        .bc-alert-pill {
+            padding: 6px 9px;
+        }
+
+        .bc-progress-footer {
+            grid-template-columns: 1fr;
+            gap: 3px;
+        }
+
+        .bc-progress-footer span,
+        .bc-progress-footer span:nth-child(2),
+        .bc-progress-footer span:last-child {
+            text-align: left;
+        }
+
+        .bc-conversion-row {
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .bc-conversion-left {
+            flex: 1 1 190px;
+        }
+
+        .bc-row-number {
+            max-width: 100%;
+            margin-left: auto;
+        }
+
+        .bc-stat-card {
+            align-items: flex-start;
+            min-height: auto;
+            padding: 16px;
+        }
+
+        .bc-square-icon {
+            flex-basis: 40px;
+            width: 40px;
+            height: 40px;
+            border-radius: 13px;
+        }
+
+        .bc-chart-box {
+            height: 250px;
+            padding: 10px;
+        }
+
+        .bc-donut-wrap {
+            min-height: 170px;
+            padding: 12px 14px 5px;
+        }
+
+        .bc-donut-wrap canvas {
+            max-width: 165px !important;
+            max-height: 165px !important;
+        }
+
+        .bc-legend-list {
+            padding: 4px 15px 15px;
+        }
+
+        .bc-legend-row {
+            align-items: flex-start;
+            gap: 9px;
+        }
+
+        .bc-list {
+            padding: 2px 10px 13px;
+        }
+
+        .bc-list-row {
+            align-items: flex-start;
+            padding: 10px;
+            border-radius: 14px;
+        }
+
+        .bc-list-left {
+            flex: 1 1 190px;
+            align-items: flex-start;
+        }
+
+        .bc-list-price {
+            max-width: 100%;
+            margin-left: 52px;
+            text-align: left;
+        }
+
+        .bc-badge {
+            max-width: 100%;
+            margin-left: 52px;
+            text-align: left;
+        }
+
+        .bc-phone-btn {
+            flex-basis: 40px;
+            width: 40px;
+            height: 40px;
+            border-radius: 13px;
+        }
+
+        .bc-timeline {
+            padding: 15px 14px 17px;
+        }
+
+        .bc-timeline::before {
+            left: 34px;
+        }
+
+        .bc-timeline-item {
+            padding: 5px 2px 15px 48px;
+        }
+
+        .bc-timeline-icon {
+            width: 38px;
+            height: 38px;
+            border-width: 3px;
+            border-radius: 12px;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSIVE - ĐIỆN THOẠI NHỎ
+    |--------------------------------------------------------------------------
+    */
+
+    @media (max-width: 419.98px) {
+        .empty-space {
+            padding-right: 8px;
+            padding-left: 8px;
+        }
+
+        .bc-topbar {
+            padding: 14px;
+        }
+
+        .bc-page-title {
+            font-size: 1.22rem;
+        }
+
+        .bc-card-body,
+        .bc-stat-card {
+            padding: 14px;
+        }
+
+        .bc-card-header {
+            padding: 14px;
+        }
+
+        .bc-list-left {
+            flex-basis: 100%;
+        }
+
+        .bc-list-price,
+        .bc-badge {
+            width: calc(100% - 50px);
+            max-width: calc(100% - 50px);
+            margin-left: 50px;
+        }
+
+        .bc-chart-box {
+            height: 225px;
+        }
+
+        .bc-row-number {
+            width: 100%;
+            margin-left: 0;
+            text-align: left;
+        }
+
+        .bc-conversion-left {
+            flex-basis: 100%;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | GIẢM CHUYỂN ĐỘNG
+    |--------------------------------------------------------------------------
+    */
+
+    @media (prefers-reduced-motion: reduce) {
+
+        .bc-topbar,
+        .bc-card,
+        .bc-btn,
+        .bc-list-row,
+        .bc-phone-btn,
+        .bc-progress-bar {
+            animation: none;
+            transition: none;
+        }
+
+        .bc-progress-bar::after {
+            animation: none;
+        }
+    }
+</style>
+@endpush
+
+@section('admin_content')
+<div id="bc-dashboard-data" class="d-none"
+    data-chart="{{ base64_encode(json_encode($chartData ?? [], JSON_UNESCAPED_UNICODE)) }}">
+</div>
+
+<div class="bc-topbar">
+    <div>
+        <h1 class="bc-page-title">Chào buổi sáng, Admin! 👋</h1>
+        <p class="bc-page-subtitle">Dữ liệu dưới đây được lấy trực tiếp từ database.</p>
+    </div>
+
+    <div class="bc-top-actions">
+        <a href="{{ url('/admin/customers/create') }}" class="bc-btn">
+            <i class="fa-solid fa-user-plus"></i>
+            Khách hàng mới
+        </a>
+
+        <a href="{{ url('/admin/sales/orders/create') }}" class="bc-btn bc-btn-primary">
+            <i class="fa-solid fa-plus"></i>
+            Tạo đơn hàng
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-5 col-lg-12">
+        <div class="bc-card h-100">
+            <div class="bc-card-body">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                        <div class="bc-mini-label">{{ $revenueProgress['title'] }}</div>
+                        <div class="bc-big-number">{{ $revenueProgress['current'] }}</div>
+                        <div class="bc-muted small fw-semibold">{{ $revenueProgress['description'] }}</div>
+                    </div>
+
+                    <div class="bc-pill">
+                        <i class="fa-solid fa-chart-line"></i>
+                        {{ $revenueProgress['badge'] }}
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    @foreach($periodTabs as $key => $label)
+                    <a href="{{ route('admin.dashboard', ['revenue_period' => $key]) }}"
+                        class="bc-btn {{ $revenueProgress['period'] === $key ? 'bc-btn-primary' : '' }}">
+                        {{ $label }}
+                    </a>
+                    @endforeach
+                </div>
+
+                <div class="bc-progress">
+                    <div class="bc-progress-bar" data-progress="{{ $revenueProgress['percent'] ?? 0 }}">
+                    </div>
+                </div>
+
+                <div class="bc-progress-footer">
+                    <span>{{ $revenueProgress['start_label'] }}</span>
+                    <span>{{ $revenueProgress['order_count'] }}</span>
+                    <span>{{ $revenueProgress['end_label'] }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-7">
+        <div class="bc-card h-100">
+            <div class="bc-card-body">
+                <div class="bc-mini-label mb-2">Phễu chuyển đổi (Tuần này)</div>
+
+                @foreach($conversion as $item)
+                <div class="bc-conversion-row">
+                    <div class="bc-conversion-left">
+                        <div class="bc-square-icon {{ $item['color'] }}">
+                            <i class="{{ $item['icon'] }}"></i>
+                        </div>
+
+                        <div>
+                            <div class="bc-row-subtitle">{{ $item['label'] }}</div>
+                        </div>
+                    </div>
+
+                    <div class="bc-row-number">
+                        {{ $item['value'] }}
+
+                        @if($item['percent'])
+                        <span class="bc-percent-green small">({{ $item['percent'] }})</span>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-lg-5">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title fs-6 text-uppercase text-secondary">Nguồn khách hàng</h3>
+            </div>
+
+            <div class="bc-donut-wrap">
+                <canvas id="bcSourceChart"></canvas>
+            </div>
+
+            <div class="bc-legend-list">
+                @foreach($sourceStats as $source)
+                <div class="bc-legend-row">
+                    <div class="bc-legend-left">
+                        <span class="bc-dot {{ $source['dot'] }}"></span>
+                        {{ $source['label'] }}
+                    </div>
+                    <strong>{{ $source['percent'] }}%</strong>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    @foreach($stats as $stat)
+    <div class="col-xl-3 col-md-6">
+        <div class="bc-card h-100">
+            <div class="bc-stat-card">
+                <div class="bc-square-icon {{ $stat['icon_color'] }}">
+                    <i class="{{ $stat['icon'] }}"></i>
+                </div>
+
+                <div>
+                    <div class="bc-mini-label">{{ $stat['label'] }}</div>
+                    <div class="bc-stat-value">{{ $stat['value'] }}</div>
+
+                    @if($stat['change_type'] === 'up')
+                    <div class="bc-stat-change bc-percent-green">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                        {{ $stat['change'] }}
+                    </div>
+                    @elseif($stat['change_type'] === 'down')
+                    <div class="bc-stat-change bc-percent-red">
+                        <i class="fa-solid fa-arrow-trend-down"></i>
+                        {{ $stat['change'] }}
+                    </div>
+                    @else
+                    <div class="bc-stat-change bc-muted">
+                        {{ $stat['change'] }}
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endforeach
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title">Biểu đồ doanh thu & Hoa hồng</h3>
+                <span class="bc-pill">7 ngày gần nhất</span>
+            </div>
+
+            <div class="bc-chart-box">
+                <canvas id="bcRevenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title">Trạng thái đơn hàng</h3>
+            </div>
+
+            <div class="bc-donut-wrap">
+                <canvas id="bcOrderStatusChart"></canvas>
+            </div>
+
+            <div class="bc-legend-list">
+                @foreach($orderStatusStats as $status)
+                <div class="bc-legend-row">
+                    <div class="bc-legend-left">
+                        <span class="bc-dot {{ $status['dot'] }}"></span>
+                        {{ $status['label'] }}
+                    </div>
+                    <strong>{{ $status['percent'] }}%</strong>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-4 col-lg-6">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title">Top Sản phẩm</h3>
+                <a href="{{ url('/admin/products') }}" class="bc-link-small">Xem tất cả</a>
+            </div>
+
+            <div class="bc-list">
+                @forelse($topProducts as $product)
+                <div class="bc-list-row">
+                    <div class="bc-list-left">
+                        <div class="bc-square-icon soft-blue">
+                            <i class="{{ $product['icon'] }}"></i>
+                        </div>
+
+                        <div>
+                            <div class="bc-row-title">{{ $product['name'] }}</div>
+                            <div class="bc-row-subtitle">{{ $product['desc'] }}</div>
+                        </div>
+                    </div>
+
+                    <div class="bc-list-price">{{ $product['amount'] }}</div>
+                </div>
+                @empty
+                <div class="bc-row-subtitle p-3">Chưa có sản phẩm bán ra trong tháng này.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-6">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title">Top Bán Hàng</h3>
+                <a href="{{ url('/admin/collaborators') }}" class="bc-link-small">Xem tất cả</a>
+            </div>
+
+            <div class="bc-list">
+                @forelse($topSellers as $seller)
+                <div class="bc-list-row">
+                    <div class="bc-list-left">
+                        <div class="bc-square-icon soft-green">
+                            <i class="{{ $seller['icon'] }}"></i>
+                        </div>
+
+                        <div>
+                            <div class="bc-row-title">{{ $seller['name'] }}</div>
+                            <div class="bc-row-subtitle">{{ $seller['desc'] }}</div>
+                        </div>
+                    </div>
+
+                    <div class="bc-list-price text-primary">{{ $seller['amount'] }}</div>
+                </div>
+                @empty
+                <div class="bc-row-subtitle p-3">Chưa có dữ liệu bán hàng từ CTV trong tháng này.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title">Cảnh báo tồn kho</h3>
+                <a href="{{ url('/admin/inventory') }}" class="bc-link-small">Quản lý kho</a>
+            </div>
+
+            <div class="bc-list">
+                @forelse($inventoryAlerts as $alert)
+                <div class="bc-list-row">
+                    <div class="bc-list-left">
+                        <div class="bc-square-icon {{ $alert['icon_color'] }}">
+                            <i class="{{ $alert['icon'] }}"></i>
+                        </div>
+
+                        <div>
+                            <div class="bc-row-title">{{ $alert['name'] }}</div>
+                            <div class="bc-row-subtitle">{{ $alert['desc'] }}</div>
+                        </div>
+                    </div>
+
+                    <span class="bc-badge {{ $alert['badge_color'] }}">
+                        {{ $alert['badge'] }}
+                    </span>
+                </div>
+                @empty
+                <div class="bc-row-subtitle p-3">Hiện chưa có sản phẩm dưới mức cảnh báo.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-6">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title">Hoạt động gần đây</h3>
+            </div>
+
+            <div class="bc-timeline">
+                @forelse($activities as $activity)
+                <div class="bc-timeline-item">
+                    <div class="bc-timeline-icon {{ $activity['color'] }}">
+                        <i class="{{ $activity['icon'] }}"></i>
+                    </div>
+
+                    <div class="bc-row-title">{{ $activity['title'] }}</div>
+                    <div class="bc-row-subtitle">{{ $activity['desc'] }}</div>
+                    <div class="bc-row-subtitle mt-1">{{ $activity['time'] }}</div>
+                </div>
+                @empty
+                <div class="bc-row-subtitle p-3">Chưa có hoạt động gần đây.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6">
+        <div class="bc-card h-100">
+            <div class="bc-card-header">
+                <h3 class="bc-card-title">Lịch chăm sóc (Hôm nay)</h3>
+                <span class="bc-alert-pill">{{ count($careSchedules) }} cần gọi</span>
+            </div>
+
+            <div class="bc-list">
+                @forelse($careSchedules as $schedule)
+                <div class="bc-list-row">
+                    <div>
+                        <div class="bc-row-title">{{ $schedule['name'] }}</div>
+                        <div class="bc-row-subtitle">
+                            <i class="fa-solid fa-clock me-1"></i>
+                            {{ $schedule['desc'] }}
+                        </div>
+                    </div>
+
+                    <a href="tel:{{ $schedule['phone'] }}" class="bc-phone-btn">
+                        <i class="fa-solid fa-phone"></i>
+                    </a>
+                </div>
+                @empty
+                <div class="bc-row-subtitle p-3">Hôm nay chưa có lịch chăm sóc cần gọi.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('admin/js/bonecare-dashboard.js') }}"></script>
+@endpush

@@ -3,13 +3,17 @@
 
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'BoneCare CRM - Admin')</title>
+
+    <title>
+        @yield('title', 'BoneCare CRM')
+    </title>
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Bootstrap --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
     {{-- FontAwesome --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -18,8 +22,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
 
-    {{-- CSS riêng --}}
+    {{-- CSS giao diện quản trị --}}
     <link rel="stylesheet" href="{{ asset('admin/css/sidebarAdmin.css') }}">
+
+    {{-- CSS chăm sóc khách hàng --}}
+    <link rel="stylesheet" href="{{ asset('admin/css/customerCare.css') }}">
 
     @stack('styles')
 </head>
@@ -27,6 +34,17 @@
 <body>
     @php
     $admin = auth('admin')->user();
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACTIVE MENU - DASHBOARD
+    |--------------------------------------------------------------------------
+    */
+
+    $isDashboardActive =
+    request()->routeIs('admin.dashboard') ||
+    request()->is('admin/dashboard');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -38,9 +56,14 @@
     request()->routeIs('admin.customers.index') ||
     request()->is('admin/customers');
 
+    $isCustomerCareActive =
+    request()->routeIs('admin.customer-care.*') ||
+    request()->is('admin/customer-care*');
+
     $isCustomerOptionsActive =
     request()->routeIs('admin.customer-options.*') ||
-    request()->is('admin/customer-options*');
+    request()->is('admin/customer-options*') ||
+    request()->is('admin/customer-notes*');
 
     $isRoleStatusOptionsActive =
     request()->routeIs('admin.role-status-options.*') ||
@@ -48,8 +71,31 @@
 
     $isCustomerMenuOpen =
     request()->routeIs('admin.customers.*') ||
+    $isCustomerListActive ||
+    $isCustomerCareActive ||
     $isCustomerOptionsActive ||
     $isRoleStatusOptionsActive;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACTIVE MENU - CỘNG TÁC VIÊN
+    |--------------------------------------------------------------------------
+    */
+
+    $isCtvActive =
+    request()->routeIs('admin.ctvs.*') ||
+    request()->is('admin/collaborators*');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACTIVE MENU - VAI TRÒ QUẢN LÝ
+    |--------------------------------------------------------------------------
+    */
+
+    $isRolesActive =
+    request()->is('admin/roles*');
 
 
     /*
@@ -74,7 +120,8 @@
     $isSalesMenuOpen =
     $isSalesCreateActive ||
     $isSalesListActive ||
-    request()->is('admin/sales/orders*');
+    request()->is('admin/sales/orders*') ||
+    request()->is('admin/sales*');
 
 
     /*
@@ -108,6 +155,17 @@
 
     /*
     |--------------------------------------------------------------------------
+    | ACTIVE MENU - HÓA ĐƠN
+    |--------------------------------------------------------------------------
+    */
+
+    $isInvoiceActive =
+    request()->routeIs('admin.invoices.*') ||
+    request()->is('admin/invoices*');
+
+
+    /*
+    |--------------------------------------------------------------------------
     | ACTIVE MENU - HOA HỒNG
     |--------------------------------------------------------------------------
     */
@@ -121,27 +179,43 @@
     <div class="sidebar" id="sidebar">
         <div class="brand">
             <i class="fa-solid fa-notes-medical"></i>
-            <span>BoneCare CRM</span>
+
+            <span>
+                BoneCare CRM
+            </span>
         </div>
 
         <ul class="menu">
+            {{-- Hệ thống --}}
+            <li class="menu-section-title">
+                Hệ thống
+            </li>
+
             {{-- Dashboard --}}
             <li>
-                <a href="{{ route('admin.dashboard') }}"
-                    class="menu-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>Dashboard</span>
+                <a href="{{ route('admin.dashboard') }}" class="menu-link {{ $isDashboardActive ? 'active' : '' }}">
+                    <i class="fa-solid fa-gauge-high"></i>
+
+                    <span>
+                        Dashboard
+                    </span>
                 </a>
             </li>
 
             {{-- Khách hàng --}}
-            <li class="menu-section-title">Khách hàng</li>
+            <li class="menu-section-title">
+                Khách hàng
+            </li>
 
             <li class="menu-item has-submenu {{ $isCustomerMenuOpen ? 'open' : '' }}">
                 <button class="submenu-toggle {{ $isCustomerMenuOpen ? 'active' : '' }}" type="button"
                     aria-expanded="{{ $isCustomerMenuOpen ? 'true' : 'false' }}">
                     <i class="fa-solid fa-users"></i>
-                    <span>Khách hàng</span>
+
+                    <span>
+                        Khách hàng
+                    </span>
+
                     <i class="fa-solid fa-chevron-down submenu-arrow"></i>
                 </button>
 
@@ -150,7 +224,21 @@
                         <a href="{{ route('admin.customers.index') }}"
                             class="submenu-link {{ $isCustomerListActive ? 'active' : '' }}">
                             <i class="fa-solid fa-users"></i>
-                            <span>Danh sách khách hàng</span>
+
+                            <span>
+                                Danh sách khách hàng
+                            </span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('admin.customer-care.index') }}"
+                            class="submenu-link {{ $isCustomerCareActive ? 'active' : '' }}">
+                            <i class="fa-solid fa-headset"></i>
+
+                            <span>
+                                Chăm sóc khách hàng
+                            </span>
                         </a>
                     </li>
 
@@ -158,7 +246,10 @@
                         <a href="{{ route('admin.customer-options.index') }}"
                             class="submenu-link {{ $isCustomerOptionsActive ? 'active' : '' }}">
                             <i class="fa-solid fa-clipboard-list"></i>
-                            <span>DS Ghi chú ban đầu</span>
+
+                            <span>
+                                DS Ghi chú ban đầu
+                            </span>
                         </a>
                     </li>
 
@@ -166,7 +257,10 @@
                         <a href="{{ route('admin.role-status-options.index') }}"
                             class="submenu-link {{ $isRoleStatusOptionsActive ? 'active' : '' }}">
                             <i class="fa-solid fa-user-shield"></i>
-                            <span>Vai trò</span>
+
+                            <span>
+                                Vai trò khách hàng
+                            </span>
                         </a>
                     </li>
                 </ul>
@@ -174,22 +268,41 @@
 
             {{-- Cộng tác viên --}}
             <li>
-                <a href="{{ route('admin.ctvs.index') }}"
-                    class="menu-link {{ request()->routeIs('admin.ctvs.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.ctvs.index') }}" class="menu-link {{ $isCtvActive ? 'active' : '' }}">
                     <i class="fa-solid fa-people-group"></i>
-                    <span>Cộng tác viên</span>
+
+                    <span>
+                        Cộng tác viên
+                    </span>
                 </a>
             </li>
 
             {{-- Quản lý --}}
-            <li class="menu-section-title">Quản lý</li>
+            <li class="menu-section-title">
+                Quản lý
+            </li>
+
+            {{-- Vai trò quản trị --}}
+            <li>
+                <a href="{{ url('/admin/roles') }}" class="menu-link {{ $isRolesActive ? 'active' : '' }}">
+                    <i class="fa-solid fa-user-shield"></i>
+
+                    <span>
+                        Vai trò
+                    </span>
+                </a>
+            </li>
 
             {{-- Bán hàng --}}
             <li class="menu-item has-submenu {{ $isSalesMenuOpen ? 'open' : '' }}">
                 <button class="submenu-toggle {{ $isSalesMenuOpen ? 'active' : '' }}" type="button"
                     aria-expanded="{{ $isSalesMenuOpen ? 'true' : 'false' }}">
                     <i class="fa-solid fa-cart-shopping"></i>
-                    <span>Bán hàng</span>
+
+                    <span>
+                        Bán hàng
+                    </span>
+
                     <i class="fa-solid fa-chevron-down submenu-arrow"></i>
                 </button>
 
@@ -198,7 +311,10 @@
                         <a href="{{ route('admin.orders.create') }}"
                             class="submenu-link {{ $isSalesCreateActive ? 'active' : '' }}">
                             <i class="fa-solid fa-cart-plus"></i>
-                            <span>Lên đơn hàng</span>
+
+                            <span>
+                                Lên đơn hàng
+                            </span>
                         </a>
                     </li>
 
@@ -206,7 +322,10 @@
                         <a href="{{ route('admin.orders.index') }}"
                             class="submenu-link {{ $isSalesListActive ? 'active' : '' }}">
                             <i class="fa-solid fa-list-check"></i>
-                            <span>Danh sách đơn hàng</span>
+
+                            <span>
+                                Danh sách đơn hàng
+                            </span>
                         </a>
                     </li>
                 </ul>
@@ -217,7 +336,11 @@
                 <button class="submenu-toggle {{ $isProductWarehouseActive ? 'active' : '' }}" type="button"
                     aria-expanded="{{ $isProductWarehouseActive ? 'true' : 'false' }}">
                     <i class="fa-solid fa-boxes-stacked"></i>
-                    <span>Kho sản phẩm</span>
+
+                    <span>
+                        Kho sản phẩm
+                    </span>
+
                     <i class="fa-solid fa-chevron-down submenu-arrow"></i>
                 </button>
 
@@ -226,7 +349,10 @@
                         <a href="{{ route('admin.products.index') }}"
                             class="submenu-link {{ $isProductListActive ? 'active' : '' }}">
                             <i class="fa-solid fa-box"></i>
-                            <span>Danh sách sản phẩm</span>
+
+                            <span>
+                                Danh sách sản phẩm
+                            </span>
                         </a>
                     </li>
 
@@ -234,7 +360,10 @@
                         <a href="{{ route('admin.inventory.index') }}"
                             class="submenu-link {{ $isInventoryActive ? 'active' : '' }}">
                             <i class="fa-solid fa-warehouse"></i>
-                            <span>Quản lý tồn kho</span>
+
+                            <span>
+                                Quản lý tồn kho
+                            </span>
                         </a>
                     </li>
 
@@ -242,14 +371,20 @@
                         <a href="javascript:void(0)"
                             class="submenu-link {{ $isProductCategoryActive ? 'active' : '' }}">
                             <i class="fa-solid fa-layer-group"></i>
-                            <span>Danh mục sản phẩm</span>
+
+                            <span>
+                                Danh mục sản phẩm
+                            </span>
                         </a>
                     </li>
 
                     <li>
                         <a href="javascript:void(0)" class="submenu-link {{ $isProductComboActive ? 'active' : '' }}">
                             <i class="fa-solid fa-tags"></i>
-                            <span>Combo / Khuyến mãi</span>
+
+                            <span>
+                                Combo / Khuyến mãi
+                            </span>
                         </a>
                     </li>
                 </ul>
@@ -257,9 +392,12 @@
 
             {{-- Hóa đơn --}}
             <li>
-                <a href="javascript:void(0)" class="menu-link">
+                <a href="{{ url('/admin/invoices') }}" class="menu-link {{ $isInvoiceActive ? 'active' : '' }}">
                     <i class="fa-solid fa-file-invoice-dollar"></i>
-                    <span>Hóa đơn</span>
+
+                    <span>
+                        Hóa đơn
+                    </span>
                 </a>
             </li>
 
@@ -268,7 +406,10 @@
                 <a href="{{ route('admin.commissions.index') }}"
                     class="menu-link {{ $isCommissionActive ? 'active' : '' }}">
                     <i class="fa-solid fa-money-bill-trend-up"></i>
-                    <span>Hoa hồng</span>
+
+                    <span>
+                        Hoa hồng
+                    </span>
                 </a>
             </li>
 
@@ -276,7 +417,10 @@
             <li>
                 <a href="javascript:void(0)" class="menu-link">
                     <i class="fa-solid fa-chart-line"></i>
-                    <span>Báo cáo</span>
+
+                    <span>
+                        Báo cáo
+                    </span>
                 </a>
             </li>
 
@@ -284,7 +428,10 @@
             <li>
                 <a href="javascript:void(0)" class="menu-link">
                     <i class="fa-solid fa-gear"></i>
-                    <span>Cài đặt</span>
+
+                    <span>
+                        Cài đặt
+                    </span>
                 </a>
             </li>
         </ul>
@@ -297,6 +444,7 @@
     <div class="topbar">
         <button class="mobile-menu-button" id="mobileMenuBtn" type="button">
             <i class="fa-solid fa-bars"></i>
+
             Menu
         </button>
 
@@ -332,11 +480,13 @@
 
                 <button class="dropdown-item-user" type="button">
                     <i class="fa-regular fa-user"></i>
+
                     Thông tin tài khoản
                 </button>
 
                 <button class="dropdown-item-user" type="button">
                     <i class="fa-solid fa-gear"></i>
+
                     Cài đặt
                 </button>
 
@@ -345,6 +495,7 @@
 
                     <button class="dropdown-item-user logout" type="submit">
                         <i class="fa-solid fa-right-from-bracket"></i>
+
                         Đăng xuất
                     </button>
                 </form>
@@ -357,11 +508,39 @@
         @yield('admin_content')
     </main>
 
-    {{-- Bootstrap JS --}}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {{--
+    |--------------------------------------------------------------------------
+    | MODAL THÔNG BÁO LỊCH CHĂM SÓC
+    |--------------------------------------------------------------------------
+    | Modal nằm ngoài @yield('admin_content') để hoạt động trên tất cả trang admin.
+    | Chỉ tải khi tài khoản admin đã đăng nhập.
+    |--------------------------------------------------------------------------
+    --}}
 
-    {{-- JS riêng --}}
+    @if(Auth::guard('admin')->check())
+    @include(
+    'admin.auth.customer-care.partials.due-reminder-modal'
+    )
+    @endif
+
+    {{-- Bootstrap JavaScript --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{-- JavaScript giao diện quản trị --}}
     <script src="{{ asset('admin/js/sidebarAdmin.js') }}"></script>
+
+    {{--
+    |--------------------------------------------------------------------------
+    | JAVASCRIPT KIỂM TRA LỊCH CHĂM SÓC
+    |--------------------------------------------------------------------------
+    | Bootstrap Bundle phải được tải trước file này.
+    | Chỉ tải khi tài khoản admin đã đăng nhập.
+    |--------------------------------------------------------------------------
+    --}}
+
+    @if(Auth::guard('admin')->check())
+    <script src="{{ asset('admin/js/customerCareReminder.js') }}"></script>
+    @endif
 
     @stack('scripts')
 </body>

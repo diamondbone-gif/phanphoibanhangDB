@@ -1,0 +1,698 @@
+:root {
+    /* ===== Màu chữ ===== */
+    --commission-text: #111827;
+    --commission-title: #0f172a;
+    --commission-muted: #64748b;
+    --commission-white: #ffffff;
+    /* ===== Màu nền tổng thể ===== */
+    --commission-bg-main: #eef5ff;
+    --commission-bg-light: #f8fbff;
+    --commission-bg-white: #ffffff;
+    --commission-bg-table-head: #e6f0fe;
+    --commission-bg-soft-blue: #eff6ff;
+    --commission-bg-soft-card: #f2f9ff;
+    /* ===== Viền ===== */
+    --commission-border: #dbeafe;
+    --commission-border-soft: #edf4ff;
+    --commission-border-blue: #cfe0ff;
+    /* ===== Màu xanh dương ===== */
+    --commission-blue: #2563eb;
+    --commission-blue-dark: #1e3a8a;
+    --commission-blue-1: #236ae9;
+    --commission-blue-2: #1984e2;
+    --commission-blue-3: #42b8e1;
+    --commission-cyan: #06b6d4;
+    /* ===== Màu xanh lá ===== */
+    --commission-green: #16a34a;
+    --commission-green-1: #17a64c;
+    --commission-green-2: #1baf51;
+    --commission-green-3: #51cc7e;
+    --commission-green-light: #22c55e;
+    /* ===== Màu đỏ / cam ===== */
+    --commission-red: #ef4444;
+    --commission-red-1: #f04840;
+    --commission-orange: #f97316;
+    --commission-orange-1: #f35831;
+    --commission-orange-2: #f98a51;
+    /* ===== Màu phụ ===== */
+    --commission-purple: #7c3aed;
+    --commission-teal: #0f766e;
+    --commission-warning: #facc15;
+    --commission-danger-bg: #fff7ed;
+    /* ===== Shadow ===== */
+    --commission-shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.045);
+    --commission-shadow-md: 0 10px 28px rgba(37, 99, 235, 0.10);
+    --commission-shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.10);
+    --commission-shadow-modal: 0 30px 90px rgba(15, 23, 42, 0.26);
+    /* ===== Gradient chính ===== */
+    --commission-gradient-page: radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30%), radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 34%), linear-gradient(135deg, #eef5ff 0%, #f8fbff 55%, #ffffff 100%);
+    --commission-gradient-total: linear-gradient(135deg, #236ae9 0%, #1984e2 45%, #42b8e1 100%);
+    --commission-gradient-paid: linear-gradient(135deg, #17a64c 0%, #1baf51 45%, #51cc7e 100%);
+    --commission-gradient-debt: linear-gradient(135deg, #f04840 0%, #f35831 55%, #f98a51 100%);
+    --commission-gradient-icon: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    --commission-gradient-modal-header: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    --commission-gradient-box: linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%);
+    --commission-gradient-table-head: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Inter", Tahoma, Arial, sans-serif;
+    color: var(--commission-text);
+    background: var(--commission-gradient-page);
+    min-height: 100vh;
+}
+
+a {
+    text-decoration: none;
+}
+
+.bc-app {
+    display: flex;
+    min-height: 100vh;
+}
+
+.bc-sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background: var(--commission-bg-white);
+    border-right: 1px solid var(--commission-border-soft);
+    box-shadow: var(--commission-shadow-sm);
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50;
+}
+
+.bc-sidebar-logo {
+    height: 78px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--commission-border-soft);
+}
+
+.bc-logo-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--commission-gradient-icon);
+    color: var(--commission-white);
+    box-shadow: var(--commission-shadow-md);
+    font-size: 15px;
+}
+
+.bc-logo-text {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--commission-title);
+    letter-spacing: -0.02em;
+}
+
+.bc-menu {
+    padding: 18px 12px 26px;
+}
+
+.bc-menu-group {
+    margin-bottom: 18px;
+}
+
+.bc-menu-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--commission-muted);
+    letter-spacing: 0.08em;
+    padding: 0 12px;
+    margin-bottom: 8px;
+}
+
+.bc-menu-link {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    color: var(--commission-text);
+    font-size: 14px;
+    font-weight: 700;
+    transition: 0.22s ease;
+}
+
+.bc-menu-link i {
+    width: 18px;
+    text-align: center;
+    color: currentColor;
+}
+
+.bc-menu-link:hover,
+.bc-menu-link.active {
+    color: var(--commission-blue);
+    background: var(--commission-bg-soft-blue);
+    box-shadow: var(--commission-shadow-sm);
+}
+
+.bc-main {
+    flex: 1;
+    margin-left: 260px;
+    min-width: 0;
+}
+
+.bc-content {
+    padding: 28px 28px 34px;
+}
+
+.bc-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.bc-page-title {
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: var(--commission-title);
+    margin: 0 0 8px;
+}
+
+.bc-page-subtitle {
+    margin: 0;
+    color: var(--commission-muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.bc-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bc-btn {
+    border: 1px solid var(--commission-border);
+    border-radius: 13px;
+    padding: 11px 15px;
+    font-size: 14px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--commission-bg-white);
+    color: var(--commission-blue);
+    box-shadow: var(--commission-shadow-sm);
+    transition: 0.22s ease;
+}
+
+.bc-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--commission-shadow-md);
+}
+
+.bc-btn-primary {
+    border-color: transparent;
+    color: var(--commission-white);
+    background: var(--commission-gradient-icon);
+}
+
+.bc-card {
+    background: var(--commission-bg-white);
+    border: 1px solid var(--commission-border-soft);
+    border-radius: 20px;
+    box-shadow: var(--commission-shadow-md);
+    overflow: hidden;
+}
+
+.bc-card-body {
+    padding: 20px;
+}
+
+.bc-card-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--commission-border-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.bc-card-title {
+    margin: 0;
+    color: var(--commission-blue);
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+}
+
+.bc-mini-label {
+    font-size: 12px;
+    color: var(--commission-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.bc-big-number {
+    color: var(--commission-blue);
+    font-size: 32px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    margin: 8px 0 8px;
+}
+
+.bc-muted {
+    color: var(--commission-muted);
+}
+
+.bc-progress {
+    height: 10px;
+    background: var(--commission-border);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 18px 0 12px;
+}
+
+.bc-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--commission-gradient-icon);
+}
+
+.bc-progress-footer {
+    display: flex;
+    justify-content: space-between;
+    color: var(--commission-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.bc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    background: var(--commission-bg-soft-blue);
+    color: var(--commission-blue);
+}
+
+.bc-conversion-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    gap: 14px;
+}
+
+.bc-conversion-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.bc-square-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--commission-white);
+    flex: 0 0 auto;
+}
+
+.bc-square-icon.blue {
+    background: var(--commission-gradient-icon);
+}
+
+.bc-square-icon.orange {
+    background: var(--commission-gradient-debt);
+}
+
+.bc-square-icon.green {
+    background: var(--commission-gradient-paid);
+}
+
+.bc-square-icon.purple {
+    background: var(--commission-gradient-modal-header);
+}
+
+.bc-square-icon.soft-blue {
+    background: var(--commission-bg-soft-blue);
+    color: var(--commission-blue);
+}
+
+.bc-square-icon.soft-green {
+    background: var(--commission-bg-soft-card);
+    color: var(--commission-green);
+}
+
+.bc-square-icon.soft-orange {
+    background: var(--commission-danger-bg);
+    color: var(--commission-orange);
+}
+
+.bc-row-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--commission-text);
+}
+
+.bc-row-subtitle {
+    font-size: 12px;
+    color: var(--commission-muted);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.bc-row-number {
+    font-size: 18px;
+    color: var(--commission-title);
+    font-weight: 900;
+}
+
+.bc-percent-green {
+    color: var(--commission-green);
+}
+
+.bc-percent-red {
+    color: var(--commission-red);
+}
+
+.bc-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    min-height: 110px;
+}
+
+.bc-stat-value {
+    margin: 4px 0 0;
+    font-size: 24px;
+    line-height: 1.05;
+    font-weight: 900;
+    color: var(--commission-title);
+    letter-spacing: -0.03em;
+}
+
+.bc-stat-change {
+    margin: 8px 0 0;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.bc-chart-box {
+    height: 310px;
+    padding: 14px 14px 4px;
+}
+
+.bc-chart-box canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.bc-select {
+    border: 1px solid var(--commission-border-soft);
+    border-radius: 12px;
+    background: var(--commission-bg-light);
+    color: var(--commission-text);
+    font-size: 13px;
+    font-weight: 800;
+    padding: 9px 12px;
+    outline: none;
+}
+
+.bc-donut-wrap {
+    min-height: 230px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.bc-donut-wrap canvas {
+    max-height: 220px;
+}
+
+.bc-legend-list {
+    padding: 0 18px 18px;
+}
+
+.bc-legend-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 7px 0;
+}
+
+.bc-legend-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--commission-muted);
+}
+
+.bc-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+.bc-dot.blue {
+    background: var(--commission-blue);
+}
+
+.bc-dot.cyan {
+    background: var(--commission-cyan);
+}
+
+.bc-dot.muted {
+    background: var(--commission-muted);
+}
+
+.bc-dot.green {
+    background: var(--commission-green);
+}
+
+.bc-dot.orange {
+    background: var(--commission-orange);
+}
+
+.bc-dot.red {
+    background: var(--commission-red);
+}
+
+.bc-list {
+    padding: 4px 18px 18px;
+}
+
+.bc-list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px dashed var(--commission-border);
+}
+
+.bc-list-row:last-child {
+    border-bottom: 0;
+}
+
+.bc-list-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.bc-list-price {
+    color: var(--commission-green);
+    font-size: 15px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.bc-link-small {
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--commission-blue);
+}
+
+.bc-badge {
+    border-radius: 999px;
+    padding: 6px 9px;
+    font-size: 11px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.bc-badge.red {
+    background: var(--commission-red);
+    color: var(--commission-white);
+}
+
+.bc-badge.orange {
+    background: var(--commission-warning);
+    color: var(--commission-title);
+}
+
+.bc-badge.gray {
+    background: var(--commission-muted);
+    color: var(--commission-white);
+}
+
+.bc-timeline {
+    position: relative;
+    padding: 0 18px 18px 42px;
+}
+
+.bc-timeline:before {
+    content: "";
+    position: absolute;
+    left: 31px;
+    top: 6px;
+    bottom: 20px;
+    width: 1px;
+    background: var(--commission-border);
+}
+
+.bc-timeline-item {
+    position: relative;
+    padding: 0 0 20px;
+}
+
+.bc-timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.bc-timeline-icon {
+    position: absolute;
+    left: -30px;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--commission-bg-white);
+    border: 2px solid var(--commission-blue);
+    color: var(--commission-blue);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+}
+
+.bc-timeline-icon.green {
+    border-color: var(--commission-green);
+    color: var(--commission-green);
+}
+
+.bc-timeline-icon.orange {
+    border-color: var(--commission-orange);
+    color: var(--commission-orange);
+}
+
+.bc-phone-btn {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    color: var(--commission-white);
+    background: var(--commission-gradient-icon);
+    box-shadow: var(--commission-shadow-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bc-alert-pill {
+    background: var(--commission-danger-bg);
+    color: var(--commission-red);
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+@media (max-width: 1199px) {
+    .bc-sidebar {
+        width: 230px;
+    }
+
+    .bc-main {
+        margin-left: 230px;
+    }
+}
+
+@media (max-width: 991px) {
+    .bc-sidebar {
+        position: relative;
+        width: 100%;
+        min-height: auto;
+    }
+
+    .bc-app {
+        display: block;
+    }
+
+    .bc-main {
+        margin-left: 0;
+    }
+
+    .bc-menu {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .bc-menu-group {
+        margin-bottom: 0;
+    }
+
+    .bc-topbar {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 575px) {
+    .bc-content {
+        padding: 18px 14px 26px;
+    }
+
+    .bc-page-title {
+        font-size: 23px;
+    }
+
+    .bc-menu {
+        grid-template-columns: 1fr;
+    }
+
+    .bc-chart-box {
+        height: 260px;
+    }
+}
