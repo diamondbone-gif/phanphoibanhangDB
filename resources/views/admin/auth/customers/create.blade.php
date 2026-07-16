@@ -8,9 +8,14 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
-                <a href="{{ route('admin.customers.index') }}">Khách hàng</a>
+                <a href="{{ route('admin.customers.index') }}">
+                    Khách hàng
+                </a>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">Thêm khách hàng</li>
+
+            <li class="breadcrumb-item active" aria-current="page">
+                Thêm khách hàng
+            </li>
         </ol>
     </nav>
 
@@ -19,6 +24,7 @@
     @if ($errors->any())
     <div class="alert alert-danger">
         <strong>Vui lòng kiểm tra lại thông tin:</strong>
+
         <ul class="mb-0 mt-2">
             @foreach ($errors->all() as $error)
             <li>{{ $error }}</li>
@@ -32,15 +38,18 @@
 
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
+
                 <h5 class="section-title">
                     <i class="fa-regular fa-address-card me-2"></i>
                     Thông tin khách hàng
                 </h5>
 
                 <div class="row g-3 mt-1">
+
                     <div class="col-md-6">
                         <label class="form-label">
-                            Họ tên khách hàng <span class="text-danger">*</span>
+                            Họ tên khách hàng
+                            <span class="text-danger">*</span>
                         </label>
 
                         <input class="form-control @error('full_name') is-invalid @enderror" name="full_name"
@@ -48,13 +57,16 @@
                             required>
 
                         @error('full_name')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
                         @enderror
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">
-                            Số điện thoại <span class="text-danger">*</span>
+                            Số điện thoại
+                            <span class="text-danger">*</span>
                         </label>
 
                         <input class="form-control @error('phone') is-invalid @enderror" id="phoneInput" name="phone"
@@ -62,7 +74,9 @@
                             inputmode="numeric" required>
 
                         @error('phone')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
                         @enderror
 
                         <small class="text-muted d-block mt-1">
@@ -71,28 +85,47 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Giới tính</label>
+                        <label class="form-label">
+                            Giới tính
+                        </label>
 
                         <select class="form-select @error('gender') is-invalid @enderror" name="gender">
-                            <option value="">Chọn giới tính</option>
-                            <option value="male" @selected(old('gender')==='male' )>Nam</option>
-                            <option value="female" @selected(old('gender')==='female' )>Nữ</option>
-                            <option value="other" @selected(old('gender')==='other' )>Khác</option>
+                            <option value="">
+                                Chọn giới tính
+                            </option>
+
+                            <option value="male" @selected(old('gender')==='male' )>
+                                Nam
+                            </option>
+
+                            <option value="female" @selected(old('gender')==='female' )>
+                                Nữ
+                            </option>
+
+                            <option value="other" @selected(old('gender')==='other' )>
+                                Khác
+                            </option>
                         </select>
 
                         @error('gender')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
                         @enderror
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Ngày tháng năm sinh</label>
+                        <label class="form-label">
+                            Ngày tháng năm sinh
+                        </label>
 
                         <input class="form-control @error('birth_date') is-invalid @enderror" name="birth_date"
                             value="{{ old('birth_date') }}" type="date">
 
                         @error('birth_date')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
                         @enderror
 
                         <small class="text-muted d-block mt-1">
@@ -101,28 +134,36 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Tỉnh / Thành phố</label>
+                        <label class="form-label">
+                            Tỉnh / Thành phố
+                        </label>
 
                         <input class="form-control" name="province" value="{{ old('province') }}"
                             placeholder="Nhập Tỉnh/Thành" type="text" maxlength="100">
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Quận / Huyện</label>
+                        <label class="form-label">
+                            Quận / Huyện
+                        </label>
 
                         <input class="form-control" name="district" value="{{ old('district') }}"
                             placeholder="Nhập Quận/Huyện" type="text" maxlength="100">
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Phường / Xã</label>
+                        <label class="form-label">
+                            Phường / Xã
+                        </label>
 
                         <input class="form-control" name="ward" value="{{ old('ward') }}" placeholder="Nhập Phường/Xã"
                             type="text" maxlength="100">
                     </div>
 
                     <div class="col-md-12">
-                        <label class="form-label">Địa chỉ chi tiết</label>
+                        <label class="form-label">
+                            Địa chỉ chi tiết
+                        </label>
 
                         <input class="form-control" name="address" value="{{ old('address') }}"
                             placeholder="Số nhà, tên đường..." type="text" maxlength="255">
@@ -140,89 +181,124 @@
                             Ghi chú nhanh các vấn đề sức khỏe để lưu ý khi tư vấn.
                         </small>
                     </div>
+
                 </div>
             </div>
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
+
                 <h5 class="section-title">
                     <i class="fa-solid fa-tags me-2"></i>
-                    Loại khách hàng <span class="text-danger">*</span>
+
+                    Loại khách hàng
+
+                    <span class="text-danger">*</span>
                 </h5>
 
                 <div class="row g-3 mt-2">
+
                     <div class="col-md-6">
                         <label class="radio-card-label">
-                            <input class="radio-card-input" type="radio" name="customer_source" value="direct"
-                                @checked(old('customer_source', 'direct' )==='direct' )>
+
+                            <input class="radio-card-input" type="radio" name="customer_source" value="direct" @checked(
+                                old('customer_source', 'direct' )==='direct' )>
 
                             <div class="radio-card-content">
-                                <div class="radio-card-title">Khách tự tìm đến</div>
+                                <div class="radio-card-title">
+                                    Khách tự tìm đến
+                                </div>
+
                                 <div class="radio-card-desc">
                                     Khách tự biết đến công ty qua quảng cáo, MXH...
                                 </div>
                             </div>
+
                         </label>
                     </div>
 
                     <div class="col-md-6">
                         <label class="radio-card-label">
+
                             <input class="radio-card-input" type="radio" name="customer_source" value="ctv_referral"
-                                @checked(old('customer_source')==='ctv_referral' )>
+                                @checked( old('customer_source')==='ctv_referral' )>
 
                             <div class="radio-card-content">
-                                <div class="radio-card-title">Khách do CTV giới thiệu</div>
+                                <div class="radio-card-title">
+                                    Khách do CTV giới thiệu
+                                </div>
+
                                 <div class="radio-card-desc">
                                     Khách được CTV hoặc khách hàng cũ giới thiệu
                                 </div>
                             </div>
+
                         </label>
                     </div>
+
                 </div>
 
                 @error('customer_source')
-                <div class="text-danger small mt-2">{{ $message }}</div>
+                <div class="text-danger small mt-2">
+                    {{ $message }}
+                </div>
                 @enderror
 
                 <div class="direct-source-box mt-4" id="directSourceBox">
-                    <h6 class="fw-bold mb-3">Thông tin nhận diện</h6>
+                    <h6 class="fw-bold mb-3">
+                        Thông tin nhận diện
+                    </h6>
 
                     <div class="row g-3">
                         <div class="col-md-12">
+
                             <label class="form-label">
-                                Khách biết đến từ đâu? <span class="text-danger">*</span>
+                                Khách biết đến từ đâu?
+                                <span class="text-danger">*</span>
                             </label>
 
                             <select name="source_channel_id" id="sourceChannelSelect"
                                 class="form-select @error('source_channel_id') is-invalid @enderror">
-                                <option value="">-- Chọn thông tin nhận diện --</option>
+                                <option value="">
+                                    -- Chọn thông tin nhận diện --
+                                </option>
 
-                                @foreach(($sourceChannels ?? collect()) as $channel)
-                                <option value="{{ $channel->id }}" @selected(old('source_channel_id')==$channel->id)>
+                                @foreach (($sourceChannels ?? collect()) as $channel)
+                                <option value="{{ $channel->id }}" @selected( old('source_channel_id')==$channel->id
+                                    )
+                                    >
                                     {{ $channel->name }}
                                 </option>
                                 @endforeach
                             </select>
 
                             @error('source_channel_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback">
+                                {{ $message }}
+                            </div>
                             @enderror
 
                             <small class="text-muted d-block mt-1">
-                                Dữ liệu này được lấy từ mục DS Ghi chú ban đầu → Thông tin nhận diện.
+                                Dữ liệu này được lấy từ mục DS Ghi chú ban đầu
+                                → Thông tin nhận diện.
                             </small>
+
                         </div>
                     </div>
                 </div>
 
                 <div class="ctv-box mt-4" id="ctvReferralBox">
-                    <h6 class="fw-bold mb-3">Thông tin CTV/người giới thiệu</h6>
+                    <h6 class="fw-bold mb-3">
+                        Thông tin CTV/người giới thiệu
+                    </h6>
 
                     <div class="row g-3 align-items-end">
+
                         <div class="col-md-6">
                             <label class="form-label">
-                                Số điện thoại CTV/người giới thiệu <span class="text-danger">*</span>
+                                Số điện thoại CTV/người giới thiệu
+                                <span class="text-danger">*</span>
                             </label>
 
                             <input class="form-control @error('referrer_phone') is-invalid @enderror"
@@ -230,7 +306,9 @@
                                 placeholder="Nhập SĐT người giới thiệu" type="text" maxlength="20" inputmode="numeric">
 
                             @error('referrer_phone')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback">
+                                {{ $message }}
+                            </div>
                             @enderror
                         </div>
 
@@ -241,35 +319,54 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Tỷ lệ hoa hồng</label>
+                            <label class="form-label">
+                                Tỷ lệ hoa hồng
+                            </label>
 
-                            <input class="form-control" name="referral_commission_rate"
+                            <input class="form-control @error('referral_commission_rate') is-invalid @enderror"
+                                id="referralCommissionRateInput" name="referral_commission_rate"
                                 value="{{ old('referral_commission_rate') }}" placeholder="VD: 5" type="number" min="0"
                                 max="100" step="0.01">
+
+                            @error('referral_commission_rate')
+                            <div class="invalid-feedback">
+                                {{ $message }}
+                            </div>
+                            @enderror
                         </div>
+
                     </div>
 
                     <div class="small mt-3" id="ctvCheckText"></div>
                 </div>
+
             </div>
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
+
                 <h5 class="section-title">
                     <i class="fa-solid fa-clipboard-list me-2"></i>
                     Nhu cầu / Ghi chú ban đầu
                 </h5>
 
                 <div class="row g-3 mt-2">
+
                     <div class="col-md-4">
-                        <label class="form-label">Khách mua cho ai?</label>
+                        <label class="form-label">
+                            Khách mua cho ai?
+                        </label>
 
                         <select class="form-select" name="buy_for_option_id">
-                            <option value="">-- Chọn --</option>
+                            <option value="">
+                                -- Chọn --
+                            </option>
 
-                            @foreach($buyForOptions as $option)
-                            <option value="{{ $option->id }}" @selected(old('buy_for_option_id')==$option->id)>
+                            @foreach ($buyForOptions as $option)
+                            <option value="{{ $option->id }}" @selected( old('buy_for_option_id')==$option->id
+                                )
+                                >
                                 {{ $option->name }}
                             </option>
                             @endforeach
@@ -277,13 +374,19 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Sản phẩm quan tâm</label>
+                        <label class="form-label">
+                            Sản phẩm quan tâm
+                        </label>
 
                         <select class="form-select" name="interested_product_id">
-                            <option value="">-- Chọn --</option>
+                            <option value="">
+                                -- Chọn --
+                            </option>
 
-                            @foreach($products as $product)
-                            <option value="{{ $product->id }}" @selected(old('interested_product_id')==$product->id)>
+                            @foreach ($products as $product)
+                            <option value="{{ $product->id }}" @selected( old('interested_product_id')==$product->id
+                                )
+                                >
                                 {{ $product->product_name ?? $product->name }}
                             </option>
                             @endforeach
@@ -291,14 +394,21 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Nhu cầu quan tâm</label>
+                        <label class="form-label">
+                            Nhu cầu quan tâm
+                        </label>
 
                         <select class="form-select" name="customer_need_ids[]">
-                            <option value="">-- Chọn --</option>
+                            <option value="">
+                                -- Chọn --
+                            </option>
 
-                            @foreach($customerNeeds as $need)
-                            <option value="{{ $need->id }}" @selected(in_array($need->id, old('customer_need_ids',
-                                [])))>
+                            @foreach ($customerNeeds as $need)
+                            <option value="{{ $need->id }}" @selected( in_array( $need->id,
+                                old('customer_need_ids', [])
+                                )
+                                )
+                                >
                                 {{ $need->name }}
                             </option>
                             @endforeach
@@ -306,16 +416,20 @@
                     </div>
 
                     <div class="col-md-12">
-                        <label class="form-label">Ghi chú tư vấn ban đầu</label>
+                        <label class="form-label">
+                            Ghi chú tư vấn ban đầu
+                        </label>
 
                         <textarea class="form-control" name="consultation_note" rows="3"
                             placeholder="Ví dụ: Khách mua cho mẹ 65 tuổi, đang quan tâm sản phẩm hỗ trợ xương khớp, cần tư vấn dạng dễ dùng.">{{ old('consultation_note') }}</textarea>
                     </div>
+
                 </div>
             </div>
         </div>
 
         <div class="d-flex justify-content-end gap-2 mb-5">
+
             <a href="{{ route('admin.customers.index') }}" class="btn btn-light border px-4">
                 Hủy
             </a>
@@ -324,11 +438,14 @@
                 <i class="fa-solid fa-save me-1"></i>
                 Lưu khách hàng
             </button>
+
         </div>
+
     </form>
 
 </div>
 @endsection
+
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('admin/css/customerForm.css') }}">
@@ -384,25 +501,68 @@
         --commission-danger-bg: #fff7ed;
 
         /* ===== Shadow ===== */
-        --commission-shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.045);
-        --commission-shadow-md: 0 10px 28px rgba(37, 99, 235, 0.10);
-        --commission-shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.10);
-        --commission-shadow-modal: 0 30px 90px rgba(15, 23, 42, 0.26);
+        --commission-shadow-sm:
+            0 6px 16px rgba(15, 23, 42, 0.045);
+
+        --commission-shadow-md:
+            0 10px 28px rgba(37, 99, 235, 0.10);
+
+        --commission-shadow-lg:
+            0 18px 45px rgba(15, 23, 42, 0.10);
+
+        --commission-shadow-modal:
+            0 30px 90px rgba(15, 23, 42, 0.26);
 
         /* ===== Gradient chính ===== */
         --commission-gradient-page:
-            radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30%),
-            radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 34%),
-            linear-gradient(135deg, #eef5ff 0%, #f8fbff 55%, #ffffff 100%);
+            radial-gradient(circle at top left,
+                rgba(37, 99, 235, 0.18),
+                transparent 30%),
+            radial-gradient(circle at top right,
+                rgba(14, 165, 233, 0.16),
+                transparent 34%),
+            linear-gradient(135deg,
+                #eef5ff 0%,
+                #f8fbff 55%,
+                #ffffff 100%);
 
-        --commission-gradient-total: linear-gradient(135deg, #236ae9 0%, #1984e2 45%, #42b8e1 100%);
-        --commission-gradient-paid: linear-gradient(135deg, #17a64c 0%, #1baf51 45%, #51cc7e 100%);
-        --commission-gradient-debt: linear-gradient(135deg, #f04840 0%, #f35831 55%, #f98a51 100%);
+        --commission-gradient-total:
+            linear-gradient(135deg,
+                #236ae9 0%,
+                #1984e2 45%,
+                #42b8e1 100%);
 
-        --commission-gradient-icon: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
-        --commission-gradient-modal-header: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-        --commission-gradient-box: linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%);
-        --commission-gradient-table-head: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+        --commission-gradient-paid:
+            linear-gradient(135deg,
+                #17a64c 0%,
+                #1baf51 45%,
+                #51cc7e 100%);
+
+        --commission-gradient-debt:
+            linear-gradient(135deg,
+                #f04840 0%,
+                #f35831 55%,
+                #f98a51 100%);
+
+        --commission-gradient-icon:
+            linear-gradient(135deg,
+                #2563eb 0%,
+                #06b6d4 100%);
+
+        --commission-gradient-modal-header:
+            linear-gradient(135deg,
+                #2563eb 0%,
+                #7c3aed 100%);
+
+        --commission-gradient-box:
+            linear-gradient(135deg,
+                #eff6ff 0%,
+                #f8fbff 100%);
+
+        --commission-gradient-table-head:
+            linear-gradient(180deg,
+                #eff6ff 0%,
+                #dbeafe 100%);
     }
 
     .customer-create-page {
@@ -533,7 +693,10 @@
         border: 1px solid var(--commission-border-blue);
         border-radius: 14px;
         box-shadow: none;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease,
+            background-color 0.2s ease;
     }
 
     .customer-create-page textarea.form-control {
@@ -549,13 +712,15 @@
     .customer-create-page .form-select:focus {
         background-color: var(--commission-white);
         border-color: var(--commission-blue);
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        box-shadow:
+            0 0 0 4px rgba(37, 99, 235, 0.12);
     }
 
     .customer-create-page .form-control.is-invalid,
     .customer-create-page .form-select.is-invalid {
         border-color: var(--commission-red);
-        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+        box-shadow:
+            0 0 0 4px rgba(239, 68, 68, 0.08);
     }
 
     .customer-create-page .invalid-feedback,
@@ -565,7 +730,8 @@
 
     .customer-create-page .border-danger-subtle {
         background: var(--commission-danger-bg);
-        border-color: rgba(239, 68, 68, 0.25) !important;
+        border-color:
+            rgba(239, 68, 68, 0.25) !important;
     }
 
     .customer-create-page .radio-card-label {
@@ -589,7 +755,11 @@
         border: 1px solid var(--commission-border);
         border-radius: 20px;
         box-shadow: var(--commission-shadow-sm);
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        transition:
+            transform 0.2s ease,
+            border-color 0.2s ease,
+            box-shadow 0.2s ease,
+            background 0.2s ease;
     }
 
     .customer-create-page .radio-card-content::before {
@@ -602,7 +772,9 @@
         background: var(--commission-white);
         border: 2px solid var(--commission-border-blue);
         border-radius: 50%;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
     }
 
     .customer-create-page .radio-card-content::after {
@@ -616,7 +788,9 @@
         border-radius: 50%;
         opacity: 0;
         transform: scale(0.5);
-        transition: opacity 0.2s ease, transform 0.2s ease;
+        transition:
+            opacity 0.2s ease,
+            transform 0.2s ease;
     }
 
     .customer-create-page .radio-card-label:hover .radio-card-content {
@@ -627,15 +801,19 @@
 
     .customer-create-page .radio-card-input:checked+.radio-card-content {
         background:
-            linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(6, 182, 212, 0.08)),
+            linear-gradient(135deg,
+                rgba(37, 99, 235, 0.10),
+                rgba(6, 182, 212, 0.08)),
             var(--commission-bg-white);
+
         border-color: var(--commission-blue);
         box-shadow: var(--commission-shadow-md);
     }
 
     .customer-create-page .radio-card-input:checked+.radio-card-content::before {
         border-color: var(--commission-blue);
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        box-shadow:
+            0 0 0 4px rgba(37, 99, 235, 0.12);
     }
 
     .customer-create-page .radio-card-input:checked+.radio-card-content::after {
@@ -681,7 +859,8 @@
         height: 10px;
         background: var(--commission-gradient-icon);
         border-radius: 999px;
-        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.10);
+        box-shadow:
+            0 0 0 5px rgba(37, 99, 235, 0.10);
     }
 
     .customer-create-page #ctvCheckText {
@@ -702,7 +881,11 @@
         font-size: 14px;
         font-weight: 800;
         border-radius: 14px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            border-color 0.2s ease,
+            background 0.2s ease;
     }
 
     .customer-create-page .btn:hover {
@@ -739,14 +922,16 @@
     .customer-create-page .btn-light {
         color: var(--commission-title);
         background: var(--commission-bg-white);
-        border-color: var(--commission-border-blue) !important;
+        border-color:
+            var(--commission-border-blue) !important;
         box-shadow: var(--commission-shadow-sm);
     }
 
     .customer-create-page .btn-light:hover {
         color: var(--commission-blue-dark);
         background: var(--commission-bg-soft-blue);
-        border-color: var(--commission-blue) !important;
+        border-color:
+            var(--commission-blue) !important;
     }
 
     .customer-create-page .d-flex.justify-content-end {
@@ -793,12 +978,13 @@
 </style>
 @endpush
 
+
 @push('scripts')
 <script>
     window.CustomerFormConfig = {
-        checkReferrerUrl: "{{ route('admin.customers.check-referrer') }}",
-        csrfToken: "{{ csrf_token() }}"
+        checkReferrerUrl: "{{ route('admin.customers.check-referrer') }}"
     };
 </script>
+
 <script src="{{ asset('admin/js/customerForm.js') }}"></script>
 @endpush

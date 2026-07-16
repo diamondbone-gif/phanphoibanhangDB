@@ -156,13 +156,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->name('customers.store');
 
         /*
-        | Kiểm tra số điện thoại người giới thiệu / CTV.
-        | Dùng cho AJAX ở form thêm/sửa khách hàng.
-        | Đường dẫn: /admin/customers/check-referrer
-        | Tên route: admin.customers.check-referrer
+        |--------------------------------------------------------------------------
+        | Kiểm tra số điện thoại người giới thiệu / CTV
+        |--------------------------------------------------------------------------
+        | Dùng AJAX tại form thêm hoặc sửa khách hàng.
+        | Phương thức: GET
+        | URL: /admin/customers/check-referrer?phone=...
+        |--------------------------------------------------------------------------
         */
-        Route::get('customers/check-referrer', [CustomerController::class, 'checkReferrer'])
-            ->name('customers.check-referrer');
+
+        Route::get(
+            'customers/check-referrer',
+            [CustomerController::class, 'checkReferrer']
+        )->name('customers.check-referrer');
 
         /*
         | Xem chi tiết một khách hàng.
@@ -210,7 +216,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/customers/{customer}/convert-to-ctv
         | Tên route: admin.customers.convert-to-ctv
         */
-        Route::post('customers/{customer}/convert-to-ctv', [CustomerController::class, 'convertToCtv'])
+        Route::post(
+            'customers/{customer}/convert-to-ctv',
+            [CustomerController::class, 'convertToCtv']
+        )
             ->name('customers.convert-to-ctv')
             ->whereNumber('customer');
 
@@ -220,7 +229,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/customers/{customer}/mark-stopped-buying
         | Tên route: admin.customers.mark-stopped-buying
         */
-        Route::post('customers/{customer}/mark-stopped-buying', [CustomerController::class, 'markStoppedBuying'])
+        Route::post(
+            'customers/{customer}/mark-stopped-buying',
+            [CustomerController::class, 'markStoppedBuying']
+        )
             ->name('customers.mark-stopped-buying')
             ->whereNumber('customer');
 
@@ -288,8 +300,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/role-status-options
         | Tên route: admin.role-status-options.index
         */
-        Route::get('role-status-options', [CustomerRoleStatusController::class, 'index'])
-            ->name('role-status-options.index');
+        Route::get(
+            'role-status-options',
+            [CustomerRoleStatusController::class, 'index']
+        )->name('role-status-options.index');
 
         /*
         | Thêm mới vai trò hoặc trạng thái.
@@ -297,7 +311,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/role-status-options/{type}
         | Tên route: admin.role-status-options.store
         */
-        Route::post('role-status-options/{type}', [CustomerRoleStatusController::class, 'store'])
+        Route::post(
+            'role-status-options/{type}',
+            [CustomerRoleStatusController::class, 'store']
+        )
             ->name('role-status-options.store')
             ->where('type', 'role|buy_status|customer_status|ctv_status')
             ->middleware('signed');
@@ -308,7 +325,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PUT /admin/role-status-options/{type}/{id}
         | Tên route: admin.role-status-options.update
         */
-        Route::put('role-status-options/{type}/{id}', [CustomerRoleStatusController::class, 'update'])
+        Route::put(
+            'role-status-options/{type}/{id}',
+            [CustomerRoleStatusController::class, 'update']
+        )
             ->name('role-status-options.update')
             ->where('type', 'role|buy_status|customer_status|ctv_status')
             ->whereNumber('id')
@@ -320,7 +340,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: DELETE /admin/role-status-options/{type}/{id}
         | Tên route: admin.role-status-options.destroy
         */
-        Route::delete('role-status-options/{type}/{id}', [CustomerRoleStatusController::class, 'destroy'])
+        Route::delete(
+            'role-status-options/{type}/{id}',
+            [CustomerRoleStatusController::class, 'destroy']
+        )
             ->name('role-status-options.destroy')
             ->where('type', 'role|buy_status|customer_status|ctv_status')
             ->whereNumber('id')
@@ -359,7 +382,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/ctvs/{ctv}/referred-customers/{referred}/show
         | Tên route: admin.ctvs.referred-customers.show
         */
-        Route::get('ctvs/{ctv}/referred-customers/{referred}/show', [CtvController::class, 'referredShow'])
+        Route::get(
+            'ctvs/{ctv}/referred-customers/{referred}/show',
+            [CtvController::class, 'referredShow']
+        )
             ->name('ctvs.referred-customers.show')
             ->whereNumber('ctv')
             ->whereNumber('referred')
@@ -387,7 +413,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/commissions/{ctv}/detail
         | Tên route: admin.commissions.detail
         */
-        Route::get('commissions/{ctv}/detail', [CommissionController::class, 'detail'])
+        Route::get(
+            'commissions/{ctv}/detail',
+            [CommissionController::class, 'detail']
+        )
             ->whereNumber('ctv')
             ->name('commissions.detail');
 
@@ -397,7 +426,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/commissions/{ctv}/pay
         | Tên route: admin.commissions.pay
         */
-        Route::post('commissions/{ctv}/pay', [CommissionController::class, 'pay'])
+        Route::post(
+            'commissions/{ctv}/pay',
+            [CommissionController::class, 'pay']
+        )
             ->whereNumber('ctv')
             ->name('commissions.pay');
 
@@ -407,7 +439,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/commissions/{ctv}/history
         | Tên route: admin.commissions.history
         */
-        Route::get('commissions/{ctv}/history', [CommissionController::class, 'history'])
+        Route::get(
+            'commissions/{ctv}/history',
+            [CommissionController::class, 'history']
+        )
             ->whereNumber('ctv')
             ->name('commissions.history');
 
@@ -417,7 +452,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/commissions/{ctv}/history/{payout}/edit
         | Tên route: admin.commissions.history.edit
         */
-        Route::get('commissions/{ctv}/history/{payout}/edit', [CommissionController::class, 'editHistory'])
+        Route::get(
+            'commissions/{ctv}/history/{payout}/edit',
+            [CommissionController::class, 'editHistory']
+        )
             ->whereNumber('ctv')
             ->whereNumber('payout')
             ->name('commissions.history.edit');
@@ -428,7 +466,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PUT /admin/commissions/{ctv}/history/{payout}
         | Tên route: admin.commissions.history.update
         */
-        Route::put('commissions/{ctv}/history/{payout}', [CommissionController::class, 'updateHistory'])
+        Route::put(
+            'commissions/{ctv}/history/{payout}',
+            [CommissionController::class, 'updateHistory']
+        )
             ->whereNumber('ctv')
             ->whereNumber('payout')
             ->name('commissions.history.update');
@@ -446,8 +487,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/customer-commissions
         | Tên route: admin.customer-commissions.index
         */
-        Route::get('customer-commissions', [CustomerCommissionController::class, 'index'])
-            ->name('customer-commissions.index');
+        Route::get(
+            'customer-commissions',
+            [CustomerCommissionController::class, 'index']
+        )->name('customer-commissions.index');
 
         /*
         | Đánh dấu một khoản hoa hồng là đã thanh toán.
@@ -455,7 +498,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/customer-commissions/{commission}/mark-paid
         | Tên route: admin.customer-commissions.mark-paid
         */
-        Route::post('customer-commissions/{commission}/mark-paid', [CustomerCommissionController::class, 'markPaid'])
+        Route::post(
+            'customer-commissions/{commission}/mark-paid',
+            [CustomerCommissionController::class, 'markPaid']
+        )
             ->name('customer-commissions.mark-paid')
             ->whereNumber('commission');
 
@@ -465,7 +511,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/customer-commissions/{commission}/mark-unpaid
         | Tên route: admin.customer-commissions.mark-unpaid
         */
-        Route::post('customer-commissions/{commission}/mark-unpaid', [CustomerCommissionController::class, 'markUnpaid'])
+        Route::post(
+            'customer-commissions/{commission}/mark-unpaid',
+            [CustomerCommissionController::class, 'markUnpaid']
+        )
             ->name('customer-commissions.mark-unpaid')
             ->whereNumber('commission');
 
@@ -538,7 +587,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PATCH /admin/products/{product}/toggle-status
         | Tên route: admin.products.toggle-status
         */
-        Route::patch('products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])
+        Route::patch(
+            'products/{product}/toggle-status',
+            [ProductController::class, 'toggleStatus']
+        )
             ->name('products.toggle-status')
             ->whereNumber('product');
 
@@ -564,16 +616,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/inventory/table
         | Tên route: admin.inventory.table
         */
-        Route::get('inventory/table', [ProductController::class, 'inventoryTable'])
-            ->name('inventory.table');
+        Route::get(
+            'inventory/table',
+            [ProductController::class, 'inventoryTable']
+        )->name('inventory.table');
 
         /*
         | Nhập kho / tạo lô hàng mới.
         | Đường dẫn: POST /admin/inventory/import-stock
         | Tên route: admin.inventory.import-stock
         */
-        Route::post('inventory/import-stock', [ProductController::class, 'importStock'])
-            ->name('inventory.import-stock');
+        Route::post(
+            'inventory/import-stock',
+            [ProductController::class, 'importStock']
+        )->name('inventory.import-stock');
 
         /*
         | Lấy dữ liệu lô hàng để sửa.
@@ -581,7 +637,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/inventory/batches/{batch}/edit
         | Tên route: admin.inventory.batches.edit
         */
-        Route::get('inventory/batches/{batch}/edit', [ProductController::class, 'editBatch'])
+        Route::get(
+            'inventory/batches/{batch}/edit',
+            [ProductController::class, 'editBatch']
+        )
             ->name('inventory.batches.edit')
             ->whereNumber('batch');
 
@@ -591,7 +650,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PUT /admin/inventory/batches/{batch}
         | Tên route: admin.inventory.batches.update
         */
-        Route::put('inventory/batches/{batch}', [ProductController::class, 'updateBatch'])
+        Route::put(
+            'inventory/batches/{batch}',
+            [ProductController::class, 'updateBatch']
+        )
             ->name('inventory.batches.update')
             ->whereNumber('batch');
 
@@ -601,7 +663,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PATCH /admin/inventory/batches/{batch}/toggle-status
         | Tên route: admin.inventory.batches.toggle-status
         */
-        Route::patch('inventory/batches/{batch}/toggle-status', [ProductController::class, 'toggleBatchStatus'])
+        Route::patch(
+            'inventory/batches/{batch}/toggle-status',
+            [ProductController::class, 'toggleBatchStatus']
+        )
             ->name('inventory.batches.toggle-status')
             ->whereNumber('batch');
 
@@ -611,7 +676,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: DELETE /admin/inventory/batches/{batch}
         | Tên route: admin.inventory.batches.destroy
         */
-        Route::delete('inventory/batches/{batch}', [ProductController::class, 'destroyBatch'])
+        Route::delete(
+            'inventory/batches/{batch}',
+            [ProductController::class, 'destroyBatch']
+        )
             ->name('inventory.batches.destroy')
             ->whereNumber('batch');
 
@@ -620,8 +688,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/inventory/movement-history
         | Tên route: admin.inventory.movement-history
         */
-        Route::get('inventory/movement-history', [ProductController::class, 'movementHistory'])
-            ->name('inventory.movement-history');
+        Route::get(
+            'inventory/movement-history',
+            [ProductController::class, 'movementHistory']
+        )->name('inventory.movement-history');
 
 
         /*
@@ -636,8 +706,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/sales/customers/search
         | Tên route: admin.orders.customers.search
         */
-        Route::get('sales/customers/search', [OrderController::class, 'searchCustomers'])
-            ->name('orders.customers.search');
+        Route::get(
+            'sales/customers/search',
+            [OrderController::class, 'searchCustomers']
+        )->name('orders.customers.search');
 
         /*
         | Danh sách đơn hàng.
@@ -653,12 +725,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/sales/orders/create
         | Tên route: admin.orders.create
         */
-        Route::get('sales/orders/create', [OrderController::class, 'create'])
-            ->name('orders.create');
+        Route::get(
+            'sales/orders/create',
+            [OrderController::class, 'create']
+        )->name('orders.create');
 
         /*
         | Lưu đơn hàng mới vào database.
-        | Sau khi lưu có thể trừ kho, tính tiền, tạo công nợ, tạo hoa hồng tùy logic controller/service.
+        | Sau khi lưu có thể trừ kho, tính tiền, tạo công nợ, tạo hoa hồng
+        | tùy logic controller/service.
         | Đường dẫn: POST /admin/sales/orders
         | Tên route: admin.orders.store
         */
@@ -671,8 +746,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/sales/orders/{order_code}
         | Tên route: admin.orders.show
         */
-        Route::get('sales/orders/{order:order_code}', [OrderController::class, 'show'])
-            ->name('orders.show');
+        Route::get(
+            'sales/orders/{order:order_code}',
+            [OrderController::class, 'show']
+        )->name('orders.show');
 
         /*
         | Form sửa đơn hàng theo mã đơn.
@@ -680,8 +757,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/sales/orders/{order_code}/edit
         | Tên route: admin.orders.edit
         */
-        Route::get('sales/orders/{order:order_code}/edit', [OrderController::class, 'edit'])
-            ->name('orders.edit');
+        Route::get(
+            'sales/orders/{order:order_code}/edit',
+            [OrderController::class, 'edit']
+        )->name('orders.edit');
 
         /*
         | Cập nhật đơn hàng theo mã đơn.
@@ -689,26 +768,33 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PUT /admin/sales/orders/{order_code}
         | Tên route: admin.orders.update
         */
-        Route::put('sales/orders/{order:order_code}', [OrderController::class, 'update'])
-            ->name('orders.update');
+        Route::put(
+            'sales/orders/{order:order_code}',
+            [OrderController::class, 'update']
+        )->name('orders.update');
 
         /*
         | Hoàn tất đơn hàng.
-        | Có thể dùng để cập nhật trạng thái completed, ghi nhận ngày hoàn tất, tạo hoa hồng nếu đủ điều kiện.
+        | Có thể dùng để cập nhật trạng thái completed, ghi nhận ngày hoàn tất,
+        | tạo hoa hồng nếu đủ điều kiện.
         | Đường dẫn: PATCH /admin/sales/orders/{order_code}/complete
         | Tên route: admin.orders.complete
         */
-        Route::patch('sales/orders/{order:order_code}/complete', [OrderController::class, 'complete'])
-            ->name('orders.complete');
+        Route::patch(
+            'sales/orders/{order:order_code}/complete',
+            [OrderController::class, 'complete']
+        )->name('orders.complete');
 
         /*
         | Hủy đơn hàng.
-        | Có thể dùng để hoàn kho, hủy công nợ, hủy hoa hồng tùy logic controller/service.
+        | Có thể dùng để hoàn kho, hủy công nợ, hủy hoa hồng tùy logic.
         | Đường dẫn: PATCH /admin/sales/orders/{order_code}/cancel
         | Tên route: admin.orders.cancel
         */
-        Route::patch('sales/orders/{order:order_code}/cancel', [OrderController::class, 'cancel'])
-            ->name('orders.cancel');
+        Route::patch(
+            'sales/orders/{order:order_code}/cancel',
+            [OrderController::class, 'cancel']
+        )->name('orders.cancel');
 
         /*
         | Xóa đơn hàng.
@@ -716,8 +802,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: DELETE /admin/sales/orders/{order_code}
         | Tên route: admin.orders.destroy
         */
-        Route::delete('sales/orders/{order:order_code}', [OrderController::class, 'destroy'])
-            ->name('orders.destroy');
+        Route::delete(
+            'sales/orders/{order:order_code}',
+            [OrderController::class, 'destroy']
+        )->name('orders.destroy');
 
 
         /*
@@ -732,8 +820,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/invoices/{invoice_code}/print
         | Tên route: admin.invoices.print
         */
-        Route::get('invoices/{invoice:invoice_code}/print', [InvoiceController::class, 'print'])
-            ->name('invoices.print');
+        Route::get(
+            'invoices/{invoice:invoice_code}/print',
+            [InvoiceController::class, 'print']
+        )->name('invoices.print');
 
 
         /*
@@ -833,7 +923,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Chi tiết chăm sóc của một khách hàng
         |--------------------------------------------------------------------------
         | Xem lịch sử chăm sóc và lịch nhắc của một khách hàng.
-        | Route có biến customerId phải đặt cuối cùng để tránh nhận nhầm đường dẫn
+        | Route có biến customerId phải đặt cuối cùng để tránh nhận nhầm
         | notifications/due, logs hoặc reminders thành customerId.
         | Đường dẫn: /admin/customer-care/{customerId}
         | Tên route: admin.customer-care.show
