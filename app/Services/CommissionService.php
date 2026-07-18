@@ -7,6 +7,7 @@ use App\Models\CustomerOrder;
 use App\Support\Money;
 use App\Support\StatusHelper;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class CommissionService
@@ -54,14 +55,8 @@ class CommissionService
             $existingCommission = DB::table('customer_commissions')
                 ->where('customer_order_id', $order->id)
                 ->whereNull('deleted_at')
-                ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', CommissionState::Cancelled->value))
+                ->lockForUpdate()
                 ->first();
-
-            if ($existingCommission) {
-                $this->markOrderCommissionCreated($order, $order->net_amount ?? $order->final_amount, $adminId);
-
-                return $existingCommission;
-            }
 
             /*
             |--------------------------------------------------------------------------
@@ -165,7 +160,36 @@ class CommissionService
                 'updated_at' => now(),
             ];
 
-            $commissionId = DB::table('customer_commissions')->insertGetId($commissionData);
+            if ($existingCommission) {
+                $paidAmountCents = Money::cents($existingCommission->paid_amount ?? 0);
+                $commissionAmountCents = Money::cents($commissionAmount);
+                $clawbackCents = max(0, $paidAmountCents - $commissionAmountCents);
+                $status = match (true) {
+                    $clawbackCents > 0 => CommissionState::Clawback->value,
+                    $paidAmountCents >= $commissionAmountCents => CommissionState::Paid->value,
+                    default => CommissionState::Unpaid->value,
+                };
+
+                $commissionData['status'] = $status;
+                $commissionData['commission_status_id'] = StatusHelper::id(
+                    'commission_statuses',
+                    $status === CommissionState::Paid->value ? 'paid' : 'pending'
+                );
+                $commissionData['clawback_amount'] = Money::decimal($clawbackCents);
+                $commissionData['cancelled_at'] = null;
+                $commissionData['cancelled_by'] = null;
+                $commissionData['cancel_reason'] = null;
+                $commissionData['cancelled_reason'] = null;
+                $commissionData['updated_at'] = now();
+                unset($commissionData['commission_code'], $commissionData['paid_amount'], $commissionData['created_at']);
+
+                DB::table('customer_commissions')
+                    ->where('id', $existingCommission->id)
+                    ->update($commissionData);
+                $commissionId = $existingCommission->id;
+            } else {
+                $commissionId = DB::table('customer_commissions')->insertGetId($commissionData);
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -309,11 +333,35 @@ class CommissionService
     */
     private function findReferralForCustomer(int $customerId): ?object
     {
-        return DB::table('customer_referrals')
+        $query = DB::table('customer_referrals')
             ->where('referred_customer_id', $customerId)
-            ->whereNotNull('referrer_customer_id')
-            ->orderByDesc('id')
-            ->first();
+            ->whereNotNull('referrer_customer_id');
+
+        if (Schema::hasColumn('customer_referrals', 'status')) {
+            $query->where(function ($query): void {
+                $query->whereNull('status')->orWhere('status', 'active');
+            });
+        }
+        if (Schema::hasColumn('customer_referrals', 'started_at')) {
+            $query->where(function ($query): void {
+                $query->whereNull('started_at')->orWhere('started_at', '<=', now());
+            });
+        }
+        if (Schema::hasColumn('customer_referrals', 'ended_at')) {
+            $query->whereNull('ended_at');
+        }
+        if (Schema::hasColumn('customer_referrals', 'effective_from')) {
+            $query->where(function ($query): void {
+                $query->whereNull('effective_from')->orWhere('effective_from', '<=', now());
+            });
+        }
+        if (Schema::hasColumn('customer_referrals', 'effective_to')) {
+            $query->where(function ($query): void {
+                $query->whereNull('effective_to')->orWhere('effective_to', '>=', now());
+            });
+        }
+
+        return $query->orderByDesc('id')->first();
     }
 
     /*
@@ -323,20 +371,20 @@ class CommissionService
     */
     private function getCommissionRate(object $ctv, object $referral): string
     {
-        $ctvRate = isset($ctv->commission_rate)
-            ? (string) $ctv->commission_rate
-            : '0';
-
-        if (Money::percentBasisPoints($ctvRate) > 0) {
-            return $ctvRate;
-        }
-
         $referralRate = isset($referral->commission_rate)
             ? (string) $referral->commission_rate
             : '0';
 
         if (Money::percentBasisPoints($referralRate) > 0) {
             return $referralRate;
+        }
+
+        $ctvRate = isset($ctv->commission_rate)
+            ? (string) $ctv->commission_rate
+            : '0';
+
+        if (Money::percentBasisPoints($ctvRate) > 0) {
+            return $ctvRate;
         }
 
         return '0';

@@ -6,10 +6,10 @@ use App\Models\CustomerInvoice;
 use App\Models\CustomerOrder;
 use App\Models\OrderHistory;
 use App\Models\Payment;
+use App\Support\Money;
 use App\Support\StatusHelper;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
-use App\Support\Money;
 
 class OrderService
 {
@@ -128,7 +128,7 @@ class OrderService
             | HOÀN KHO CŨ TRƯỚC KHI SỬA ĐƠN
             |--------------------------------------------------------------------------
             */
-            if (!$order->stock_reverted) {
+            if (! $order->stock_reverted) {
                 $this->stockService->returnOrderStock($order, 'edit_return', $adminId);
             }
 
@@ -200,7 +200,8 @@ class OrderService
             */
             if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
                 $this->commissionService->createForOrder(
-                    $order->fresh(['items.product', 'customer'])
+                    $order->fresh(['items.product', 'customer']),
+                    $adminId
                 );
             }
 
@@ -230,9 +231,10 @@ class OrderService
             }
 
             if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
-                return $order;
-            }
+                $this->commissionService->createForOrder($order, $adminId);
 
+                return $order->fresh(['items', 'invoice', 'customer', 'commission']);
+            }
 
             if (($order->return_status ?? 'none') !== 'none') {
                 throw new RuntimeException('Đơn hàng đã phát sinh hoàn trả, không thể hoàn thành lại.');
@@ -267,7 +269,8 @@ class OrderService
             |--------------------------------------------------------------------------
             */
             $this->commissionService->createForOrder(
-                $order->fresh(['items.product', 'customer'])
+                $order->fresh(['items.product', 'customer']),
+                $adminId
             );
 
             $this->history(
@@ -310,7 +313,7 @@ class OrderService
             | HOÀN KHO KHI HỦY ĐƠN
             |--------------------------------------------------------------------------
             */
-            if (!$order->stock_reverted) {
+            if (! $order->stock_reverted) {
                 $this->stockService->returnOrderStock($order, 'cancel_return', $adminId);
             }
 
@@ -341,7 +344,7 @@ class OrderService
                     'status' => 'void',
                     'voided_by' => $adminId,
                     'voided_at' => now(),
-                    'note' => trim(($order->invoice->note ?? '') . "\nHủy hóa đơn: " . $reason),
+                    'note' => trim(($order->invoice->note ?? '')."\nHủy hóa đơn: ".$reason),
                 ]);
             }
 
@@ -430,7 +433,7 @@ class OrderService
     private function makeCode(string $prefix, string $table, string $column): string
     {
         do {
-            $code = $prefix . now()->format('ymdHis') . random_int(100, 999);
+            $code = $prefix.now()->format('ymdHis').random_int(100, 999);
         } while (DB::table($table)->where($column, $code)->exists());
 
         return $code;
