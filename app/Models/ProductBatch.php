@@ -17,7 +17,6 @@ class ProductBatch extends Model
 
     protected $table = 'product_batches';
 
-
     /*
     |--------------------------------------------------------------------------
     | FILLABLE
@@ -46,6 +45,7 @@ class ProductBatch extends Model
         'current_quantity',
 
         'import_price',
+        'unit_cost',
 
         'status',
         'is_active',
@@ -54,7 +54,6 @@ class ProductBatch extends Model
         'created_by',
         'updated_by',
     ];
-
 
     /*
     |--------------------------------------------------------------------------
@@ -71,10 +70,10 @@ class ProductBatch extends Model
         'current_quantity' => 'integer',
 
         'import_price' => 'decimal:2',
+        'unit_cost' => 'decimal:2',
 
         'is_active' => 'boolean',
     ];
-
 
     /*
     |--------------------------------------------------------------------------
@@ -91,7 +90,6 @@ class ProductBatch extends Model
         'display_batch_code',
     ];
 
-
     /*
     |--------------------------------------------------------------------------
     | SẢN PHẨM CỦA LÔ HÀNG
@@ -102,7 +100,6 @@ class ProductBatch extends Model
     {
         return $this->belongsTo(Product::class, 'product_id');
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -115,7 +112,6 @@ class ProductBatch extends Model
         return $this->hasMany(ProductStockMovement::class, 'product_batch_id');
     }
 
-
     /*
     |--------------------------------------------------------------------------
     | NGƯỜI TẠO LÔ HÀNG
@@ -127,7 +123,6 @@ class ProductBatch extends Model
         return $this->belongsTo(OperationManager::class, 'created_by');
     }
 
-
     /*
     |--------------------------------------------------------------------------
     | NGƯỜI CẬP NHẬT LÔ HÀNG
@@ -138,7 +133,6 @@ class ProductBatch extends Model
     {
         return $this->belongsTo(OperationManager::class, 'updated_by');
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -159,7 +153,6 @@ class ProductBatch extends Model
         return max($soldQuantity, 0);
     }
 
-
     /*
     |--------------------------------------------------------------------------
     | MÃ LÔ HIỂN THỊ
@@ -172,7 +165,6 @@ class ProductBatch extends Model
     {
         return $this->batch_code ?: $this->batch_number;
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -199,7 +191,7 @@ class ProductBatch extends Model
         |--------------------------------------------------------------------------
         */
 
-        if (!empty($this->status)) {
+        if (! empty($this->status)) {
             return match ($this->status) {
                 'active' => 'An toàn',
                 'inactive' => 'Đã ẩn',
@@ -230,7 +222,6 @@ class ProductBatch extends Model
 
         return 'An toàn';
     }
-
 
     /*
     |--------------------------------------------------------------------------

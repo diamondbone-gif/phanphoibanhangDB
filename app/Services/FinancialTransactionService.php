@@ -30,9 +30,13 @@ class FinancialTransactionService
         });
     }
 
-    public function complete(FinancialTransaction $transaction, ?int $adminId, ?string $bankReference = null): FinancialTransaction
-    {
-        return DB::transaction(function () use ($transaction, $adminId, $bankReference) {
+    public function complete(
+        FinancialTransaction $transaction,
+        ?int $adminId,
+        ?string $bankReference = null,
+        ?string $attachmentPath = null,
+    ): FinancialTransaction {
+        return DB::transaction(function () use ($transaction, $adminId, $bankReference, $attachmentPath) {
             $transaction = FinancialTransaction::query()->lockForUpdate()->findOrFail($transaction->id);
             if ($transaction->status !== FinancialTransactionState::Approved) {
                 throw new RuntimeException('Giao dịch phải được duyệt trước khi thực hiện.');
@@ -42,6 +46,7 @@ class FinancialTransactionService
                 'executed_by' => $adminId,
                 'executed_at' => now(),
                 'bank_reference' => $bankReference,
+                'attachment_path' => $attachmentPath ?? $transaction->attachment_path,
                 'failure_reason' => null,
             ]);
 

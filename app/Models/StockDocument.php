@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\StockDocumentState;
+use App\Enums\StockDocumentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +13,8 @@ class StockDocument extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
+        'document_type' => StockDocumentType::class,
+        'status' => StockDocumentState::class,
         'document_date' => 'datetime',
         'approved_at' => 'datetime',
         'posted_at' => 'datetime',

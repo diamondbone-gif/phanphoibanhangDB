@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\FinancialTransactionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\StockDocumentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -1061,6 +1062,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->name('financial-transactions.complete');
         Route::patch('financial-transactions/{transaction}/fail', [FinancialTransactionController::class, 'fail'])
             ->name('financial-transactions.fail');
+        Route::get('financial-transactions/{transaction}/attachment', [FinancialTransactionController::class, 'attachment'])
+            ->name('financial-transactions.attachment');
+
+        Route::get('stock-documents', [StockDocumentController::class, 'index'])->name('stock-documents.index');
+        Route::post('stock-documents', [StockDocumentController::class, 'store'])->name('stock-documents.store');
+        Route::post('warehouses', [StockDocumentController::class, 'storeWarehouse'])->name('warehouses.store');
 
         /*
         |--------------------------------------------------------------------------

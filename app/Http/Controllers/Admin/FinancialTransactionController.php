@@ -9,6 +9,7 @@ use App\Models\FinancialTransaction;
 use App\Services\FinancialTransactionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class FinancialTransactionController extends Controller
@@ -39,12 +40,35 @@ class FinancialTransactionController extends Controller
 
     public function complete(Request $request, FinancialTransaction $transaction): RedirectResponse
     {
-        $data = $request->validate(['bank_reference' => ['nullable', 'string', 'max:255']]);
+        $data = $request->validate([
+            'bank_reference' => ['nullable', 'string', 'max:255'],
+            'attachment' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ]);
+        $attachmentPath = $request->file('attachment')?->store('financial-documents', 'local');
 
-        return $this->transition(
-            fn () => $this->transactions->complete($transaction, auth('admin')->id(), $data['bank_reference'] ?? null),
-            'Đã ghi nhận giao dịch hoàn tất.',
-        );
+        try {
+            $this->transactions->complete(
+                $transaction,
+                auth('admin')->id(),
+                $data['bank_reference'] ?? null,
+                $attachmentPath ?: null,
+            );
+
+            return back()->with('success', 'Đã ghi nhận giao dịch hoàn tất.');
+        } catch (\RuntimeException $exception) {
+            if ($attachmentPath) {
+                Storage::disk('local')->delete($attachmentPath);
+            }
+
+            return back()->with('error', $exception->getMessage());
+        }
+    }
+
+    public function attachment(FinancialTransaction $transaction)
+    {
+        abort_if(! $transaction->attachment_path || ! Storage::disk('local')->exists($transaction->attachment_path), 404);
+
+        return Storage::disk('local')->download($transaction->attachment_path);
     }
 
     public function fail(Request $request, FinancialTransaction $transaction): RedirectResponse

@@ -14,6 +14,7 @@ use App\Models\Payment;
 use App\Models\ProductBatch;
 use App\Models\ProductStockMovement;
 use App\Models\StockDocument;
+use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use App\Observers\AuditObserver;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
             ProductBatch::class,
             ProductStockMovement::class,
             WarehouseStock::class,
+            Warehouse::class,
             StockDocument::class,
         ] as $model) {
             $model::observe(AuditObserver::class);

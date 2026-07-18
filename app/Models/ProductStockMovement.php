@@ -9,6 +9,8 @@ class ProductStockMovement extends Model
     protected $fillable = [
         'product_id',
         'product_batch_id',
+        'warehouse_id',
+        'stock_document_id',
         'customer_order_id',
         'customer_order_item_id',
         'movement_code',
@@ -16,6 +18,8 @@ class ProductStockMovement extends Model
         'quantity',
         'before_quantity',
         'after_quantity',
+        'unit_cost',
+        'total_cost',
         'reference_type',
         'reference_id',
         'movement_date',
@@ -25,5 +29,7 @@ class ProductStockMovement extends Model
 
     protected $casts = [
         'movement_date' => 'datetime',
+        'unit_cost' => 'decimal:2',
+        'total_cost' => 'decimal:2',
     ];
 }
