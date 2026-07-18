@@ -29,5 +29,8 @@ parameters:
         - app/Services/StockDocumentService.php
         - app/Http/Controllers/Admin/StockDocumentController.php
         - app/Http/Requests/Admin/StoreStockDocumentRequest.php
+        - app/Services/CustomerReferralService.php
+        - app/Http/Controllers/Admin/AuditLogController.php
+        - app/Models/AuditLog.php
     level: 5
     tmpDir: storage/framework/cache/phpstan

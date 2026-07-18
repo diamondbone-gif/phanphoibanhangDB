@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CtvController;
 use App\Http\Controllers\Admin\CustomerCareController;
@@ -1067,6 +1068,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('stock-documents', [StockDocumentController::class, 'index'])->name('stock-documents.index');
         Route::post('stock-documents', [StockDocumentController::class, 'store'])->name('stock-documents.store');
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::post('warehouses', [StockDocumentController::class, 'storeWarehouse'])->name('warehouses.store');
 
         /*

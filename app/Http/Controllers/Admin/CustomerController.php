@@ -16,14 +16,16 @@ use App\Models\CustomerStopReason;
 use App\Models\CustomerType;
 use App\Models\Product;
 use App\Models\ReferralStatus;
+use App\Services\CustomerReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class CustomerController extends Controller
 {
+    public function __construct(private readonly CustomerReferralService $referrals) {}
+
     public function index(Request $request)
     {
         $customerTypes = CustomerType::query()
@@ -313,7 +315,7 @@ class CustomerController extends Controller
                 ($validated['customer_source'] ?? '')
                 === 'ctv_referral'
             ) {
-                $this->syncCustomerReferral(
+                $this->referrals->sync(
                     $customer,
                     $validated
                 );
@@ -870,7 +872,7 @@ class CustomerController extends Controller
                 | Đồng bộ người giới thiệu
                 |--------------------------------------------------------------------------
                 */
-                $this->syncCustomerReferral(
+                $this->referrals->sync(
                     $customer,
                     $request
                 );
@@ -950,212 +952,6 @@ class CustomerController extends Controller
     | ĐỒNG BỘ THÔNG TIN NGƯỜI GIỚI THIỆU
     |--------------------------------------------------------------------------
     */
-    private function syncCustomerReferral(
-        Customer $customer,
-        Request|array $input
-    ): void {
-        $isRequest =
-            $input instanceof Request;
-
-        $customerKind = $isRequest
-            ? $input->input('customer_kind')
-            : (
-                ($input['customer_source'] ?? '')
-                === 'ctv_referral'
-                ? 'ctv'
-                : 'self'
-            );
-
-        $referrerPhoneInput = $isRequest
-            ? $input->input('referrer_phone')
-            : ($input['referrer_phone'] ?? null);
-
-        $commissionRate = $isRequest
-            ? (
-                $input->input('commission_rate')
-                ?: 5
-            )
-            : (
-                $input['commission_rate']
-                ?? 5
-            );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Khách tự tìm đến, không có người giới thiệu
-        |--------------------------------------------------------------------------
-        */
-        if ($customerKind === 'self') {
-            if (
-                Schema::hasColumn(
-                    'customers',
-                    'referrer_id'
-                )
-            ) {
-                $customer->update([
-                    'referrer_id' => null,
-                ]);
-            }
-
-            if (
-                Schema::hasTable(
-                    'customer_referrals'
-                )
-                && Schema::hasColumn(
-                    'customer_referrals',
-                    'referred_customer_id'
-                )
-            ) {
-                DB::table('customer_referrals')
-                    ->where(
-                        'referred_customer_id',
-                        $customer->id
-                    )
-                    ->delete();
-            }
-
-            return;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Chuẩn hóa và kiểm tra số điện thoại người giới thiệu
-        |--------------------------------------------------------------------------
-        */
-        $referrerPhone =
-            $this->normalizePhone(
-                $referrerPhoneInput
-            );
-
-        if (! $referrerPhone) {
-            throw ValidationException::withMessages([
-                'referrer_phone' => 'Vui lòng nhập số điện thoại người giới thiệu.',
-            ]);
-        }
-
-        $referrer =
-            $this->findCustomerByPhone(
-                $referrerPhone
-            );
-
-        if (! $referrer) {
-            throw ValidationException::withMessages([
-                'referrer_phone' => 'Không tìm thấy khách hàng/người giới thiệu theo số điện thoại đã nhập.',
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Không cho phép khách hàng tự giới thiệu chính mình
-        |--------------------------------------------------------------------------
-        */
-        if (
-            (int) $referrer->id
-            === (int) $customer->id
-        ) {
-            throw ValidationException::withMessages([
-                'referrer_phone' => 'Khách hàng không thể tự giới thiệu chính mình.',
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Lưu người giới thiệu vào bảng customers
-        |--------------------------------------------------------------------------
-        */
-        if (
-            Schema::hasColumn(
-                'customers',
-                'referrer_id'
-            )
-        ) {
-            $customer->update([
-                'referrer_id' => $referrer->id,
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Lưu vào bảng customer_referrals
-        |--------------------------------------------------------------------------
-        */
-        if (
-            Schema::hasTable(
-                'customer_referrals'
-            )
-        ) {
-            $referralData = [
-                'referrer_customer_id' => $referrer->id,
-
-                'referred_customer_id' => $customer->id,
-
-                'referrer_phone' => $referrer->phone,
-
-                'commission_rate' => $commissionRate ?: 5,
-
-                'referral_status_id' => $this->findReferralStatusId(),
-
-                'status' => 'active',
-
-                'started_at' => now(),
-
-                'ended_at' => null,
-
-                'note' => 'Cập nhật thông tin người giới thiệu.',
-            ];
-
-            $referralData =
-                $this->filterExistingColumns(
-                    'customer_referrals',
-                    $referralData
-                );
-
-            if (
-                Schema::hasColumn(
-                    'customer_referrals',
-                    'updated_at'
-                )
-            ) {
-                $referralData['updated_at'] =
-                    now();
-            }
-
-            $existing =
-                DB::table('customer_referrals')
-                    ->where(
-                        'referred_customer_id',
-                        $customer->id
-                    )
-                    ->first();
-
-            if ($existing) {
-                unset(
-                    $referralData['started_at']
-                );
-
-                DB::table('customer_referrals')
-                    ->where(
-                        'id',
-                        $existing->id
-                    )
-                    ->update($referralData);
-            } else {
-                if (
-                    Schema::hasColumn(
-                        'customer_referrals',
-                        'created_at'
-                    )
-                ) {
-                    $referralData['created_at'] =
-                        now();
-                }
-
-                DB::table('customer_referrals')
-                    ->insert($referralData);
-            }
-        }
-    }
-
     private function currentReferrer(
         Customer $customer
     ): ?Customer {
