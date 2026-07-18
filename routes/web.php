@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\CustomerLifecycleController;
 use App\Http\Controllers\Admin\CustomerOptionController;
 use App\Http\Controllers\Admin\CustomerRoleStatusController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FinancialTransactionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
@@ -1051,6 +1052,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         )
             ->whereNumber('customerId')
             ->name('customer-care.show');
+
+        Route::get('financial-transactions', [FinancialTransactionController::class, 'index'])
+            ->name('financial-transactions.index');
+        Route::patch('financial-transactions/{transaction}/approve', [FinancialTransactionController::class, 'approve'])
+            ->name('financial-transactions.approve');
+        Route::patch('financial-transactions/{transaction}/complete', [FinancialTransactionController::class, 'complete'])
+            ->name('financial-transactions.complete');
+        Route::patch('financial-transactions/{transaction}/fail', [FinancialTransactionController::class, 'fail'])
+            ->name('financial-transactions.fail');
 
         /*
         |--------------------------------------------------------------------------

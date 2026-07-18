@@ -25,5 +25,6 @@ parameters:
         - app/Models/WarehouseStock.php
         - app/Models/StockDocument.php
         - app/Models/StockDocumentItem.php
+        - app/Http/Controllers/Admin/FinancialTransactionController.php
     level: 5
     tmpDir: storage/framework/cache/phpstan

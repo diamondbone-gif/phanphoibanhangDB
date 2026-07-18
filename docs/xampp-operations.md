@@ -53,3 +53,13 @@ D:\xampp\php\php.exe scripts\audit_data.php
 ```
 
 Không chạy `migrate:fresh` trên database `htpp` vì lệnh đó xóa toàn bộ bảng.
+
+## Build frontend bằng Node portable
+
+Dự án yêu cầu Node từ 22.12. Bản portable được đặt trong `.tools/node-v22.12.0-win-x64` và không commit lên Git. Chạy:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build-frontend-xampp.ps1
+```
+
+Script dùng đúng Node của dự án, cài dependency theo `package-lock.json` rồi build Vite.
