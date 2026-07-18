@@ -86,8 +86,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     | Đường dẫn: /admin/login
     | Tên route: admin.login
     */
-    Route::get('login', [AdminLoginController::class, 'showLoginForm'])
-        ->name('login');
+    Route::get(
+        'login',
+        [AdminLoginController::class, 'showLoginForm']
+    )->name('login');
 
     /*
     | Xử lý đăng nhập admin.
@@ -95,7 +97,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     | Đường dẫn: POST /admin/login
     | Tên route: admin.login.submit
     */
-    Route::post('login', [AdminLoginController::class, 'login'])
+    Route::post(
+        'login',
+        [AdminLoginController::class, 'login']
+    )
         ->name('login.submit')
         ->middleware('throttle:5,1');
 
@@ -120,8 +125,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/dashboard
         | Tên route: admin.dashboard
         */
-        Route::get('/dashboard', [DashboardController::class, 'index'])
-            ->name('dashboard');
+        Route::get(
+            '/dashboard',
+            [DashboardController::class, 'index']
+        )->name('dashboard');
 
 
         /*
@@ -136,24 +143,30 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/customers
         | Tên route: admin.customers.index
         */
-        Route::get('customers', [CustomerController::class, 'index'])
-            ->name('customers.index');
+        Route::get(
+            'customers',
+            [CustomerController::class, 'index']
+        )->name('customers.index');
 
         /*
         | Form thêm khách hàng mới.
         | Đường dẫn: /admin/customers/create
         | Tên route: admin.customers.create
         */
-        Route::get('customers/create', [CustomerController::class, 'create'])
-            ->name('customers.create');
+        Route::get(
+            'customers/create',
+            [CustomerController::class, 'create']
+        )->name('customers.create');
 
         /*
         | Lưu khách hàng mới vào database.
         | Đường dẫn: POST /admin/customers
         | Tên route: admin.customers.store
         */
-        Route::post('customers', [CustomerController::class, 'store'])
-            ->name('customers.store');
+        Route::post(
+            'customers',
+            [CustomerController::class, 'store']
+        )->name('customers.store');
 
         /*
         |--------------------------------------------------------------------------
@@ -176,7 +189,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/customers/{customer}
         | Tên route: admin.customers.show
         */
-        Route::get('customers/{customer}', [CustomerController::class, 'show'])
+        Route::get(
+            'customers/{customer}',
+            [CustomerController::class, 'show']
+        )
             ->name('customers.show')
             ->whereNumber('customer');
 
@@ -186,7 +202,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/customers/{customer}/edit
         | Tên route: admin.customers.edit
         */
-        Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])
+        Route::get(
+            'customers/{customer}/edit',
+            [CustomerController::class, 'edit']
+        )
             ->name('customers.edit')
             ->whereNumber('customer');
 
@@ -196,7 +215,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PUT /admin/customers/{customer}
         | Tên route: admin.customers.update
         */
-        Route::put('customers/{customer}', [CustomerController::class, 'update'])
+        Route::put(
+            'customers/{customer}',
+            [CustomerController::class, 'update']
+        )
             ->name('customers.update')
             ->whereNumber('customer');
 
@@ -206,7 +228,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: DELETE /admin/customers/{customer}
         | Tên route: admin.customers.destroy
         */
-        Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])
+        Route::delete(
+            'customers/{customer}',
+            [CustomerController::class, 'destroy']
+        )
             ->name('customers.destroy')
             ->whereNumber('customer');
 
@@ -249,8 +274,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/customer-options
         | Tên route: admin.customer-options.index
         */
-        Route::get('customer-options', [CustomerOptionController::class, 'index'])
-            ->name('customer-options.index');
+        Route::get(
+            'customer-options',
+            [CustomerOptionController::class, 'index']
+        )->name('customer-options.index');
 
         /*
         | Thêm mới một tùy chọn khách hàng theo từng loại.
@@ -258,9 +285,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/customer-options/{type}
         | Tên route: admin.customer-options.store
         */
-        Route::post('customer-options/{type}', [CustomerOptionController::class, 'store'])
+        Route::post(
+            'customer-options/{type}',
+            [CustomerOptionController::class, 'store']
+        )
             ->name('customer-options.store')
-            ->where('type', 'identity|buy_for|product|need|note')
+            ->where(
+                'type',
+                'identity|buy_for|product|need|note'
+            )
             ->middleware('signed');
 
         /*
@@ -269,9 +302,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PUT /admin/customer-options/{type}/{id}
         | Tên route: admin.customer-options.update
         */
-        Route::put('customer-options/{type}/{id}', [CustomerOptionController::class, 'update'])
+        Route::put(
+            'customer-options/{type}/{id}',
+            [CustomerOptionController::class, 'update']
+        )
             ->name('customer-options.update')
-            ->where('type', 'identity|buy_for|product|need|note')
+            ->where(
+                'type',
+                'identity|buy_for|product|need|note'
+            )
             ->whereNumber('id')
             ->middleware('signed');
 
@@ -281,9 +320,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: DELETE /admin/customer-options/{type}/{id}
         | Tên route: admin.customer-options.destroy
         */
-        Route::delete('customer-options/{type}/{id}', [CustomerOptionController::class, 'destroy'])
+        Route::delete(
+            'customer-options/{type}/{id}',
+            [CustomerOptionController::class, 'destroy']
+        )
             ->name('customer-options.destroy')
-            ->where('type', 'identity|buy_for|product|need|note')
+            ->where(
+                'type',
+                'identity|buy_for|product|need|note'
+            )
             ->whereNumber('id')
             ->middleware('signed');
 
@@ -316,7 +361,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             [CustomerRoleStatusController::class, 'store']
         )
             ->name('role-status-options.store')
-            ->where('type', 'role|buy_status|customer_status|ctv_status')
+            ->where(
+                'type',
+                'role|buy_status|customer_status|ctv_status'
+            )
             ->middleware('signed');
 
         /*
@@ -330,7 +378,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             [CustomerRoleStatusController::class, 'update']
         )
             ->name('role-status-options.update')
-            ->where('type', 'role|buy_status|customer_status|ctv_status')
+            ->where(
+                'type',
+                'role|buy_status|customer_status|ctv_status'
+            )
             ->whereNumber('id')
             ->middleware('signed');
 
@@ -345,7 +396,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             [CustomerRoleStatusController::class, 'destroy']
         )
             ->name('role-status-options.destroy')
-            ->where('type', 'role|buy_status|customer_status|ctv_status')
+            ->where(
+                'type',
+                'role|buy_status|customer_status|ctv_status'
+            )
             ->whereNumber('id')
             ->middleware('signed');
 
@@ -362,8 +416,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/ctvs
         | Tên route: admin.ctvs.index
         */
-        Route::get('ctvs', [CtvController::class, 'index'])
-            ->name('ctvs.index');
+        Route::get(
+            'ctvs',
+            [CtvController::class, 'index']
+        )->name('ctvs.index');
 
         /*
         | Xem chi tiết một CTV.
@@ -371,7 +427,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/ctvs/{customer}/show
         | Tên route: admin.ctvs.show
         */
-        Route::get('ctvs/{customer}/show', [CtvController::class, 'show'])
+        Route::get(
+            'ctvs/{customer}/show',
+            [CtvController::class, 'show']
+        )
             ->name('ctvs.show')
             ->whereNumber('customer')
             ->middleware('signed');
@@ -404,8 +463,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/commissions
         | Tên route: admin.commissions.index
         */
-        Route::get('commissions', [CommissionController::class, 'index'])
-            ->name('commissions.index');
+        Route::get(
+            'commissions',
+            [CommissionController::class, 'index']
+        )->name('commissions.index');
 
         /*
         | Xem chi tiết hoa hồng của một CTV.
@@ -531,8 +592,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/products
         | Tên route: admin.products.index
         */
-        Route::get('products', [ProductController::class, 'index'])
-            ->name('products.index');
+        Route::get(
+            'products',
+            [ProductController::class, 'index']
+        )->name('products.index');
 
         /*
         | Lấy bảng sản phẩm bằng AJAX.
@@ -540,16 +603,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/products/table
         | Tên route: admin.products.table
         */
-        Route::get('products/table', [ProductController::class, 'table'])
-            ->name('products.table');
+        Route::get(
+            'products/table',
+            [ProductController::class, 'table']
+        )->name('products.table');
 
         /*
         | Lưu sản phẩm mới.
         | Đường dẫn: POST /admin/products
         | Tên route: admin.products.store
         */
-        Route::post('products', [ProductController::class, 'store'])
-            ->name('products.store');
+        Route::post(
+            'products',
+            [ProductController::class, 'store']
+        )->name('products.store');
 
         /*
         | Lấy dữ liệu sản phẩm để sửa.
@@ -557,7 +624,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/products/{product}/edit
         | Tên route: admin.products.edit
         */
-        Route::get('products/{product}/edit', [ProductController::class, 'edit'])
+        Route::get(
+            'products/{product}/edit',
+            [ProductController::class, 'edit']
+        )
             ->name('products.edit')
             ->whereNumber('product');
 
@@ -567,7 +637,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: PUT /admin/products/{product}
         | Tên route: admin.products.update
         */
-        Route::put('products/{product}', [ProductController::class, 'update'])
+        Route::put(
+            'products/{product}',
+            [ProductController::class, 'update']
+        )
             ->name('products.update')
             ->whereNumber('product');
 
@@ -577,7 +650,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: DELETE /admin/products/{product}
         | Tên route: admin.products.destroy
         */
-        Route::delete('products/{product}', [ProductController::class, 'destroy'])
+        Route::delete(
+            'products/{product}',
+            [ProductController::class, 'destroy']
+        )
             ->name('products.destroy')
             ->whereNumber('product');
 
@@ -607,8 +683,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/inventory
         | Tên route: admin.inventory.index
         */
-        Route::get('inventory', [ProductController::class, 'inventory'])
-            ->name('inventory.index');
+        Route::get(
+            'inventory',
+            [ProductController::class, 'inventory']
+        )->name('inventory.index');
 
         /*
         | Lấy bảng tồn kho bằng AJAX.
@@ -717,8 +795,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: /admin/sales/orders
         | Tên route: admin.orders.index
         */
-        Route::get('sales/orders', [OrderController::class, 'index'])
-            ->name('orders.index');
+        Route::get(
+            'sales/orders',
+            [OrderController::class, 'index']
+        )->name('orders.index');
 
         /*
         | Form tạo đơn hàng mới.
@@ -737,8 +817,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/sales/orders
         | Tên route: admin.orders.store
         */
-        Route::post('sales/orders', [OrderController::class, 'store'])
-            ->name('orders.store');
+        Route::post(
+            'sales/orders',
+            [OrderController::class, 'store']
+        )->name('orders.store');
 
         /*
         | Xem chi tiết đơn hàng theo mã đơn.
@@ -772,6 +854,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             'sales/orders/{order:order_code}',
             [OrderController::class, 'update']
         )->name('orders.update');
+
+        Route::post(
+            'sales/orders/{order:order_code}/returns',
+            [OrderController::class, 'storeReturn']
+        )->name('orders.returns.store');
 
         /*
         | Hoàn tất đơn hàng.
@@ -836,9 +923,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         |--------------------------------------------------------------------------
         | Danh sách khách hàng và lịch chăm sóc
         |--------------------------------------------------------------------------
-        | Hiển thị danh sách khách hàng, lịch sử chăm sóc và lịch nhắc liên quan.
-        | Đường dẫn: /admin/customer-care
-        | Tên route: admin.customer-care.index
+        | GET /admin/customer-care
         */
         Route::get(
             '/customer-care',
@@ -847,11 +932,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | API kiểm tra lịch chăm sóc đã đến giờ
+        | Lấy các lịch chăm sóc đã đến giờ
         |--------------------------------------------------------------------------
-        | Trả về các lịch chăm sóc đã đến giờ để giao diện hiển thị thông báo.
-        | Đường dẫn: /admin/customer-care/notifications/due
-        | Tên route: admin.customer-care.notifications.due
+        | GET /admin/customer-care/notifications/due
         */
         Route::get(
             '/customer-care/notifications/due',
@@ -860,41 +943,33 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Lưu lịch sử chăm sóc khách hàng
+        | Cập nhật một nội dung tư vấn
         |--------------------------------------------------------------------------
-        | Lưu nội dung chăm sóc mới cho khách hàng theo customerId.
-        | Đường dẫn: POST /admin/customer-care/{customerId}/logs
-        | Tên route: admin.customer-care.logs.store
+        | Phải đặt trước route /customer-care/{customerId}
         */
-        Route::post(
-            '/customer-care/{customerId}/logs',
-            [CustomerCareController::class, 'storeLog']
+        Route::patch(
+            '/customer-care/logs/{logId}',
+            [CustomerCareController::class, 'updateLog']
         )
-            ->whereNumber('customerId')
-            ->name('customer-care.logs.store');
+            ->whereNumber('logId')
+            ->name('customer-care.logs.update');
 
         /*
         |--------------------------------------------------------------------------
-        | Tạo lịch nhắc chăm sóc
+        | Xóa một nội dung tư vấn
         |--------------------------------------------------------------------------
-        | Tạo lịch nhắc chăm sóc mới cho khách hàng theo customerId.
-        | Đường dẫn: POST /admin/customer-care/{customerId}/reminders
-        | Tên route: admin.customer-care.reminders.store
         */
-        Route::post(
-            '/customer-care/{customerId}/reminders',
-            [CustomerCareController::class, 'storeReminder']
+        Route::delete(
+            '/customer-care/logs/{logId}',
+            [CustomerCareController::class, 'destroyLog']
         )
-            ->whereNumber('customerId')
-            ->name('customer-care.reminders.store');
+            ->whereNumber('logId')
+            ->name('customer-care.logs.destroy');
 
         /*
         |--------------------------------------------------------------------------
-        | Đánh dấu lịch chăm sóc hoàn thành
+        | Hoàn thành lịch chăm sóc
         |--------------------------------------------------------------------------
-        | Đánh dấu lịch nhắc chăm sóc đã hoàn thành theo reminderId.
-        | Đường dẫn: PATCH /admin/customer-care/reminders/{reminderId}/complete
-        | Tên route: admin.customer-care.reminders.complete
         */
         Route::patch(
             '/customer-care/reminders/{reminderId}/complete',
@@ -905,11 +980,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Xóa lịch nhắc chăm sóc
+        | Mở lại lịch chăm sóc
         |--------------------------------------------------------------------------
-        | Xóa lịch nhắc chăm sóc theo reminderId.
-        | Đường dẫn: DELETE /admin/customer-care/reminders/{reminderId}
-        | Tên route: admin.customer-care.reminders.destroy
+        */
+        Route::patch(
+            '/customer-care/reminders/{reminderId}/reopen',
+            [CustomerCareController::class, 'reopenReminder']
+        )
+            ->whereNumber('reminderId')
+            ->name('customer-care.reminders.reopen');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Xóa lịch chăm sóc
+        |--------------------------------------------------------------------------
         */
         Route::delete(
             '/customer-care/reminders/{reminderId}',
@@ -920,13 +1004,57 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Chi tiết chăm sóc của một khách hàng
+        | Xác nhận đã xem thông báo
         |--------------------------------------------------------------------------
-        | Xem lịch sử chăm sóc và lịch nhắc của một khách hàng.
-        | Route có biến customerId phải đặt cuối cùng để tránh nhận nhầm
-        | notifications/due, logs hoặc reminders thành customerId.
-        | Đường dẫn: /admin/customer-care/{customerId}
-        | Tên route: admin.customer-care.show
+        */
+        Route::patch(
+            '/customer-care/reminders/{reminderId}/acknowledge',
+            [CustomerCareController::class, 'acknowledgeReminder']
+        )
+            ->whereNumber('reminderId')
+            ->name('customer-care.reminders.acknowledge');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nhắc lại sau 10 phút
+        |--------------------------------------------------------------------------
+        */
+        Route::patch(
+            '/customer-care/reminders/{reminderId}/snooze',
+            [CustomerCareController::class, 'snoozeReminder']
+        )
+            ->whereNumber('reminderId')
+            ->name('customer-care.reminders.snooze');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lưu nội dung tư vấn mới
+        |--------------------------------------------------------------------------
+        */
+        Route::post(
+            '/customer-care/{customerId}/logs',
+            [CustomerCareController::class, 'storeLog']
+        )
+            ->whereNumber('customerId')
+            ->name('customer-care.logs.store');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tạo lịch nhắc mới
+        |--------------------------------------------------------------------------
+        */
+        Route::post(
+            '/customer-care/{customerId}/reminders',
+            [CustomerCareController::class, 'storeReminder']
+        )
+            ->whereNumber('customerId')
+            ->name('customer-care.reminders.store');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Chi tiết chăm sóc khách hàng
+        |--------------------------------------------------------------------------
+        | Route có {customerId} phải nằm cuối nhóm customer-care.
         */
         Route::get(
             '/customer-care/{customerId}',
@@ -948,7 +1076,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         | Đường dẫn: POST /admin/logout
         | Tên route: admin.logout
         */
-        Route::post('logout', [AdminLoginController::class, 'logout'])
-            ->name('logout');
+        Route::post(
+            'logout',
+            [AdminLoginController::class, 'logout']
+        )->name('logout');
     });
 });

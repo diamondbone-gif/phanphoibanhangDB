@@ -15,6 +15,7 @@ class CustomerOrderItem extends Model
         'product_code',
         'product_name',
         'quantity',
+        'stock_quantity',
         'unit_price',
         'original_total',
         'discount_type',
@@ -22,6 +23,11 @@ class CustomerOrderItem extends Model
         'discount_amount',
         'final_total',
         'note',
+    ];
+
+    protected $casts = [
+        'quantity' => 'integer',
+        'stock_quantity' => 'integer',
     ];
 
     public function order()

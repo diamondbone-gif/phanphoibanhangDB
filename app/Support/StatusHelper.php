@@ -11,7 +11,7 @@ class StatusHelper
     {
         $id = DB::table($table)->where('code', $code)->value('id');
 
-        if (!$id) {
+        if (! $id) {
             throw new RuntimeException("Không tìm thấy trạng thái {$code} trong bảng {$table}");
         }
 
@@ -20,7 +20,7 @@ class StatusHelper
 
     public static function code(string $table, ?int $id): ?string
     {
-        if (!$id) {
+        if (! $id) {
             return null;
         }
 

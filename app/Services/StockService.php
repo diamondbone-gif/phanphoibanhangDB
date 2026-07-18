@@ -8,8 +8,8 @@ use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\ProductStockMovement;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use RuntimeException;
+use App\Support\Money;
 
 class StockService
 {
@@ -73,7 +73,7 @@ class StockService
         */
         if ($productType !== 'physical') {
             CustomerOrderItem::create(
-                $this->makeOrderItemData($order, $line, null, $quantity)
+                $this->makeOrderItemData($order, $line, null, $quantity, 0)
             );
 
             return;
@@ -165,7 +165,13 @@ class StockService
         |--------------------------------------------------------------------------
         */
         $item = CustomerOrderItem::create(
-            $this->makeOrderItemData($order, $line, null, $quantity)
+            $this->makeOrderItemData(
+                $order,
+                $line,
+                null,
+                $quantity,
+                min($before, $quantity)
+            )
         );
 
         /*
@@ -268,24 +274,20 @@ class StockService
 
             /*
             |--------------------------------------------------------------------------
-            | Nếu bảng product_batches có cột status thì cập nhật trạng thái lô.
-            | Làm kiểu này để code không chết nếu database cũ chưa có cột status.
+            | Cập nhật trạng thái lô sau khi xuất.
+            | Cột status được bảo đảm bởi migration của dự án.
             |--------------------------------------------------------------------------
             */
-            if (Schema::hasColumn('product_batches', 'status')) {
-                $batchUpdate['status'] = $afterBatchQty <= 0
-                    ? $this->outOfStockStatus($batch->status ?? null)
-                    : $this->keepAvailableStatus($batch->status ?? null);
-            }
+            $batchUpdate['status'] = $afterBatchQty <= 0
+                ? $this->outOfStockStatus($batch->status)
+                : $this->keepAvailableStatus($batch->status);
 
             /*
             |--------------------------------------------------------------------------
-            | Nếu bảng product_batches có cột is_active thì giữ lô đang active.
+            | Giữ lô đang hoạt động.
             |--------------------------------------------------------------------------
             */
-            if (Schema::hasColumn('product_batches', 'is_active')) {
-                $batchUpdate['is_active'] = true;
-            }
+            $batchUpdate['is_active'] = true;
 
             $batch->update($batchUpdate);
 
@@ -314,7 +316,7 @@ class StockService
             |--------------------------------------------------------------------------
             */
             $item = CustomerOrderItem::create(
-                $this->makeOrderItemData($order, $line, $batch->id, $takeQty)
+                $this->makeOrderItemData($order, $line, $batch->id, $takeQty, $takeQty)
             );
 
             /*
@@ -348,7 +350,7 @@ class StockService
         */
         if ($needQty > 0 && $allowSellWithoutStock) {
             CustomerOrderItem::create(
-                $this->makeOrderItemData($order, $line, null, $needQty)
+                $this->makeOrderItemData($order, $line, null, $needQty, 0)
             );
 
             return;
@@ -395,7 +397,11 @@ class StockService
                 continue;
             }
 
-            $quantity = max(0, (int) ($item->quantity ?? 0));
+            // New rows record exactly how much inventory was deducted. Legacy
+            // rows fall back to the sold quantity.
+            $quantity = max(0, (int) (
+                $item->stock_quantity ?? $item->quantity ?? 0
+            ));
 
             if ($quantity <= 0) {
                 continue;
@@ -419,13 +425,8 @@ class StockService
                         'current_quantity' => $afterBatchQty,
                     ];
 
-                    if (Schema::hasColumn('product_batches', 'status')) {
-                        $batchUpdate['status'] = $this->keepAvailableStatus($batch->status ?? null);
-                    }
-
-                    if (Schema::hasColumn('product_batches', 'is_active')) {
-                        $batchUpdate['is_active'] = true;
-                    }
+                    $batchUpdate['status'] = $this->keepAvailableStatus($batch->status);
+                    $batchUpdate['is_active'] = true;
 
                     $batch->update($batchUpdate);
 
@@ -497,6 +498,62 @@ class StockService
         }
     }
 
+    public function restoreReturnedItem(
+        CustomerOrder $order,
+        CustomerOrderItem $item,
+        int $quantity,
+        ?int $adminId = null
+    ): void {
+        $quantity = max(0, $quantity);
+
+        if ($quantity === 0) {
+            return;
+        }
+
+        $product = Product::query()->lockForUpdate()->findOrFail($item->product_id);
+
+        if ($this->productType($product) !== 'physical') {
+            return;
+        }
+
+        $batch = null;
+        $before = (int) ($product->total_quantity ?? 0);
+
+        if ($item->product_batch_id) {
+            $batch = ProductBatch::query()->lockForUpdate()->find($item->product_batch_id);
+        }
+
+        if ($batch) {
+            $batchBefore = (int) $batch->current_quantity;
+            $batchAfter = $batchBefore + $quantity;
+            $batch->update([
+                'current_quantity' => $batchAfter,
+                'status' => $this->keepAvailableStatus($batch->status),
+                'is_active' => true,
+            ]);
+            $movementBefore = $batchBefore;
+            $movementAfter = $batchAfter;
+        } else {
+            $movementBefore = $before;
+            $movementAfter = $before + $quantity;
+        }
+
+        $product->update(['total_quantity' => $before + $quantity]);
+
+        $this->createMovement(
+            productId: $product->id,
+            batchId: $batch?->id,
+            orderId: $order->id,
+            orderItemId: $item->id,
+            movementType: 'customer_return',
+            quantity: $quantity,
+            beforeQuantity: $movementBefore,
+            afterQuantity: $movementAfter,
+            note: 'Nhập kho từ phiếu hoàn trả đơn hàng',
+            adminId: $adminId
+        );
+    }
+
     /*
     |--------------------------------------------------------------------------
     | TẠO DỮ LIỆU DÒNG ĐƠN HÀNG
@@ -504,43 +561,48 @@ class StockService
     | Hàm này gom dữ liệu để insert vào customer_order_items.
     |--------------------------------------------------------------------------
     */
-    private function makeOrderItemData(CustomerOrder $order, array $line, ?int $batchId, int $quantity): array
+    private function makeOrderItemData(
+        CustomerOrder $order,
+        array $line,
+        ?int $batchId,
+        int $quantity,
+        int $stockQuantity
+    ): array
     {
-        $unitPrice = (float) ($line['unit_price'] ?? 0);
-        $discountPercent = (float) ($line['discount_percent'] ?? 0);
+        $unitPriceCents = Money::cents($line['unit_price'] ?? 0);
+        $discountBasisPoints = Money::percentBasisPoints($line['discount_percent'] ?? 0);
+        $originalTotalCents = $unitPriceCents * $quantity;
+        $discountCents = Money::percentage($originalTotalCents, $discountBasisPoints);
+        $finalTotalCents = max(0, $originalTotalCents - $discountCents);
 
-        $originalTotal = $unitPrice * $quantity;
-        $discountAmount = round($originalTotal * $discountPercent / 100);
-        $finalTotal = max(0, $originalTotal - $discountAmount);
-
-        return [
+        $data = [
             'customer_order_id' => $order->id,
             'product_id' => $line['product_id'],
             'product_batch_id' => $batchId,
             'product_code' => $line['product_code'] ?? '',
             'product_name' => $line['product_name'] ?? '',
             'quantity' => $quantity,
-            'unit_price' => $unitPrice,
-            'original_total' => $originalTotal,
+            'unit_price' => Money::decimal($unitPriceCents),
+            'original_total' => Money::decimal($originalTotalCents),
             'discount_type' => $line['discount_type'] ?? 'none',
-            'discount_percent' => $discountPercent,
-            'discount_amount' => $discountAmount,
-            'final_total' => $finalTotal,
+            'discount_percent' => Money::decimal($discountBasisPoints),
+            'discount_amount' => Money::decimal($discountCents),
+            'final_total' => Money::decimal($finalTotalCents),
             'note' => $line['note'] ?? null,
         ];
+
+        $data['stock_quantity'] = max(0, min($quantity, $stockQuantity));
+
+        return $data;
     }
 
     /*
     |--------------------------------------------------------------------------
     | GHI LỊCH SỬ KHO
     |--------------------------------------------------------------------------
-    | Hàm này đã được viết an toàn cho database cũ và mới.
+    | Schema được cố định theo migration đang chạy trên XAMPP MariaDB.
     |
-    | Nếu bảng product_stock_movements có cột nào thì mới insert cột đó.
-    | Điều này tránh lỗi:
-    | - Unknown column 'movement_code'
-    | - Unknown column 'customer_order_id'
-    | - Unknown column 'customer_order_item_id'
+    | Ghi đầy đủ liên kết sản phẩm, lô, đơn hàng và dòng đơn hàng.
     |--------------------------------------------------------------------------
     */
     private function createMovement(
@@ -576,39 +638,30 @@ class StockService
 
         /*
         |--------------------------------------------------------------------------
-        | Nếu database có cột movement_code thì mới tạo mã lịch sử kho.
+        | Tạo mã lịch sử kho duy nhất.
         |--------------------------------------------------------------------------
         */
-        if (Schema::hasColumn('product_stock_movements', 'movement_code')) {
-            $data['movement_code'] = $this->makeCode('MV', 'product_stock_movements', 'movement_code');
-        }
+        $data['movement_code'] = $this->makeCode('MV', 'product_stock_movements', 'movement_code');
 
         /*
         |--------------------------------------------------------------------------
-        | Nếu database có cột customer_order_id thì lưu liên kết đơn hàng.
+        | Lưu liên kết đơn hàng.
         |--------------------------------------------------------------------------
         */
-        if (Schema::hasColumn('product_stock_movements', 'customer_order_id')) {
-            $data['customer_order_id'] = $orderId;
-        }
+        $data['customer_order_id'] = $orderId;
 
         /*
         |--------------------------------------------------------------------------
-        | Nếu database có cột customer_order_item_id thì lưu liên kết dòng đơn hàng.
+        | Lưu liên kết dòng đơn hàng.
         |--------------------------------------------------------------------------
         */
-        if (Schema::hasColumn('product_stock_movements', 'customer_order_item_id')) {
-            $data['customer_order_item_id'] = $orderItemId;
-        }
+        $data['customer_order_item_id'] = $orderItemId;
 
         /*
         |--------------------------------------------------------------------------
-        | Trước khi insert, lọc lại theo danh sách cột thật đang có trong database.
-        | Cách này giúp tránh lỗi nếu database của bạn đang thiếu một vài cột phụ.
+        | Schema được migration bảo đảm trước khi insert.
         |--------------------------------------------------------------------------
         */
-        $data = $this->onlyExistingColumns('product_stock_movements', $data);
-
         ProductStockMovement::create($data);
     }
 
@@ -631,33 +684,22 @@ class StockService
 
         /*
         |--------------------------------------------------------------------------
-        | Database cũ có thể chưa có cột is_active.
+        | Chỉ lấy lô đang hoạt động.
         |--------------------------------------------------------------------------
         */
-        if (Schema::hasColumn('product_batches', 'is_active')) {
-            $query->where(function ($q) {
-                $q->whereNull('is_active')
-                    ->orWhere('is_active', true);
-            });
-        }
+        $query->where('is_active', true);
 
         /*
         |--------------------------------------------------------------------------
-        | Database cũ/mới có thể dùng nhiều tên status khác nhau.
+        | Các trạng thái hợp lệ đang được dự án sử dụng.
         |--------------------------------------------------------------------------
         */
-        if (Schema::hasColumn('product_batches', 'status')) {
-            $query->where(function ($q) {
-                $q->whereNull('status')
-                    ->orWhere('status', '')
-                    ->orWhereIn('status', [
-                        'active',
-                        'available',
-                        'near_expiry',
-                        'near_expired',
-                    ]);
-            });
-        }
+        $query->whereIn('status', [
+            'active',
+            'available',
+            'near_expiry',
+            'near_expired',
+        ]);
 
         return $query;
     }
@@ -760,10 +802,6 @@ class StockService
         | Nếu cột chưa tồn tại thì trả về chuỗi rỗng để tránh lỗi SQL.
         |--------------------------------------------------------------------------
         */
-        if (!Schema::hasColumn($table, $column)) {
-            return '';
-        }
-
         do {
             $code = $prefix . now()->format('ymdHis') . random_int(100, 999);
         } while (DB::table($table)->where($column, $code)->exists());
@@ -775,15 +813,7 @@ class StockService
     |--------------------------------------------------------------------------
     | LỌC DATA CHỈ GIỮ CÁC CỘT ĐANG CÓ TRONG DATABASE
     |--------------------------------------------------------------------------
-    | Dùng để chống lỗi Unknown column khi database cũ/mới chưa đồng bộ.
+    | Mã movement_code là cột bắt buộc trong schema hiện tại.
     |--------------------------------------------------------------------------
     */
-    private function onlyExistingColumns(string $table, array $data): array
-    {
-        return array_filter(
-            $data,
-            fn($value, $column) => Schema::hasColumn($table, $column),
-            ARRAY_FILTER_USE_BOTH
-        );
-    }
 }

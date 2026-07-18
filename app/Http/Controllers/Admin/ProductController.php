@@ -11,7 +11,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -145,13 +144,9 @@ class ProductController extends Controller
     {
         $hasStockHistory = $product->stockMovements()->exists() || $product->batches()->exists();
 
-        $hasOrderHistory = false;
-
-        if (Schema::hasTable('customer_order_items') && Schema::hasColumn('customer_order_items', 'product_id')) {
-            $hasOrderHistory = DB::table('customer_order_items')
-                ->where('product_id', $product->id)
-                ->exists();
-        }
+        $hasOrderHistory = DB::table('customer_order_items')
+            ->where('product_id', $product->id)
+            ->exists();
 
         if ($hasStockHistory || $hasOrderHistory) {
             $product->update([

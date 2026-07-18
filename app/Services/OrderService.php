@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Support\StatusHelper;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use App\Support\Money;
 
 class OrderService
 {
@@ -30,8 +31,8 @@ class OrderService
 
                 'order_status_id' => StatusHelper::id('order_statuses', 'pending'),
                 'payment_status_id' => $this->paymentStatusId(
-                    (float) $calc['paid_amount'],
-                    (float) $calc['final_amount']
+                    $calc['paid_amount'],
+                    $calc['final_amount']
                 ),
 
                 'subtotal_amount' => $calc['subtotal_amount'],
@@ -40,6 +41,9 @@ class OrderService
                 'order_discount_percent' => $calc['order_discount_percent'],
                 'order_discount_amount' => $calc['order_discount_amount'],
                 'final_amount' => $calc['final_amount'],
+                'returned_amount' => 0,
+                'net_amount' => $calc['final_amount'],
+                'return_status' => 'none',
                 'paid_amount' => $calc['paid_amount'],
                 'debt_amount' => $calc['debt_amount'],
 
@@ -68,12 +72,12 @@ class OrderService
                 'created_by' => $adminId,
             ]);
 
-            if ((float) $calc['paid_amount'] > 0) {
+            if (Money::cents($calc['paid_amount']) > 0) {
                 Payment::create([
                     'customer_order_id' => $order->id,
                     'payment_status_id' => $this->paymentStatusId(
-                        (float) $calc['paid_amount'],
-                        (float) $calc['final_amount']
+                        $calc['paid_amount'],
+                        $calc['final_amount']
                     ),
                     'payment_code' => $this->makeCode('PAY', 'payments', 'payment_code'),
                     'amount' => $calc['paid_amount'],
@@ -107,6 +111,14 @@ class OrderService
 
             if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'cancelled')) {
                 throw new RuntimeException('Đơn hàng đã hủy, không thể sửa.');
+            }
+
+            if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
+                throw new RuntimeException('Đơn hàng đã hoàn thành không thể sửa; hãy dùng chức năng hoàn trả.');
+            }
+
+            if (($order->return_status ?? 'none') !== 'none') {
+                throw new RuntimeException('Đơn hàng đã phát sinh hoàn trả, không thể sửa nội dung gốc.');
             }
 
             $oldData = $order->load('items')->toArray();
@@ -147,8 +159,8 @@ class OrderService
                 'customer_id' => $data['customer_id'],
 
                 'payment_status_id' => $this->paymentStatusId(
-                    (float) $calc['paid_amount'],
-                    (float) $calc['final_amount']
+                    $calc['paid_amount'],
+                    $calc['final_amount']
                 ),
 
                 'subtotal_amount' => $calc['subtotal_amount'],
@@ -157,6 +169,9 @@ class OrderService
                 'order_discount_percent' => $calc['order_discount_percent'],
                 'order_discount_amount' => $calc['order_discount_amount'],
                 'final_amount' => $calc['final_amount'],
+                'returned_amount' => 0,
+                'net_amount' => $calc['final_amount'],
+                'return_status' => 'none',
                 'paid_amount' => $calc['paid_amount'],
                 'debt_amount' => $calc['debt_amount'],
 
@@ -214,6 +229,15 @@ class OrderService
                 throw new RuntimeException('Đơn hàng đã hủy, không thể hoàn thành.');
             }
 
+            if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
+                return $order;
+            }
+
+
+            if (($order->return_status ?? 'none') !== 'none') {
+                throw new RuntimeException('Đơn hàng đã phát sinh hoàn trả, không thể hoàn thành lại.');
+            }
+
             $oldData = $order->toArray();
 
             /*
@@ -269,6 +293,14 @@ class OrderService
 
             if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'cancelled')) {
                 return $order;
+            }
+
+            if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
+                throw new RuntimeException('Đơn hàng đã hoàn thành không thể hủy; hãy hoàn trả hàng hóa.');
+            }
+
+            if (($order->return_status ?? 'none') !== 'none') {
+                throw new RuntimeException('Đơn hàng đã phát sinh hoàn trả, không thể hủy theo luồng hủy đơn.');
             }
 
             $oldData = $order->toArray();
@@ -354,13 +386,16 @@ class OrderService
         });
     }
 
-    private function paymentStatusId(float $paidAmount, float $finalAmount): int
+    private function paymentStatusId(int|float|string $paidAmount, int|float|string $finalAmount): int
     {
-        if ($paidAmount <= 0) {
+        $paidCents = Money::cents($paidAmount);
+        $finalCents = Money::cents($finalAmount);
+
+        if ($paidCents <= 0) {
             return StatusHelper::id('payment_statuses', 'unpaid');
         }
 
-        if ($paidAmount >= $finalAmount) {
+        if ($paidCents >= $finalCents) {
             return StatusHelper::id('payment_statuses', 'paid');
         }
 

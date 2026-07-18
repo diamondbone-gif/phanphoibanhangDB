@@ -316,6 +316,9 @@ class CustomerOrder extends Model
         'order_discount_percent',
         'order_discount_amount',
         'final_amount',
+        'returned_amount',
+        'net_amount',
+        'return_status',
         'paid_amount',
         'debt_amount',
 
@@ -349,6 +352,8 @@ class CustomerOrder extends Model
         'order_discount_percent' => 'decimal:2',
         'order_discount_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
+        'returned_amount' => 'decimal:2',
+        'net_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'debt_amount' => 'decimal:2',
 
@@ -457,6 +462,12 @@ class CustomerOrder extends Model
             ->latest('id');
     }
 
+    public function returns(): HasMany
+    {
+        return $this->hasMany(CustomerOrderReturn::class, 'customer_order_id')
+            ->latest('id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | HOA HỒNG CHÍNH
@@ -467,7 +478,7 @@ class CustomerOrder extends Model
 
     public function commission(): HasOne
     {
-        return $this->hasOne(CustomerCommission::class, 'customer_order_id');
+        return $this->hasOne(CustomerCommission::class, 'customer_order_id')->latestOfMany();
     }
 
     /*

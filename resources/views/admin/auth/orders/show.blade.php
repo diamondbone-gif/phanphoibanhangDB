@@ -108,9 +108,11 @@ return asset('storage/' . ltrim($image, '/'));
             <i class="fa-solid fa-arrow-left"></i> Quay lại
         </a>
 
+        @if(!$order->completed_at && !$order->cancelled_at)
         <a href="{{ route('admin.orders.edit', $order) }}" class="btn btn-primary">
             <i class="fa-solid fa-pen"></i> Sửa
         </a>
+        @endif
 
         @if($order->invoice)
         <a href="{{ route('admin.invoices.print', $order->invoice) }}" target="_blank" class="btn btn-success">
@@ -201,6 +203,68 @@ return asset('storage/' . ltrim($image, '/'));
             </div>
         </div>
 
+        @if(($order->return_status ?? 'none') !== 'full' && $order->completed_at)
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><h5 class="mb-0">Tạo phiếu hoàn trả</h5></div>
+            <div class="card-body">
+                <form method="POST" action="{{ route('admin.orders.returns.store', $order) }}">
+                    @csrf
+                    <div class="table-responsive mb-3">
+                        <table class="table align-middle">
+                            <thead><tr><th>Sản phẩm</th><th>Đã bán</th><th>Đã hoàn</th><th style="width:130px">Hoàn lần này</th></tr></thead>
+                            <tbody>
+                            @foreach($order->items as $item)
+                                @php
+                                    $returnedQty = $order->returns->flatMap->items
+                                        ->where('customer_order_item_id', $item->id)->sum('quantity');
+                                    $returnableQty = max(0, $item->quantity - $returnedQty);
+                                @endphp
+                                <tr>
+                                    <td>{{ $item->product_name }}</td><td>{{ $item->quantity }}</td><td>{{ $returnedQty }}</td>
+                                    <td>
+                                        <input type="hidden" name="items[{{ $item->id }}][order_item_id]" value="{{ $item->id }}">
+                                        <input type="number" class="form-control" name="items[{{ $item->id }}][quantity]"
+                                            min="0" max="{{ $returnableQty }}" value="0" {{ $returnableQty === 0 ? 'disabled' : '' }}>
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-5"><textarea name="reason" class="form-control" rows="2" required placeholder="Lý do hoàn trả"></textarea></div>
+                        <div class="col-md-3">
+                            <select name="refund_method" class="form-select">
+                                <option value="">Chưa xác định hoàn tiền</option><option value="cash">Tiền mặt</option>
+                                <option value="bank_transfer">Chuyển khoản</option><option value="credit">Cấn trừ công nợ</option><option value="other">Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-danger w-100" onclick="return confirm('Xác nhận hoàn hàng, nhập lại kho và tính lại hoa hồng?')">
+                                <i class="fa-solid fa-rotate-left"></i> Xác nhận hoàn trả
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        @endif
+
+        @if($order->returns->isNotEmpty())
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><h5 class="mb-0">Lịch sử hoàn trả</h5></div>
+            <div class="card-body p-0 table-responsive">
+                <table class="table mb-0">
+                    <thead><tr><th>Mã phiếu</th><th>Thời gian</th><th>Lý do</th><th class="text-end">Tiền hoàn</th></tr></thead>
+                    <tbody>@foreach($order->returns as $return)<tr>
+                        <td class="fw-bold">{{ $return->return_code }}</td><td>{{ optional($return->returned_at)->format('d/m/Y H:i') }}</td>
+                        <td>{{ $return->reason }}</td><td class="text-end text-danger">{{ number_format($return->refund_amount, 0, ',', '.') }}đ</td>
+                    </tr>@endforeach</tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
         {{-- THÔNG TIN KHÁCH HÀNG --}}
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white">
@@ -265,6 +329,15 @@ return asset('storage/' . ltrim($image, '/'));
                     <strong class="text-danger">{{ number_format($order->final_amount, 0, ',', '.') }}đ</strong>
                 </div>
 
+                @if(($order->returned_amount ?? 0) > 0)
+                <div class="d-flex justify-content-between mt-2 text-danger">
+                    <span>Đã hoàn trả</span><strong>-{{ number_format($order->returned_amount, 0, ',', '.') }}đ</strong>
+                </div>
+                <div class="d-flex justify-content-between fs-5 mt-2">
+                    <span>Giá trị thực</span><strong>{{ number_format($order->net_amount, 0, ',', '.') }}đ</strong>
+                </div>
+                @endif
+
                 <div class="d-flex justify-content-between mt-2">
                     <span>Đã thanh toán</span>
                     <strong>{{ number_format($order->paid_amount, 0, ',', '.') }}đ</strong>
@@ -283,6 +356,7 @@ return asset('storage/' . ltrim($image, '/'));
             </div>
 
             <div class="card-body">
+                @if(!$order->completed_at && !$order->cancelled_at)
                 <form method="POST" action="{{ route('admin.orders.complete', $order) }}" class="mb-2">
                     @csrf
                     @method('PATCH')
@@ -303,6 +377,7 @@ return asset('storage/' . ltrim($image, '/'));
                         <i class="fa-solid fa-ban"></i> Hủy đơn
                     </button>
                 </form>
+                @endif
 
                 <form method="POST" action="{{ route('admin.orders.destroy', $order) }}">
                     @csrf
@@ -336,6 +411,13 @@ return asset('storage/' . ltrim($image, '/'));
                 <div class="small text-muted mt-2">
                     CTV ID: {{ $order->commission->referrer_customer_id }}
                 </div>
+
+                @if(($order->commission->clawback_amount ?? 0) > 0)
+                <div class="alert alert-warning mt-3 mb-0">
+                    Cần thu hồi từ CTV:
+                    <strong>{{ number_format($order->commission->clawback_amount, 0, ',', '.') }}đ</strong>
+                </div>
+                @endif
             </div>
         </div>
         @endif

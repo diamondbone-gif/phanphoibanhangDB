@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use Illuminate\Support\Arr;
+use App\Support\Money;
 use InvalidArgumentException;
 
 class OrderCalculatorService
@@ -11,8 +12,8 @@ class OrderCalculatorService
     public function calculate(array $data): array
     {
         $items = [];
-        $subtotal = 0;
-        $productDiscountAmount = 0;
+        $subtotalCents = 0;
+        $productDiscountCents = 0;
 
         foreach ($data['items'] as $row) {
             $product = Product::query()
@@ -20,21 +21,20 @@ class OrderCalculatorService
                 ->findOrFail($row['product_id']);
 
             $quantity = max(1, (int) $row['quantity']);
-            $unitPrice = (float) $product->price;
+            $unitPriceCents = Money::cents($product->price);
 
-            $discountPercent = (float) Arr::get($row, 'discount_percent', 0);
-            $discountPercent = max(0, min(100, $discountPercent));
+            $discountBasisPoints = Money::percentBasisPoints(Arr::get($row, 'discount_percent', 0));
 
             if (!$product->is_discountable) {
-                $discountPercent = 0;
+                $discountBasisPoints = 0;
             }
 
-            $originalTotal = $unitPrice * $quantity;
-            $discountAmount = round($originalTotal * $discountPercent / 100);
-            $finalTotal = max(0, $originalTotal - $discountAmount);
+            $originalTotalCents = $unitPriceCents * $quantity;
+            $discountCents = Money::percentage($originalTotalCents, $discountBasisPoints);
+            $finalTotalCents = max(0, $originalTotalCents - $discountCents);
 
-            $subtotal += $originalTotal;
-            $productDiscountAmount += $discountAmount;
+            $subtotalCents += $originalTotalCents;
+            $productDiscountCents += $discountCents;
 
             $items[] = [
                 'product' => $product,
@@ -42,12 +42,12 @@ class OrderCalculatorService
                 'product_code' => $product->product_code,
                 'product_name' => $product->product_name,
                 'quantity' => $quantity,
-                'unit_price' => $unitPrice,
-                'original_total' => $originalTotal,
-                'discount_type' => $discountPercent > 0 ? 'product' : 'none',
-                'discount_percent' => $discountPercent,
-                'discount_amount' => $discountAmount,
-                'final_total' => $finalTotal,
+                'unit_price' => Money::decimal($unitPriceCents),
+                'original_total' => Money::decimal($originalTotalCents),
+                'discount_type' => $discountBasisPoints > 0 ? 'product' : 'none',
+                'discount_percent' => Money::decimal($discountBasisPoints),
+                'discount_amount' => Money::decimal($discountCents),
+                'final_total' => Money::decimal($finalTotalCents),
             ];
         }
 
@@ -55,29 +55,27 @@ class OrderCalculatorService
             throw new InvalidArgumentException('Đơn hàng phải có ít nhất 1 sản phẩm.');
         }
 
-        $orderDiscountPercent = (float) Arr::get($data, 'order_discount_percent', 0);
-        $orderDiscountPercent = max(0, min(100, $orderDiscountPercent));
+        $orderDiscountBasisPoints = Money::percentBasisPoints(Arr::get($data, 'order_discount_percent', 0));
 
-        $afterProductDiscount = max(0, $subtotal - $productDiscountAmount);
-        $orderDiscountAmount = round($afterProductDiscount * $orderDiscountPercent / 100);
+        $afterProductDiscountCents = max(0, $subtotalCents - $productDiscountCents);
+        $orderDiscountCents = Money::percentage($afterProductDiscountCents, $orderDiscountBasisPoints);
 
-        $finalAmount = max(0, $afterProductDiscount - $orderDiscountAmount);
+        $finalAmountCents = max(0, $afterProductDiscountCents - $orderDiscountCents);
 
-        $paidAmount = (float) Arr::get($data, 'paid_amount', 0);
-        $paidAmount = max(0, min($finalAmount, $paidAmount));
+        $paidAmountCents = max(0, min($finalAmountCents, Money::cents(Arr::get($data, 'paid_amount', 0))));
 
-        $debtAmount = max(0, $finalAmount - $paidAmount);
+        $debtAmountCents = max(0, $finalAmountCents - $paidAmountCents);
 
         return [
             'items' => $items,
-            'subtotal_amount' => $subtotal,
-            'product_discount_amount' => $productDiscountAmount,
-            'combo_discount_amount' => 0,
-            'order_discount_percent' => $orderDiscountPercent,
-            'order_discount_amount' => $orderDiscountAmount,
-            'final_amount' => $finalAmount,
-            'paid_amount' => $paidAmount,
-            'debt_amount' => $debtAmount,
+            'subtotal_amount' => Money::decimal($subtotalCents),
+            'product_discount_amount' => Money::decimal($productDiscountCents),
+            'combo_discount_amount' => '0.00',
+            'order_discount_percent' => Money::decimal($orderDiscountBasisPoints),
+            'order_discount_amount' => Money::decimal($orderDiscountCents),
+            'final_amount' => Money::decimal($finalAmountCents),
+            'paid_amount' => Money::decimal($paidAmountCents),
+            'debt_amount' => Money::decimal($debtAmountCents),
         ];
     }
 }
