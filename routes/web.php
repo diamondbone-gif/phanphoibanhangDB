@@ -1,18 +1,22 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\CommissionController;
+use App\Http\Controllers\Admin\CtvController;
+use App\Http\Controllers\Admin\CustomerCareController;
+use App\Http\Controllers\Admin\CustomerCareLogController;
+use App\Http\Controllers\Admin\CustomerCareNotificationController;
+use App\Http\Controllers\Admin\CustomerCareReminderController;
+use App\Http\Controllers\Admin\CustomerCommissionController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerLifecycleController;
 use App\Http\Controllers\Admin\CustomerOptionController;
 use App\Http\Controllers\Admin\CustomerRoleStatusController;
-use App\Http\Controllers\Admin\CtvController;
-use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceController;
-use App\Http\Controllers\Admin\CustomerCommissionController;
-use App\Http\Controllers\Admin\CommissionController;
-use App\Http\Controllers\Admin\CustomerCareController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ProductController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,7 +33,6 @@ Route::get('/', function () {
     return view('welcome');
 })->name('ctv.home');
 
-
 /*
 |--------------------------------------------------------------------------
 | ROUTE LOGIN MẶC ĐỊNH CỦA LARAVEL
@@ -43,7 +46,6 @@ Route::get('/', function () {
 Route::get('/login', function () {
     return redirect()->route('admin.login');
 })->name('login');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -71,7 +73,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         return redirect()->route('admin.login');
     })->name('root');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -104,7 +105,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         ->name('login.submit')
         ->middleware('throttle:5,1');
 
-
     /*
     |--------------------------------------------------------------------------
     | CÁC ROUTE BẮT BUỘC ĐĂNG NHẬP ADMIN
@@ -129,7 +129,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             '/dashboard',
             [DashboardController::class, 'index']
         )->name('dashboard');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -180,7 +179,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get(
             'customers/check-referrer',
-            [CustomerController::class, 'checkReferrer']
+            [CustomerLifecycleController::class, 'checkReferrer']
         )->name('customers.check-referrer');
 
         /*
@@ -243,7 +242,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::post(
             'customers/{customer}/convert-to-ctv',
-            [CustomerController::class, 'convertToCtv']
+            [CustomerLifecycleController::class, 'convertToCtv']
         )
             ->name('customers.convert-to-ctv')
             ->whereNumber('customer');
@@ -256,11 +255,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::post(
             'customers/{customer}/mark-stopped-buying',
-            [CustomerController::class, 'markStoppedBuying']
+            [CustomerLifecycleController::class, 'markStopped']
         )
             ->name('customers.mark-stopped-buying')
             ->whereNumber('customer');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -332,7 +330,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->whereNumber('id')
             ->middleware('signed');
 
-
         /*
         |--------------------------------------------------------------------------
         | VAI TRÒ / TRẠNG THÁI KHÁCH HÀNG
@@ -403,7 +400,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->whereNumber('id')
             ->middleware('signed');
 
-
         /*
         |--------------------------------------------------------------------------
         | QUẢN LÝ CỘNG TÁC VIÊN
@@ -449,7 +445,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->whereNumber('ctv')
             ->whereNumber('referred')
             ->middleware('signed');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -535,7 +530,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->whereNumber('payout')
             ->name('commissions.history.update');
 
-
         /*
         |--------------------------------------------------------------------------
         | HOA HỒNG CỘNG TÁC VIÊN - ROUTE CŨ
@@ -578,7 +572,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         )
             ->name('customer-commissions.mark-unpaid')
             ->whereNumber('commission');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -669,7 +662,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         )
             ->name('products.toggle-status')
             ->whereNumber('product');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -770,7 +762,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             'inventory/movement-history',
             [ProductController::class, 'movementHistory']
         )->name('inventory.movement-history');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -894,7 +885,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             [OrderController::class, 'destroy']
         )->name('orders.destroy');
 
-
         /*
         |--------------------------------------------------------------------------
         | HÓA ĐƠN
@@ -911,7 +901,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             'invoices/{invoice:invoice_code}/print',
             [InvoiceController::class, 'print']
         )->name('invoices.print');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -938,7 +927,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::get(
             '/customer-care/notifications/due',
-            [CustomerCareController::class, 'dueNotifications']
+            [CustomerCareNotificationController::class, 'due']
         )->name('customer-care.notifications.due');
 
         /*
@@ -949,7 +938,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::patch(
             '/customer-care/logs/{logId}',
-            [CustomerCareController::class, 'updateLog']
+            [CustomerCareLogController::class, 'update']
         )
             ->whereNumber('logId')
             ->name('customer-care.logs.update');
@@ -961,7 +950,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::delete(
             '/customer-care/logs/{logId}',
-            [CustomerCareController::class, 'destroyLog']
+            [CustomerCareLogController::class, 'destroy']
         )
             ->whereNumber('logId')
             ->name('customer-care.logs.destroy');
@@ -973,7 +962,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::patch(
             '/customer-care/reminders/{reminderId}/complete',
-            [CustomerCareController::class, 'completeReminder']
+            [CustomerCareReminderController::class, 'complete']
         )
             ->whereNumber('reminderId')
             ->name('customer-care.reminders.complete');
@@ -985,7 +974,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::patch(
             '/customer-care/reminders/{reminderId}/reopen',
-            [CustomerCareController::class, 'reopenReminder']
+            [CustomerCareReminderController::class, 'reopen']
         )
             ->whereNumber('reminderId')
             ->name('customer-care.reminders.reopen');
@@ -997,7 +986,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::delete(
             '/customer-care/reminders/{reminderId}',
-            [CustomerCareController::class, 'destroyReminder']
+            [CustomerCareReminderController::class, 'destroy']
         )
             ->whereNumber('reminderId')
             ->name('customer-care.reminders.destroy');
@@ -1009,7 +998,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::patch(
             '/customer-care/reminders/{reminderId}/acknowledge',
-            [CustomerCareController::class, 'acknowledgeReminder']
+            [CustomerCareNotificationController::class, 'acknowledge']
         )
             ->whereNumber('reminderId')
             ->name('customer-care.reminders.acknowledge');
@@ -1021,7 +1010,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::patch(
             '/customer-care/reminders/{reminderId}/snooze',
-            [CustomerCareController::class, 'snoozeReminder']
+            [CustomerCareNotificationController::class, 'snooze']
         )
             ->whereNumber('reminderId')
             ->name('customer-care.reminders.snooze');
@@ -1033,7 +1022,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::post(
             '/customer-care/{customerId}/logs',
-            [CustomerCareController::class, 'storeLog']
+            [CustomerCareLogController::class, 'store']
         )
             ->whereNumber('customerId')
             ->name('customer-care.logs.store');
@@ -1045,7 +1034,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         */
         Route::post(
             '/customer-care/{customerId}/reminders',
-            [CustomerCareController::class, 'storeReminder']
+            [CustomerCareReminderController::class, 'store']
         )
             ->whereNumber('customerId')
             ->name('customer-care.reminders.store');
@@ -1062,7 +1051,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         )
             ->whereNumber('customerId')
             ->name('customer-care.show');
-
 
         /*
         |--------------------------------------------------------------------------

@@ -79,9 +79,15 @@ class Customer extends Model
     |--------------------------------------------------------------------------
     */
 
+    /** @return BelongsTo<CustomerRole, $this> */
     public function role(): BelongsTo
     {
         return $this->belongsTo(CustomerRole::class, 'customer_role_id');
+    }
+
+    public function currentRole(): ?CustomerRole
+    {
+        return $this->role()->first();
     }
 
     /*
@@ -109,9 +115,15 @@ class Customer extends Model
     |--------------------------------------------------------------------------
     */
 
+    /** @return BelongsTo<CtvStatus, $this> */
     public function ctvStatus(): BelongsTo
     {
         return $this->belongsTo(CtvStatus::class, 'ctv_status_id');
+    }
+
+    public function currentCtvStatus(): ?CtvStatus
+    {
+        return $this->ctvStatus()->first();
     }
 
     /*
@@ -313,7 +325,7 @@ class Customer extends Model
             return false;
         }
 
-        return !in_array($statusCode, [
+        return ! in_array($statusCode, [
             'active',
             'new',
             'moi',
@@ -337,7 +349,7 @@ class Customer extends Model
 
     public function getDisplayAddressAttribute(): string
     {
-        if (!$this->detail) {
+        if (! $this->detail) {
             return '---';
         }
 

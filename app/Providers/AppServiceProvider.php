@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Customer;
+use App\Models\CustomerCareLog;
+use App\Models\CustomerCareReminder;
 use App\Models\CustomerCommission;
 use App\Models\CustomerInvoice;
 use App\Models\CustomerOrder;
@@ -33,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
     {
         foreach ([
             Customer::class,
+            CustomerCareLog::class,
+            CustomerCareReminder::class,
             CustomerOrder::class,
             CustomerOrderReturn::class,
             FinancialTransaction::class,
