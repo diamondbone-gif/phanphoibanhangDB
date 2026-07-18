@@ -40,60 +40,9 @@ return asset('storage/' . ltrim($image, '/'));
 };
 @endphp
 
-<style>
-    .order-product-img {
-        width: 58px;
-        height: 58px;
-        border-radius: 12px;
-        object-fit: cover;
-        border: 1px solid #e5e7eb;
-        background: #f8fafc;
-    }
-
-    .order-product-placeholder {
-        width: 58px;
-        height: 58px;
-        border-radius: 12px;
-        border: 1px dashed #cbd5e1;
-        background: #f8fafc;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #94a3b8;
-        font-size: 20px;
-    }
-
-    .customer-info-row {
-        display: grid;
-        grid-template-columns: 180px 1fr;
-        gap: 12px;
-        padding: 14px 0;
-        border-bottom: 1px solid #edf2f7;
-        align-items: start;
-    }
-
-    .customer-info-row:last-child {
-        border-bottom: 0;
-    }
-
-    .customer-info-label {
-        color: #64748b;
-        font-weight: 700;
-    }
-
-    .customer-info-value {
-        color: #0f172a;
-        font-weight: 700;
-        word-break: break-word;
-    }
-
-    @media (max-width: 768px) {
-        .customer-info-row {
-            grid-template-columns: 1fr;
-            gap: 4px;
-        }
-    }
-</style>
+@push('styles')
+<link rel="stylesheet" href="{{ asset('admin/css/pages/auth-orders-show.css') }}">
+@endpush
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>

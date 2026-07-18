@@ -1,0 +1,524 @@
+:root {
+        --commission-blue: #2563eb;
+        --commission-green: #16a34a;
+        --commission-red: #ef4444;
+        --commission-orange: #f97316;
+        --commission-purple: #7c3aed;
+        --commission-text: #111827;
+        --commission-muted: #64748b;
+        --commission-border: #dbeafe;
+        --commission-soft: #eff6ff;
+        --commission-shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+    }
+
+    html {
+        scrollbar-gutter: stable;
+    }
+
+    body.modal-open {
+        padding-right: 0 !important;
+    }
+
+    .commission-page {
+        min-height: calc(100vh - 70px);
+        padding: 24px;
+        background-color: #eef5ff;
+        background-image:
+            radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30%),
+            radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 34%),
+            linear-gradient(135deg, #eef5ff 0%, #f8fbff 55%, #ffffff 100%);
+    }
+
+    .commission-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 850;
+        color: var(--commission-text);
+    }
+
+    .commission-title::before {
+        content: "\f201";
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        font-size: 20px;
+        color: #fff;
+        background-image: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+        box-shadow: 0 14px 34px rgba(37, 99, 235, 0.15);
+    }
+
+    .commission-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .commission-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        padding: 22px;
+        color: #fff;
+        min-height: 124px;
+        box-shadow: var(--commission-shadow);
+    }
+
+    .commission-card::before {
+        content: "";
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        right: -48px;
+        top: -58px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+    }
+
+    .commission-card .label {
+        font-size: 15px;
+        font-weight: 650;
+        opacity: 0.92;
+        margin-bottom: 10px;
+    }
+
+    .commission-card .value {
+        font-size: clamp(23px, 2.5vw, 31px);
+        font-weight: 900;
+        line-height: 1.15;
+        word-break: break-word;
+    }
+
+    .bg-total {
+        background-image: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    }
+
+    .bg-paid {
+        background-image: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    }
+
+    .bg-debt {
+        background-image: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+    }
+
+    .commission-box,
+    .commission-table-box {
+        border: 1px solid rgba(219, 234, 254, 0.95);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 10px 28px rgba(37, 99, 235, 0.10);
+        margin-bottom: 24px;
+    }
+
+    .commission-box {
+        padding: 16px;
+    }
+
+    .commission-table-box {
+        padding: 12px;
+    }
+
+    .commission-box .form-control,
+    .modal .form-control,
+    .modal .form-select {
+        border: 1px solid #dbeafe;
+        border-radius: 14px;
+        min-height: 44px;
+        box-shadow: none;
+    }
+
+    .commission-box .form-control {
+        padding-left: 46px;
+        background-color: #fff;
+        background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.002A8 8 0 0 1 11 19Zm0-2a6 6 0 1 0 0-12 6 6 0 0 0 0 12Zm6.707 1.293 3 3-1.414 1.414-3-3 1.414-1.414Z' fill='%232563EB'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 16px center;
+    }
+
+    .commission-table {
+        margin-bottom: 0;
+        min-width: 980px;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+
+    .commission-table thead th,
+    .modal table thead th {
+        border: 0;
+        color: #1e3a8a;
+        background-image: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+        font-weight: 850;
+        padding: 13px 10px;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .commission-table thead th:first-child,
+    .modal table thead th:first-child {
+        border-radius: 14px 0 0 14px;
+    }
+
+    .commission-table thead th:last-child,
+    .modal table thead th:last-child {
+        border-radius: 0 14px 14px 0;
+    }
+
+    .commission-table tbody tr {
+        background: #fff;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.045);
+    }
+
+    .commission-table tbody td {
+        border-top: 1px solid #edf4ff;
+        border-bottom: 1px solid #edf4ff;
+        padding: 13px 10px;
+        vertical-align: middle;
+        color: var(--commission-text);
+    }
+
+    .commission-table tbody td:first-child {
+        border-left: 1px solid #edf4ff;
+        border-radius: 14px 0 0 14px;
+        font-weight: 850;
+        color: var(--commission-blue);
+    }
+
+    .commission-table tbody td:last-child {
+        border-right: 1px solid #edf4ff;
+        border-radius: 0 14px 14px 0;
+    }
+
+    .action-group {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-width: 126px;
+        white-space: nowrap;
+    }
+
+    .action-group .btn {
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 36px;
+        padding: 0;
+        border-radius: 12px !important;
+        font-size: 14px;
+    }
+
+    .action-group .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+    .btn.is-busy {
+        pointer-events: none;
+        opacity: 0.78;
+    }
+
+    .btn.is-busy i {
+        animation: commissionPulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes commissionPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(0.88);
+            opacity: 0.55;
+        }
+    }
+
+    .modal-content {
+        overflow: hidden;
+        border: 0;
+        border-radius: 22px;
+        box-shadow: 0 30px 90px rgba(15, 23, 42, 0.26);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid #e0ecff;
+        padding: 18px 20px;
+        background-image: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+    }
+
+    .modal-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 850;
+        color: #1e3a8a;
+    }
+
+    .modal-title::before {
+        content: "";
+        width: 10px;
+        height: 26px;
+        border-radius: 999px;
+        background-image: linear-gradient(180deg, #2563eb 0%, #06b6d4 100%);
+    }
+
+    .modal-blue-header {
+        color: #fff;
+        border: 0;
+        background-image: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    }
+
+    .modal-blue-header .modal-title {
+        color: #fff;
+    }
+
+    .modal-blue-header .modal-title::before {
+        background-color: rgba(255, 255, 255, 0.90);
+        background-image: none;
+    }
+
+    .modal-blue-header .btn-close {
+        filter: invert(1);
+        opacity: 0.9;
+    }
+
+    .modal-footer {
+        border-top: 1px solid #e0ecff;
+        background: #f8fbff;
+    }
+
+    .ctv-info-box,
+    .payment-info-box {
+        border: 1px solid #dbeafe;
+        border-left: 6px solid var(--commission-blue);
+        border-radius: 16px;
+        background-image: linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%);
+        padding: 16px 18px;
+        margin-bottom: 18px;
+    }
+
+    .info-label {
+        color: #1e3a8a;
+        font-weight: 850;
+    }
+
+    .info-value {
+        color: var(--commission-text);
+        font-weight: 500;
+    }
+
+    .info-address {
+        color: #0f766e;
+        font-weight: 700;
+    }
+
+    .payment-info-line {
+        margin-bottom: 8px;
+        line-height: 1.5;
+    }
+
+    .payment-info-line:last-child {
+        margin-bottom: 0;
+    }
+
+    .commission-modal-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .commission-modal-stat {
+        border-radius: 16px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #dbeafe;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .commission-modal-stat .stat-label {
+        font-size: 13px;
+        color: var(--commission-muted);
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+
+    .commission-modal-stat .stat-value {
+        font-size: 18px;
+        font-weight: 900;
+        word-break: break-word;
+    }
+
+    .payment-stat-box {
+        border: 1px solid #cfe0ff;
+        border-radius: 18px;
+        padding: 14px;
+        margin-bottom: 18px;
+        background-image: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .payment-stat-box .stat-col {
+        text-align: center;
+        border-right: 1px dashed #cbd5e1;
+    }
+
+    .payment-stat-box .stat-col:last-child {
+        border-right: none;
+    }
+
+    .payment-stat-label {
+        color: var(--commission-muted);
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .payment-stat-value {
+        font-weight: 900;
+        font-size: 17px;
+    }
+
+    .text-money-blue {
+        color: var(--commission-blue) !important;
+    }
+
+    .text-money-green {
+        color: var(--commission-green) !important;
+    }
+
+    .text-money-red {
+        color: var(--commission-red) !important;
+    }
+
+    .pagination-mini {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+    }
+
+    .pagination-mini button {
+        min-width: 36px;
+        border-radius: 12px;
+        font-weight: 850;
+    }
+
+    .commission-main-pagination .pagination {
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .commission-main-pagination .page-link {
+        border-radius: 12px;
+        border: 1px solid #dbeafe;
+        color: #2563eb;
+        font-weight: 700;
+        min-width: 38px;
+        text-align: center;
+    }
+
+    .commission-main-pagination .page-item.active .page-link {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #fff;
+    }
+
+    .modal table {
+        min-width: 760px;
+    }
+
+    .modal table tbody td {
+        padding: 12px 10px;
+        vertical-align: middle;
+    }
+
+    .commission-toast-wrap {
+        position: fixed;
+        right: 20px;
+        top: 20px;
+        z-index: 2000;
+        display: grid;
+        gap: 10px;
+        width: min(380px, calc(100vw - 32px));
+        pointer-events: none;
+    }
+
+    .commission-toast {
+        pointer-events: auto;
+        border-radius: 16px;
+        padding: 14px 16px;
+        color: #fff;
+        font-weight: 750;
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+    }
+
+    .commission-toast.success {
+        background-image: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    }
+
+    .commission-toast.danger {
+        background-image: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+    }
+
+    .commission-toast.info {
+        background-image: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    }
+
+    .commission-error-cell {
+        color: #dc2626 !important;
+        font-weight: 750;
+        background: #fff7ed;
+    }
+
+    @media (max-width: 992px) {
+
+        .commission-summary-grid,
+        .commission-modal-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .commission-page {
+            padding: 14px;
+        }
+
+        .commission-summary-grid,
+        .commission-modal-stats {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .payment-stat-box .stat-col {
+            border-right: 0;
+            border-bottom: 1px dashed #cbd5e1;
+            padding: 9px 0;
+        }
+
+        .payment-stat-box .stat-col:last-child {
+            border-bottom: 0;
+        }
+
+        .payment-stat-box .row>[class*="col-"] {
+            width: 100%;
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .ctv-info-box .row>[class*="col-"] {
+            margin-bottom: 8px;
+        }
+    }

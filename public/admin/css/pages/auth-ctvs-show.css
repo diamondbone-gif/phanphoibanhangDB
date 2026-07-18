@@ -1,0 +1,192 @@
+.ctv-detail-page {
+        padding: 20px 24px 40px;
+    }
+
+    .ctv-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #637083;
+        font-size: 14px;
+    }
+
+    .ctv-breadcrumb a {
+        color: #0d6efd;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .ctv-detail-title {
+        font-size: 30px;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .ctv-back-btn,
+    .ctv-origin-btn {
+        border-radius: 12px;
+        font-weight: 700;
+    }
+
+    .ctv-profile-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .ctv-avatar {
+        width: 58px;
+        height: 58px;
+        border-radius: 999px;
+        background: #0d6efd;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+
+    .ctv-meta {
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .ctv-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        color: #fff;
+    }
+
+    .ctv-status-active {
+        background: #108a55;
+    }
+
+    .ctv-status-warning {
+        background: #f4b000;
+        color: #111827;
+    }
+
+    .ctv-rate-badge {
+        background: #eaf2ff;
+        color: #0d6efd;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .ctv-detail-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .ctv-tabs {
+        border-bottom: 1px solid #d6e1ef;
+    }
+
+    .ctv-tabs .nav-link {
+        color: #46536a;
+        font-weight: 800;
+        border: 1px solid transparent;
+        border-radius: 12px 12px 0 0;
+        padding: 12px 18px;
+    }
+
+    .ctv-tabs .nav-link.active {
+        color: #0d6efd;
+        border-color: #bcd3ff #bcd3ff #fff;
+        box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.12);
+        background: #fff;
+    }
+
+    .ctv-stat-card {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .ctv-stat-label {
+        color: #3f4a5f;
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+
+    .ctv-stat-number {
+        font-size: 26px;
+        font-weight: 500;
+        color: #111827;
+    }
+
+    .ctv-section-heading {
+        color: #0d6efd;
+        font-weight: 800;
+        margin-bottom: 14px;
+    }
+
+    .ctv-detail-table thead th {
+        background: #f8fafc;
+        color: #46536a;
+        font-weight: 800;
+        border-bottom: 1px solid #cbd5e1;
+        white-space: nowrap;
+    }
+
+    .ctv-detail-table td,
+    .ctv-detail-table th {
+        padding: 10px 14px;
+    }
+
+    .ctv-link {
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 800;
+    }
+
+    .ctv-link:hover {
+        text-decoration: underline;
+    }
+
+    .ctv-eye-btn {
+        width: 36px;
+        height: 32px;
+        border: 1px solid #d6e1ef;
+        border-radius: 12px;
+        color: #0d6efd;
+        background: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ctv-eye-btn:hover {
+        background: #eef5ff;
+        color: #0b5ed7;
+    }
+
+    @media (max-width: 767.98px) {
+        .ctv-profile-card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .ctv-origin-btn {
+            width: 100%;
+        }
+    }
