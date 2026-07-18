@@ -27,7 +27,7 @@ class BackupDatabase extends Command
             return self::FAILURE;
         }
 
-        $binary = (string) env('MYSQLDUMP_PATH', 'D:\\xampp\\mysql\\bin\\mysqldump.exe');
+        $binary = (string) config('database.xampp.mysqldump_path');
         if (! is_file($binary)) {
             $this->error("Không tìm thấy mysqldump tại: {$binary}");
             $this->line('Khai báo MYSQLDUMP_PATH trong .env nếu XAMPP được cài ở vị trí khác.');

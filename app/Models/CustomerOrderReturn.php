@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\FinancialTransactionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class CustomerOrderReturn extends Model
 {
@@ -36,5 +38,11 @@ class CustomerOrderReturn extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(OperationManager::class, 'created_by');
+    }
+
+    public function refundTransaction(): HasOne
+    {
+        return $this->hasOne(FinancialTransaction::class, 'customer_order_return_id')
+            ->where('type', FinancialTransactionType::Refund->value);
     }
 }

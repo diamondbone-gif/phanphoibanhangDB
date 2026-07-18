@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\ProductCategory;
 use App\Models\ProductStockMovement;
+use App\Services\WarehouseInventoryService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,8 @@ use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
+    public function __construct(private WarehouseInventoryService $warehouseInventoryService) {}
+
     public function index(Request $request)
     {
         $categories = ProductCategory::active()
@@ -44,7 +47,7 @@ class ProductController extends Controller
     {
         $data = $this->validateProduct($request);
 
-        if ((int) $request->input('initial_quantity', 0) > 0 && !$request->filled('batch_number')) {
+        if ((int) $request->input('initial_quantity', 0) > 0 && ! $request->filled('batch_number')) {
             throw ValidationException::withMessages([
                 'batch_number' => 'Vui lòng nhập số lô khi có số lượng nhập ban đầu.',
             ]);
@@ -172,7 +175,7 @@ class ProductController extends Controller
     public function toggleStatus(Product $product)
     {
         $product->update([
-            'is_active' => !$product->is_active,
+            'is_active' => ! $product->is_active,
             'updated_by' => Auth::guard('admin')->id(),
         ]);
 
@@ -277,7 +280,7 @@ class ProductController extends Controller
                 'string',
                 'max:100',
                 Rule::unique('product_batches', 'batch_number')
-                    ->where(fn($query) => $query->where('product_id', $batch->product_id))
+                    ->where(fn ($query) => $query->where('product_id', $batch->product_id))
                     ->ignore($batch->id),
             ],
             'manufacture_date' => ['nullable', 'date'],
@@ -313,9 +316,11 @@ class ProductController extends Controller
             ]);
 
             if ($delta !== 0) {
+                $warehouse = $this->warehouseInventoryService->defaultWarehouse();
                 ProductStockMovement::create([
                     'product_id' => $batch->product_id,
                     'product_batch_id' => $batch->id,
+                    'warehouse_id' => $warehouse->id,
                     'movement_type' => 'adjustment',
                     'quantity' => $delta,
                     'before_quantity' => $before,
@@ -325,6 +330,7 @@ class ProductController extends Controller
                     'note' => 'Điều chỉnh số lượng lô.',
                     'created_by' => Auth::guard('admin')->id(),
                 ]);
+                $this->warehouseInventoryService->syncActualStock($batch->product, $after, $batch, $warehouse);
             }
 
             if ($batch->product) {
@@ -341,7 +347,7 @@ class ProductController extends Controller
     public function toggleBatchStatus(ProductBatch $batch)
     {
         $batch->update([
-            'is_active' => !$batch->is_active,
+            'is_active' => ! $batch->is_active,
             'updated_by' => Auth::guard('admin')->id(),
         ]);
 
@@ -357,9 +363,11 @@ class ProductController extends Controller
             $product = $batch->product;
             $before = (int) $batch->current_quantity;
 
+            $warehouse = $this->warehouseInventoryService->defaultWarehouse();
             ProductStockMovement::create([
                 'product_id' => $batch->product_id,
                 'product_batch_id' => $batch->id,
+                'warehouse_id' => $warehouse->id,
                 'movement_type' => 'delete_batch',
                 'quantity' => -$before,
                 'before_quantity' => $before,
@@ -486,7 +494,7 @@ class ProductController extends Controller
         $before = (int) ($batch->current_quantity ?? 0);
         $after = $before + $quantity;
 
-        if (!$batch->exists) {
+        if (! $batch->exists) {
             $batch->initial_quantity = 0;
             $batch->created_by = Auth::guard('admin')->id();
         }
@@ -505,6 +513,7 @@ class ProductController extends Controller
         ProductStockMovement::create([
             'product_id' => $product->id,
             'product_batch_id' => $batch->id,
+            'warehouse_id' => $this->warehouseInventoryService->defaultWarehouse()->id,
             'movement_type' => 'import',
             'quantity' => $quantity,
             'before_quantity' => $before,
@@ -514,6 +523,8 @@ class ProductController extends Controller
             'note' => $note,
             'created_by' => Auth::guard('admin')->id(),
         ]);
+
+        $this->warehouseInventoryService->syncActualStock($product, $after, $batch);
 
         $this->refreshProductTotal($product);
     }
@@ -611,7 +622,7 @@ class ProductController extends Controller
 
     private function storeProductImage(Request $request): ?string
     {
-        if (!$request->hasFile('main_image')) {
+        if (! $request->hasFile('main_image')) {
             return null;
         }
 

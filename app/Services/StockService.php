@@ -7,12 +7,14 @@ use App\Models\CustomerOrderItem;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\ProductStockMovement;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
-use App\Support\Money;
 
 class StockService
 {
+    public function __construct(private WarehouseInventoryService $warehouseInventoryService) {}
+
     /*
     |--------------------------------------------------------------------------
     | TRỪ KHO KHI TẠO / SỬA ĐƠN HÀNG
@@ -86,7 +88,7 @@ class StockService
         | Trừ trực tiếp vào products.total_quantity.
         |--------------------------------------------------------------------------
         */
-        if (!$trackBatch) {
+        if (! $trackBatch) {
             $this->deductWithoutBatch(
                 order: $order,
                 product: $product,
@@ -142,7 +144,7 @@ class StockService
         | số lượng cần bán thì dừng lại, báo lỗi.
         |--------------------------------------------------------------------------
         */
-        if (!$allowSellWithoutStock && $before < $quantity) {
+        if (! $allowSellWithoutStock && $before < $quantity) {
             throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn kho.");
         }
 
@@ -227,7 +229,7 @@ class StockService
         | Không cho bán nếu tổng lô không đủ
         |--------------------------------------------------------------------------
         */
-        if (!$allowSellWithoutStock && $availableBatchQuantity < $quantity) {
+        if (! $allowSellWithoutStock && $availableBatchQuantity < $quantity) {
             throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn theo lô.");
         }
 
@@ -361,7 +363,7 @@ class StockService
         | Nếu vẫn còn thiếu mà không cho bán âm kho thì báo lỗi.
         |--------------------------------------------------------------------------
         */
-        if ($needQty > 0 && !$allowSellWithoutStock) {
+        if ($needQty > 0 && ! $allowSellWithoutStock) {
             throw new RuntimeException("Sản phẩm {$product->product_name} không đủ tồn theo lô.");
         }
     }
@@ -384,7 +386,7 @@ class StockService
                 ->lockForUpdate()
                 ->find($item->product_id);
 
-            if (!$product) {
+            if (! $product) {
                 continue;
             }
 
@@ -567,8 +569,7 @@ class StockService
         ?int $batchId,
         int $quantity,
         int $stockQuantity
-    ): array
-    {
+    ): array {
         $unitPriceCents = Money::cents($line['unit_price'] ?? 0);
         $discountBasisPoints = Money::percentBasisPoints($line['discount_percent'] ?? 0);
         $originalTotalCents = $unitPriceCents * $quantity;
@@ -662,7 +663,18 @@ class StockService
         | Schema được migration bảo đảm trước khi insert.
         |--------------------------------------------------------------------------
         */
+        $warehouse = $this->warehouseInventoryService->defaultWarehouse();
+        $data['warehouse_id'] = $warehouse->id;
         ProductStockMovement::create($data);
+
+        $product = Product::query()->findOrFail($productId);
+        $batch = $batchId ? ProductBatch::query()->findOrFail($batchId) : null;
+        $this->warehouseInventoryService->syncActualStock(
+            $product,
+            $afterQuantity,
+            $batch,
+            $warehouse,
+        );
     }
 
     /*
@@ -803,7 +815,7 @@ class StockService
         |--------------------------------------------------------------------------
         */
         do {
-            $code = $prefix . now()->format('ymdHis') . random_int(100, 999);
+            $code = $prefix.now()->format('ymdHis').random_int(100, 999);
         } while (DB::table($table)->where($column, $code)->exists());
 
         return $code;

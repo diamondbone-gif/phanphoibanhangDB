@@ -2,6 +2,18 @@
 
 namespace App\Providers;
 
+use App\Models\Customer;
+use App\Models\CustomerCommission;
+use App\Models\CustomerInvoice;
+use App\Models\CustomerOrder;
+use App\Models\CustomerOrderReturn;
+use App\Models\FinancialTransaction;
+use App\Models\Payment;
+use App\Models\ProductBatch;
+use App\Models\ProductStockMovement;
+use App\Models\StockDocument;
+use App\Models\WarehouseStock;
+use App\Observers\AuditObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +31,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        foreach ([
+            Customer::class,
+            CustomerOrder::class,
+            CustomerOrderReturn::class,
+            FinancialTransaction::class,
+            CustomerCommission::class,
+            CustomerInvoice::class,
+            Payment::class,
+            ProductBatch::class,
+            ProductStockMovement::class,
+            WarehouseStock::class,
+            StockDocument::class,
+        ] as $model) {
+            $model::observe(AuditObserver::class);
+        }
     }
 }

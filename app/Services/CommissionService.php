@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\CommissionState;
 use App\Models\CustomerOrder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use App\Support\Money;
 use App\Support\StatusHelper;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CommissionService
 {
@@ -30,7 +31,7 @@ class CommissionService
                 ->lockForUpdate()
                 ->find($order->id);
 
-            if (!$order) {
+            if (! $order) {
                 return null;
             }
 
@@ -53,7 +54,7 @@ class CommissionService
             $existingCommission = DB::table('customer_commissions')
                 ->where('customer_order_id', $order->id)
                 ->whereNull('deleted_at')
-                ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', 'cancelled'))
+                ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', CommissionState::Cancelled->value))
                 ->first();
 
             if ($existingCommission) {
@@ -69,7 +70,7 @@ class CommissionService
             */
             $referral = $this->findReferralForCustomer((int) $order->customer_id);
 
-            if (!$referral || empty($referral->referrer_customer_id)) {
+            if (! $referral || empty($referral->referrer_customer_id)) {
                 return null;
             }
 
@@ -77,7 +78,7 @@ class CommissionService
                 ->where('id', $referral->referrer_customer_id)
                 ->first();
 
-            if (!$ctv) {
+            if (! $ctv) {
                 return null;
             }
 
@@ -152,7 +153,7 @@ class CommissionService
                 'commission_amount' => $commissionAmount,
 
                 'commission_status_id' => StatusHelper::id('commission_statuses', 'pending'),
-                'status' => 'unpaid',
+                'status' => CommissionState::Unpaid->value,
 
                 'paid_amount' => 0,
                 'commission_date' => now(),
@@ -197,7 +198,7 @@ class CommissionService
             $commission = DB::table('customer_commissions')
                 ->where('customer_order_id', $order->id)
                 ->where(function ($query) {
-                    $query->whereNull('status')->orWhere('status', '!=', 'cancelled');
+                    $query->whereNull('status')->orWhere('status', '!=', CommissionState::Cancelled->value);
                 })
                 ->lockForUpdate()
                 ->latest('id')
@@ -205,7 +206,7 @@ class CommissionService
 
             $commissionBaseCents = max(0, Money::cents($order->net_amount ?? $order->final_amount));
 
-            if (!$commission) {
+            if (! $commission) {
                 return $commissionBaseCents > 0 ? $this->createForOrder($order, $adminId) : null;
             }
 
@@ -218,10 +219,10 @@ class CommissionService
             $clawbackCents = max(0, $paidAmountCents - $newAmountCents);
 
             $status = match (true) {
-                $clawbackCents > 0 => 'clawback',
-                $newAmountCents <= 0 => 'cancelled',
-                $paidAmountCents >= $newAmountCents => 'paid',
-                default => 'unpaid',
+                $clawbackCents > 0 => CommissionState::Clawback->value,
+                $newAmountCents <= 0 => CommissionState::Cancelled->value,
+                $paidAmountCents >= $newAmountCents => CommissionState::Paid->value,
+                default => CommissionState::Unpaid->value,
             };
 
             $update = [
@@ -232,11 +233,13 @@ class CommissionService
                 'status' => $status,
                 'commission_status_id' => StatusHelper::id(
                     'commission_statuses',
-                    $status === 'cancelled' ? 'cancelled' : ($status === 'paid' ? 'paid' : 'pending')
+                    $status === CommissionState::Cancelled->value
+                        ? 'cancelled'
+                        : ($status === CommissionState::Paid->value ? 'paid' : 'pending')
                 ),
-                'cancelled_at' => $status === 'cancelled' ? now() : null,
-                'cancelled_by' => $status === 'cancelled' ? $adminId : null,
-                'cancel_reason' => $status === 'cancelled' ? 'Đơn hàng đã hoàn trả toàn bộ' : null,
+                'cancelled_at' => $status === CommissionState::Cancelled->value ? now() : null,
+                'cancelled_by' => $status === CommissionState::Cancelled->value ? $adminId : null,
+                'cancel_reason' => $status === CommissionState::Cancelled->value ? 'Đơn hàng đã hoàn trả toàn bộ' : null,
                 'updated_at' => now(),
             ];
 
@@ -270,7 +273,7 @@ class CommissionService
 
             $updateData = [
                 'commission_status_id' => $cancelStatusId,
-                'status' => 'cancelled',
+                'status' => CommissionState::Cancelled->value,
                 'cancelled_at' => now(),
                 'cancelled_by' => $adminId,
                 'cancel_reason' => $reason,
@@ -281,7 +284,7 @@ class CommissionService
             DB::table('customer_commissions')
                 ->where('customer_order_id', $order->id)
                 ->whereNull('deleted_at')
-                ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', 'cancelled'))
+                ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', CommissionState::Cancelled->value))
                 ->update($updateData);
 
             $orderUpdateData = [
@@ -369,14 +372,13 @@ class CommissionService
     private function makeCommissionCode(): string
     {
         do {
-            $code = 'HH' . now()->format('ymdHis') . strtoupper(Str::random(4));
+            $code = 'HH'.now()->format('ymdHis').strtoupper(Str::random(4));
         } while (
             DB::table('customer_commissions')
-            ->where('commission_code', $code)
-            ->exists()
+                ->where('commission_code', $code)
+                ->exists()
         );
 
         return $code;
     }
-
 }

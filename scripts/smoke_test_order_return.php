@@ -8,8 +8,8 @@ use App\Support\StatusHelper;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
-$app = require dirname(__DIR__) . '/bootstrap/app.php';
+require dirname(__DIR__).'/vendor/autoload.php';
+$app = require dirname(__DIR__).'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 $order = CustomerOrder::query()
@@ -18,7 +18,7 @@ $order = CustomerOrder::query()
     ->with(['items', 'returns.items'])
     ->first();
 
-if (!$order) {
+if (! $order) {
     echo "SKIPPED: no completed order with items exists.\n";
     exit(0);
 }
@@ -31,12 +31,13 @@ $item = $order->items->first(function ($item) use ($order) {
     return $returned < $item->quantity;
 });
 
-if (!$item) {
+if (! $item) {
     echo "SKIPPED: completed orders have no returnable items.\n";
     exit(0);
 }
 
 $beforeReturnCount = DB::table('customer_order_returns')->count();
+$beforeFinancialCount = DB::table('financial_transactions')->count();
 $beforeOrder = DB::table('customer_orders')->where('id', $order->id)->first();
 
 DB::beginTransaction();
@@ -51,18 +52,29 @@ try {
         ]],
     ]);
 
-    if (!$return->exists || $return->items->sum('quantity') !== 1) {
+    if (! $return->exists || $return->items->sum('quantity') !== 1) {
         throw new RuntimeException('Return document was not created correctly.');
+    }
+
+    $refundTransaction = DB::table('financial_transactions')
+        ->where('customer_order_return_id', $return->id)
+        ->where('type', 'refund')
+        ->where('status', 'completed')
+        ->first();
+    if (! $refundTransaction || $refundTransaction->amount !== $return->refund_amount) {
+        throw new RuntimeException('Refund financial transaction was not created correctly.');
     }
 } finally {
     DB::rollBack();
 }
 
 $afterReturnCount = DB::table('customer_order_returns')->count();
+$afterFinancialCount = DB::table('financial_transactions')->count();
 $afterOrder = DB::table('customer_orders')->where('id', $order->id)->first();
 
 if (
     $beforeReturnCount !== $afterReturnCount
+    || $beforeFinancialCount !== $afterFinancialCount
     || $beforeOrder->returned_amount !== $afterOrder->returned_amount
     || $beforeOrder->net_amount !== $afterOrder->net_amount
 ) {

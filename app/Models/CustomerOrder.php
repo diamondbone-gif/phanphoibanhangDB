@@ -280,14 +280,13 @@
 //     }
 // }
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CustomerOrder extends Model
 {
@@ -419,6 +418,7 @@ class CustomerOrder extends Model
     |--------------------------------------------------------------------------
     */
 
+    /** @return HasMany<CustomerOrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(CustomerOrderItem::class, 'customer_order_id');

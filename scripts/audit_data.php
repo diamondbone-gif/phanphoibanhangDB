@@ -117,6 +117,32 @@ if (Schema::hasTable('product_batches') && Schema::hasColumn('product_batches', 
         ->count();
 }
 
+if (Schema::hasTable('warehouse_stocks')) {
+    $report['integrity']['invalid_warehouse_stock'] = DB::table('warehouse_stocks')
+        ->whereColumn('reserved_quantity', '>', 'on_hand_quantity')
+        ->orWhere('on_hand_quantity', '<', 0)
+        ->orWhere('reserved_quantity', '<', 0)
+        ->count();
+
+    $report['integrity']['default_warehouse_stock_mismatches'] = DB::table('warehouse_stocks as ws')
+        ->join('warehouses as w', 'w.id', '=', 'ws.warehouse_id')
+        ->leftJoin('product_batches as pb', 'pb.id', '=', 'ws.product_batch_id')
+        ->leftJoin('products as p', 'p.id', '=', 'ws.product_id')
+        ->where('w.is_default', true)
+        ->where(function ($query) {
+            $query->where(function ($batchQuery) {
+                $batchQuery->whereNotNull('ws.product_batch_id')
+                    ->whereColumn('ws.on_hand_quantity', '<>', 'pb.current_quantity');
+            })->orWhere(function ($productQuery) {
+                $productQuery->whereNull('ws.product_batch_id')
+                    ->whereColumn('ws.on_hand_quantity', '<>', 'p.total_quantity');
+            });
+        })
+        ->select('ws.id', 'ws.product_id', 'ws.product_batch_id', 'ws.on_hand_quantity')
+        ->get()
+        ->all();
+}
+
 if (
     Schema::hasTable('products')
     && Schema::hasTable('product_batches')

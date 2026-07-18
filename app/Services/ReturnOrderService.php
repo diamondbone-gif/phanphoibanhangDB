@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\OrderReturnCoverage;
+use App\Enums\OrderReturnState;
+use App\Enums\PaymentState;
 use App\Models\CustomerOrder;
 use App\Models\CustomerOrderItem;
 use App\Models\CustomerOrderReturn;
@@ -18,6 +21,7 @@ class ReturnOrderService
         private StockService $stockService,
         private CommissionService $commissionService,
         private ReturnAmountCalculator $amountCalculator,
+        private FinancialTransactionService $financialTransactionService,
     ) {}
 
     public function create(CustomerOrder $order, array $data, ?int $adminId = null): CustomerOrderReturn
@@ -41,7 +45,7 @@ class ReturnOrderService
             }
 
             $soldAfterLineDiscountCents = max(1, $order->items->sum(
-                fn ($item) => Money::cents($item->final_total)
+                fn (CustomerOrderItem $item) => Money::cents($item->final_total)
             ));
             $prepared = [];
             $refundTotalCents = 0;
@@ -56,7 +60,7 @@ class ReturnOrderService
 
                 $alreadyReturned = (int) CustomerOrderReturnItem::query()
                     ->where('customer_order_item_id', $item->id)
-                    ->whereHas('orderReturn', fn ($query) => $query->where('status', 'completed'))
+                    ->whereHas('orderReturn', fn ($query) => $query->where('status', OrderReturnState::Completed->value))
                     ->sum('quantity');
                 $remaining = max(0, (int) $item->quantity - $alreadyReturned);
 
@@ -104,7 +108,7 @@ class ReturnOrderService
                 'customer_order_id' => $order->id,
                 'refund_amount' => Money::decimal($refundTotalCents),
                 'refund_method' => $data['refund_method'] ?? null,
-                'status' => 'completed',
+                'status' => OrderReturnState::Completed->value,
                 'reason' => trim((string) $data['reason']),
                 'note' => $data['note'] ?? null,
                 'returned_at' => now(),
@@ -130,24 +134,37 @@ class ReturnOrderService
                 );
             }
 
+            $this->financialTransactionService->recordCompletedRefund(
+                $order,
+                $return,
+                Money::decimal($refundTotalCents),
+                $data['refund_method'] ?? null,
+                $adminId,
+                $data['note'] ?? null,
+            );
+
             $finalAmountCents = Money::cents($order->final_amount);
             $returnedAmountCents = min(
                 $finalAmountCents,
                 Money::cents($order->returned_amount) + $refundTotalCents
             );
             $netAmountCents = max(0, $finalAmountCents - $returnedAmountCents);
-            $returnStatus = $netAmountCents === 0 ? 'full' : 'partial';
+            $returnStatus = $netAmountCents === 0
+                ? OrderReturnCoverage::Full
+                : OrderReturnCoverage::Partial;
             $paidAmountCents = min(Money::cents($order->paid_amount), $netAmountCents);
 
             $order->update([
                 'returned_amount' => Money::decimal($returnedAmountCents),
                 'net_amount' => Money::decimal($netAmountCents),
-                'return_status' => $returnStatus,
+                'return_status' => $returnStatus->value,
                 'paid_amount' => Money::decimal($paidAmountCents),
                 'debt_amount' => Money::decimal(max(0, $netAmountCents - $paidAmountCents)),
                 'payment_status_id' => StatusHelper::id(
                     'payment_statuses',
-                    $paidAmountCents <= 0 ? 'unpaid' : ($paidAmountCents >= $netAmountCents ? 'paid' : 'partial')
+                    $paidAmountCents <= 0
+                        ? PaymentState::Unpaid->value
+                        : ($paidAmountCents >= $netAmountCents ? PaymentState::Paid->value : PaymentState::Partial->value)
                 ),
                 'updated_by' => $adminId,
             ]);
@@ -155,7 +172,9 @@ class ReturnOrderService
             if ($order->invoice) {
                 $order->invoice->update([
                     'final_amount' => Money::decimal($netAmountCents),
-                    'status' => $returnStatus === 'full' ? 'returned' : 'partially_returned',
+                    'status' => $returnStatus === OrderReturnCoverage::Full
+                        ? PaymentState::Refunded->value
+                        : PaymentState::PartiallyRefunded->value,
                 ]);
             }
 
