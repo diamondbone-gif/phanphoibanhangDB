@@ -34,5 +34,8 @@ parameters:
         - app/Models/AuditLog.php
         - app/Services/CommissionService.php
         - app/Models/CustomerCommissionAdjustment.php
+        - app/Models/CustomerCommissionRecovery.php
+        - app/Http/Controllers/Admin/CommissionClawbackController.php
+        - app/Http/Requests/Admin/StoreCommissionRecoveryRequest.php
     level: 5
     tmpDir: storage/framework/cache/phpstan

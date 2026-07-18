@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CommissionController;
+use App\Http\Controllers\Admin\CommissionClawbackController;
 use App\Http\Controllers\Admin\CtvController;
 use App\Http\Controllers\Admin\CustomerCareController;
 use App\Http\Controllers\Admin\CustomerCareLogController;
@@ -465,6 +466,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             'commissions',
             [CommissionController::class, 'index']
         )->name('commissions.index');
+        Route::get('commissions-clawbacks', [CommissionClawbackController::class, 'index'])
+            ->name('commissions.clawbacks.index');
+        Route::post('commissions-clawbacks/{adjustment}/recover', [CommissionClawbackController::class, 'recover'])
+            ->whereNumber('adjustment')->name('commissions.clawbacks.recover');
 
         /*
         | Xem chi tiết hoa hồng của một CTV.

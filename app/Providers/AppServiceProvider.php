@@ -7,6 +7,7 @@ use App\Models\CustomerCareLog;
 use App\Models\CustomerCareReminder;
 use App\Models\CustomerCommission;
 use App\Models\CustomerCommissionAdjustment;
+use App\Models\CustomerCommissionRecovery;
 use App\Models\CustomerInvoice;
 use App\Models\CustomerOrder;
 use App\Models\CustomerOrderReturn;
@@ -44,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
             FinancialTransaction::class,
             CustomerCommission::class,
             CustomerCommissionAdjustment::class,
+            CustomerCommissionRecovery::class,
             CustomerInvoice::class,
             Payment::class,
             ProductBatch::class,

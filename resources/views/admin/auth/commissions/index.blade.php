@@ -531,6 +531,11 @@
 </style>
 
 <div class="commission-page">
+    <div class="text-end mb-2">
+        <a href="{{ route('admin.commissions.clawbacks.index') }}" class="btn btn-warning">
+            <i class="fa-solid fa-rotate-left me-1"></i> Thu hồi do hoàn đơn
+        </a>
+    </div>
     <h1 class="commission-title">Quản lý Hoa hồng</h1>
 
     <div class="commission-summary-grid">
