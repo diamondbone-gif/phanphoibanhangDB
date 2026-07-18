@@ -32,5 +32,7 @@ parameters:
         - app/Services/CustomerReferralService.php
         - app/Http/Controllers/Admin/AuditLogController.php
         - app/Models/AuditLog.php
+        - app/Services/CommissionService.php
+        - app/Models/CustomerCommissionAdjustment.php
     level: 5
     tmpDir: storage/framework/cache/phpstan

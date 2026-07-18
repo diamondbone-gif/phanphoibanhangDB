@@ -178,7 +178,7 @@ class ReturnOrderService
                 ]);
             }
 
-            $this->commissionService->recalculateForOrder($order->fresh(), $adminId);
+            $this->commissionService->recalculateForOrder($order->fresh(), $adminId, $return);
 
             OrderHistory::create([
                 'customer_order_id' => $order->id,

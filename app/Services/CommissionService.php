@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\CommissionState;
 use App\Models\CustomerOrder;
+use App\Models\CustomerOrderReturn;
 use App\Support\Money;
 use App\Support\StatusHelper;
 use Illuminate\Support\Facades\DB;
@@ -215,9 +216,12 @@ class CommissionService
         return $this->createForOrder($order, $adminId);
     }
 
-    public function recalculateForOrder(CustomerOrder $order, ?int $adminId = null): ?object
-    {
-        return DB::transaction(function () use ($order, $adminId) {
+    public function recalculateForOrder(
+        CustomerOrder $order,
+        ?int $adminId = null,
+        ?CustomerOrderReturn $orderReturn = null
+    ): ?object {
+        return DB::transaction(function () use ($order, $adminId, $orderReturn) {
             $order = CustomerOrder::query()->lockForUpdate()->findOrFail($order->id);
             $commission = DB::table('customer_commissions')
                 ->where('customer_order_id', $order->id)
@@ -270,6 +274,34 @@ class CommissionService
             DB::table('customer_commissions')
                 ->where('id', $commission->id)
                 ->update($update);
+
+            if ($clawbackCents > 0 && $orderReturn) {
+                $recordedClawbackCents = Money::cents(
+                    DB::table('customer_commission_adjustments')
+                        ->where('customer_commission_id', $commission->id)
+                        ->where('adjustment_type', 'clawback')
+                        ->sum('amount')
+                );
+                $newAdjustmentCents = max(0, $clawbackCents - $recordedClawbackCents);
+
+                if ($newAdjustmentCents > 0) {
+                    DB::table('customer_commission_adjustments')->updateOrInsert(
+                        ['customer_order_return_id' => $orderReturn->id],
+                        [
+                            'customer_commission_id' => $commission->id,
+                            'adjustment_code' => 'THH'.$orderReturn->id,
+                            'adjustment_type' => 'clawback',
+                            'amount' => Money::decimal($newAdjustmentCents),
+                            'recovered_amount' => 0,
+                            'status' => 'pending',
+                            'reason' => 'Thu hồi hoa hồng do hoàn đơn '.$order->order_code.' ('.$orderReturn->return_code.').',
+                            'created_by' => $adminId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+                }
+            }
 
             DB::table('customer_orders')->where('id', $order->id)->update([
                 'commission_created' => $newAmountCents > 0,

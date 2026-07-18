@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\CustomerOrder;
+use App\Models\CustomerOrderReturn;
 use App\Services\CommissionService;
 use App\Support\Money;
 use Illuminate\Contracts\Console\Kernel;
@@ -50,7 +51,38 @@ try {
         throw new RuntimeException('Số tiền hoa hồng không khớp net_amount × tỷ lệ đã chốt.');
     }
 
-    echo "PASSED: commission is idempotent and amount matches the completed order net amount.\n";
+    $originalCommissionCents = Money::cents($commission->commission_amount);
+    $newNetCents = intdiv(Money::cents($order->net_amount ?? $order->final_amount), 2);
+    DB::table('customer_commissions')->where('id', $commission->id)->update([
+        'paid_amount' => Money::decimal($originalCommissionCents),
+        'status' => 'paid',
+    ]);
+    $return = CustomerOrderReturn::create([
+        'return_code' => 'SMOKE-RETURN-'.$order->id,
+        'customer_order_id' => $order->id,
+        'refund_amount' => Money::decimal(Money::cents($order->final_amount) - $newNetCents),
+        'status' => 'completed',
+        'reason' => 'Smoke test thu hồi hoa hồng',
+        'returned_at' => now(),
+    ]);
+    $order->update(['net_amount' => Money::decimal($newNetCents), 'return_status' => 'partial']);
+
+    $service->recalculateForOrder($order->fresh(), null, $return);
+    $service->recalculateForOrder($order->fresh(), null, $return);
+    $adjustments = DB::table('customer_commission_adjustments')
+        ->where('customer_order_return_id', $return->id)
+        ->get();
+    $updated = DB::table('customer_commissions')->where('id', $commission->id)->first();
+    $expectedClawbackCents = $originalCommissionCents - Money::cents($updated->commission_amount);
+
+    if ($adjustments->count() !== 1
+        || Money::cents($updated->clawback_amount) !== $expectedClawbackCents
+        || Money::cents($adjustments->first()->amount) !== $expectedClawbackCents
+        || $updated->status !== 'clawback') {
+        throw new RuntimeException('Thu hồi hoa hồng sau hoàn đơn không đúng hoặc bị ghi trùng.');
+    }
+
+    echo "PASSED: commission calculation and paid-commission clawback are correct and idempotent.\n";
 } finally {
     DB::rollBack();
 }
