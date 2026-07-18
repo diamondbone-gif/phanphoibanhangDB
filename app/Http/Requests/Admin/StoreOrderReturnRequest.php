@@ -15,6 +15,9 @@ class StoreOrderReturnRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'reason' => trim((string) $this->input('reason')),
+            'note' => trim((string) $this->input('note')) ?: null,
+            'exchange_note' => trim((string) $this->input('exchange_note')) ?: null,
             'items' => collect($this->input('items', []))
                 ->filter(fn ($row) => (int) ($row['quantity'] ?? 0) > 0)
                 ->values()
@@ -25,7 +28,7 @@ class StoreOrderReturnRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => ['required', 'string', 'max:1000'],
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
             'resolution_type' => ['required', Rule::in(['refund', 'exchange', 'mixed'])],
             'refund_method' => [Rule::requiredIf(in_array($this->input('resolution_type'), ['refund', 'mixed'], true)), 'nullable', 'in:cash,bank_transfer,credit,other'],
             'cash_refund_amount' => [Rule::requiredIf($this->input('resolution_type') === 'mixed'), 'nullable', 'numeric', 'min:0.01'],

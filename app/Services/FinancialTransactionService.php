@@ -13,6 +13,28 @@ use RuntimeException;
 
 class FinancialTransactionService
 {
+    public function requestRefund(
+        CustomerOrder $order,
+        CustomerOrderReturn $return,
+        string $amount,
+        ?string $method,
+        ?int $adminId,
+        ?string $note = null,
+    ): FinancialTransaction {
+        return FinancialTransaction::query()->create([
+            'transaction_code' => $this->makeCode('RF'),
+            'type' => FinancialTransactionType::Refund,
+            'status' => FinancialTransactionState::Requested,
+            'customer_order_id' => $order->id,
+            'customer_order_return_id' => $return->id,
+            'amount' => Money::decimal(Money::cents($amount)),
+            'payment_method' => $method,
+            'requested_by' => $adminId,
+            'requested_at' => now(),
+            'note' => $note,
+        ]);
+    }
+
     public function approve(FinancialTransaction $transaction, ?int $adminId): FinancialTransaction
     {
         return DB::transaction(function () use ($transaction, $adminId) {

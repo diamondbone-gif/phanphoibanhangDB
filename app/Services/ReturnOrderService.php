@@ -31,6 +31,7 @@ class ReturnOrderService
                 ->with(['items', 'returns.items', 'invoice'])
                 ->lockForUpdate()
                 ->findOrFail($order->id);
+            $oldOrderData = $order->toArray();
 
             if ((int) $order->order_status_id !== StatusHelper::id('order_statuses', 'completed')) {
                 throw new RuntimeException('Chỉ được hoàn trả đơn hàng đã hoàn thành.');
@@ -145,7 +146,7 @@ class ReturnOrderService
             }
 
             if ($cashRefundCents > 0) {
-                $this->financialTransactionService->recordCompletedRefund(
+                $this->financialTransactionService->requestRefund(
                     $order,
                     $return,
                     Money::decimal($cashRefundCents),
@@ -197,8 +198,20 @@ class ReturnOrderService
                 'action' => 'returned',
                 'old_status_id' => $order->order_status_id,
                 'new_status_id' => $order->order_status_id,
-                'old_data' => null,
-                'new_data' => ['return_id' => $return->id, 'refund_amount' => Money::decimal($refundTotalCents)],
+                'old_data' => $oldOrderData,
+                'new_data' => [
+                    'return_id' => $return->id,
+                    'return_code' => $return->return_code,
+                    'returned_items' => collect($prepared)->map(fn (array $line) => [
+                        'order_item_id' => $line['item']->id,
+                        'product_name' => $line['item']->product_name,
+                        'quantity' => $line['quantity'],
+                    ])->values()->all(),
+                    'returned_amount' => Money::decimal($refundTotalCents),
+                    'cash_refund_due' => Money::decimal($cashRefundCents),
+                    'exchange_credit' => $return->exchange_credit_amount,
+                    'order_after' => $order->fresh()->toArray(),
+                ],
                 'note' => $return->reason,
                 'created_by' => $adminId,
             ]);
