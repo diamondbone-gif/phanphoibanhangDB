@@ -29,6 +29,7 @@
     <link rel="stylesheet" href="{{ asset('admin/css/admin-theme-tokens.css') }}">
     <link rel="stylesheet" href="{{ asset('admin/css/admin-shell.css') }}">
     @stack('styles')
+    <link rel="stylesheet" href="{{ asset('admin/css/admin-responsive.css') }}">
 </head>
 
 <body>

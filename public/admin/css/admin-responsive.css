@@ -1,0 +1,247 @@
+/* Responsive contract shared by every authenticated admin page. */
+:root {
+    --admin-page-gutter: clamp(10px, 2vw, 28px);
+    --admin-card-radius: clamp(14px, 1.4vw, 22px);
+    --admin-control-height: 44px;
+}
+
+.empty-space > .container,
+.empty-space > .container-fluid {
+    width: 100%;
+    max-width: 1920px;
+    margin-inline: auto;
+    padding-inline: var(--admin-page-gutter);
+}
+
+.empty-space img,
+.modal img {
+    max-width: 100%;
+    height: auto;
+}
+
+.empty-space .card,
+.empty-space .modal-content {
+    border-radius: var(--admin-card-radius);
+}
+
+.empty-space .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.empty-space .table-responsive > table {
+    margin-bottom: 0;
+}
+
+.empty-space table th {
+    white-space: nowrap;
+}
+
+.empty-space .form-control,
+.empty-space .form-select,
+.empty-space .input-group-text {
+    min-height: var(--admin-control-height);
+}
+
+.empty-space textarea.form-control {
+    min-height: 88px;
+    resize: vertical;
+}
+
+.empty-space .pagination {
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.empty-space .modal-dialog-scrollable {
+    height: calc(100dvh - 32px);
+}
+
+.empty-space .modal-body {
+    overscroll-behavior: contain;
+}
+
+@media (min-width: 1600px) {
+    .empty-space {
+        font-size: 1rem;
+    }
+
+    .empty-space .card-body {
+        padding: clamp(1.25rem, 1.5vw, 1.75rem);
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .empty-space .modal-xl {
+        --bs-modal-width: calc(100vw - 40px);
+    }
+
+    .empty-space .table {
+        font-size: 0.925rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    :root {
+        --admin-page-gutter: 14px;
+    }
+
+    .empty-space .row.g-4 {
+        --bs-gutter-x: 1rem;
+        --bs-gutter-y: 1rem;
+    }
+
+    .empty-space .modal-lg,
+    .empty-space .modal-xl {
+        --bs-modal-width: calc(100vw - 28px);
+    }
+
+    .empty-space .card-header,
+    .empty-space .card-footer {
+        padding-inline: 1rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    :root {
+        --admin-page-gutter: 10px;
+        --admin-card-radius: 16px;
+        --admin-control-height: 46px;
+    }
+
+    .empty-space h1 {
+        font-size: clamp(1.45rem, 7vw, 1.9rem);
+    }
+
+    .empty-space h2,
+    .empty-space h3 {
+        font-size: clamp(1.25rem, 6vw, 1.65rem);
+    }
+
+    .empty-space > .d-flex.justify-content-between,
+    .empty-space > .container > .d-flex.justify-content-between,
+    .empty-space > .container-fluid > .d-flex.justify-content-between {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
+
+    .empty-space > .d-flex.justify-content-between > .btn,
+    .empty-space > .container > .d-flex.justify-content-between > .btn,
+    .empty-space > .container-fluid > .d-flex.justify-content-between > .btn {
+        width: 100%;
+    }
+
+    .empty-space form.row > [class*="col-"] > .btn,
+    .empty-space form .row > [class*="col-"] > .btn {
+        width: 100%;
+        min-height: var(--admin-control-height);
+    }
+
+    .empty-space .table {
+        font-size: 0.875rem;
+    }
+
+    .empty-space .table > :not(caption) > * > * {
+        padding: 0.7rem 0.65rem;
+    }
+
+    .empty-space .modal-dialog {
+        width: auto;
+        max-width: none;
+        margin: 8px;
+    }
+
+    .empty-space .modal-dialog-scrollable {
+        height: calc(100dvh - 16px);
+    }
+
+    .empty-space .modal-header,
+    .empty-space .modal-body,
+    .empty-space .modal-footer {
+        padding: 1rem;
+    }
+
+    .empty-space .modal-footer {
+        gap: 8px;
+    }
+
+    .empty-space .modal-footer > .btn:not(.btn-sm) {
+        flex: 1 1 160px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .empty-space .card-body {
+        padding: 0.9rem;
+    }
+
+    .empty-space .card-header,
+    .empty-space .card-footer {
+        padding: 0.85rem 0.9rem;
+    }
+
+    .empty-space .btn:not(.btn-sm):not(.dropdown-toggle) {
+        min-height: 44px;
+    }
+
+    .empty-space .input-group {
+        flex-wrap: wrap;
+    }
+
+    .empty-space .input-group > .form-control,
+    .empty-space .input-group > .form-select {
+        min-width: 0;
+    }
+
+    .empty-space .pagination {
+        justify-content: center;
+    }
+
+    .empty-space .pagination .page-link {
+        min-width: 38px;
+        min-height: 38px;
+        display: grid;
+        place-items: center;
+        padding: 0.35rem 0.55rem;
+    }
+}
+
+@media (max-width: 359.98px) {
+    :root {
+        --admin-page-gutter: 7px;
+    }
+
+    .empty-space .card-body,
+    .empty-space .modal-header,
+    .empty-space .modal-body,
+    .empty-space .modal-footer {
+        padding: 0.75rem;
+    }
+
+    .empty-space .btn {
+        font-size: 0.82rem;
+    }
+}
+
+@media print {
+    .topbar,
+    #sidebar,
+    #sidebarBackdrop,
+    .no-print {
+        display: none !important;
+    }
+
+    .empty-space {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .empty-space .card {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+}
