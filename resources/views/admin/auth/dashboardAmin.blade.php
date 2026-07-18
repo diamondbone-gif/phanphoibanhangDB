@@ -27,7 +27,6 @@
 
     {{-- CSS chăm sóc khách hàng --}}
     <link rel="stylesheet" href="{{ asset('admin/css/admin-theme-tokens.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin/css/admin-shell.css') }}">
     @stack('styles')
     <link rel="stylesheet" href="{{ asset('admin/css/admin-responsive.css') }}">
 </head>
@@ -435,73 +434,71 @@
                     </span>
                 </a>
             </li>
+
+            {{-- Tài khoản quản lý --}}
+            <li class="menu-section-title">
+                Tài khoản
+            </li>
+
+            <li class="menu-item has-submenu account-menu-item">
+                <button class="submenu-toggle" type="button" aria-expanded="false">
+                    <i class="fa-solid fa-user-tie"></i>
+
+                    <span>{{ $admin->account_type ?? 'Quản lý bán hàng' }}</span>
+
+                    <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                </button>
+
+                <ul class="submenu">
+                    <li class="sidebar-account-summary">
+                        <span class="user-avatar">
+                            {{ strtoupper(mb_substr($admin->name ?? 'A', 0, 1)) }}
+                        </span>
+
+                        <span>
+                            <strong>{{ $admin->name ?? 'Admin' }}</strong>
+                            <small>{{ $admin->email ?? 'Chưa cập nhật email' }}</small>
+                        </span>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('admin.dashboard') }}" class="submenu-link">
+                            <i class="fa-solid fa-gauge-high"></i>
+                            <span>Trang quản lý</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <form method="POST" action="{{ route('admin.logout') }}">
+                            @csrf
+                            <button class="submenu-link sidebar-menu-logout" type="submit">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                <span>Đăng xuất</span>
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </li>
         </ul>
+
+        <button class="sidebar-close-button" id="sidebarCloseBtn" type="button" aria-label="Đóng menu">
+            <i class="fa-solid fa-chevron-left"></i>
+            <span>Thu gọn menu</span>
+        </button>
     </div>
 
     {{-- NỀN MỜ MOBILE --}}
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-    {{-- THANH TRÊN --}}
+    {{-- NÚT MỞ MENU TRÊN TABLET / MOBILE --}}
     <div class="topbar">
-        <button class="mobile-menu-button" id="mobileMenuBtn" type="button">
+        <button class="mobile-menu-button" id="mobileMenuBtn" type="button" aria-controls="sidebar"
+            aria-expanded="false" aria-label="Mở menu">
             <i class="fa-solid fa-bars"></i>
 
             Menu
         </button>
 
-        <div class="user-dropdown" id="userDropdown">
-            <button class="user-button" id="userButton" type="button">
-                <span class="user-avatar">
-                    {{ strtoupper(mb_substr($admin->name ?? 'A', 0, 1)) }}
-                </span>
-
-                <span class="user-info">
-                    <span class="user-name">
-                        {{ $admin->name ?? 'Admin' }}
-                    </span>
-
-                    <span class="user-role">
-                        {{ $admin->account_type ?? 'Quản lý vận hành' }}
-                    </span>
-                </span>
-
-                <i class="fa-solid fa-chevron-down"></i>
-            </button>
-
-            <div class="dropdown-menu-user" id="dropdownMenuUser">
-                <div class="dropdown-user-header">
-                    <div class="name">
-                        {{ $admin->name ?? 'Admin' }}
-                    </div>
-
-                    <div class="email">
-                        {{ $admin->email ?? '' }}
-                    </div>
-                </div>
-
-                <button class="dropdown-item-user" type="button">
-                    <i class="fa-regular fa-user"></i>
-
-                    Thông tin tài khoản
-                </button>
-
-                <button class="dropdown-item-user" type="button">
-                    <i class="fa-solid fa-gear"></i>
-
-                    Cài đặt
-                </button>
-
-                <form method="POST" action="{{ route('admin.logout') }}">
-                    @csrf
-
-                    <button class="dropdown-item-user logout" type="submit">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-
-                        Đăng xuất
-                    </button>
-                </form>
-            </div>
-        </div>
     </div>
 
     {{-- NỘI DUNG TRANG CON --}}
@@ -509,39 +506,11 @@
         @yield('admin_content')
     </main>
 
-    {{--
-    |--------------------------------------------------------------------------
-    | MODAL THÔNG BÁO LỊCH CHĂM SÓC
-    |--------------------------------------------------------------------------
-    | Modal nằm ngoài @yield('admin_content') để hoạt động trên tất cả trang admin.
-    | Chỉ tải khi tài khoản admin đã đăng nhập.
-    |--------------------------------------------------------------------------
-    --}}
-
-    @if(Auth::guard('admin')->check())
-    @include(
-    'admin.auth.customer-care.partials.due-reminder-modal'
-    )
-    @endif
-
     {{-- Bootstrap JavaScript --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     {{-- JavaScript giao diện quản trị --}}
     <script src="{{ asset('admin/js/sidebarAdmin.js') }}"></script>
-
-    {{--
-    |--------------------------------------------------------------------------
-    | JAVASCRIPT KIỂM TRA LỊCH CHĂM SÓC
-    |--------------------------------------------------------------------------
-    | Bootstrap Bundle phải được tải trước file này.
-    | Chỉ tải khi tài khoản admin đã đăng nhập.
-    |--------------------------------------------------------------------------
-    --}}
-
-    @if(Auth::guard('admin')->check())
-    <script src="{{ asset('admin/js/customerCareReminder.js') }}"></script>
-    @endif
 
     @stack('scripts')
 </body>
