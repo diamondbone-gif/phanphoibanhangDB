@@ -37,5 +37,7 @@ parameters:
         - app/Models/CustomerCommissionRecovery.php
         - app/Http/Controllers/Admin/CommissionClawbackController.php
         - app/Http/Requests/Admin/StoreCommissionRecoveryRequest.php
+        - app/Http/Controllers/Admin/OrderReturnController.php
+        - app/Http/Requests/Admin/StoreOrderReturnRequest.php
     level: 5
     tmpDir: storage/framework/cache/phpstan

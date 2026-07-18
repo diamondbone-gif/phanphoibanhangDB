@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FinancialTransactionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\OrderReturnController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\StockDocumentController;
 use Illuminate\Support\Facades\Route;
@@ -858,6 +859,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             'sales/orders/{order:order_code}/returns',
             [OrderController::class, 'storeReturn']
         )->name('orders.returns.store');
+        Route::get('sales/returns', [OrderReturnController::class, 'index'])->name('orders.returns.index');
+        Route::patch('sales/returns/{orderReturn:return_code}/complete-exchange', [OrderReturnController::class, 'completeExchange'])
+            ->name('orders.returns.complete-exchange');
 
         /*
         | Hoàn tất đơn hàng.

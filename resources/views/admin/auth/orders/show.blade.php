@@ -209,6 +209,11 @@ return asset('storage/' . ltrim($image, '/'));
             <div class="card-body">
                 <form method="POST" action="{{ route('admin.orders.returns.store', $order) }}">
                     @csrf
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4"><label class="form-label fw-bold">Hình thức xử lý</label><select name="resolution_type" id="returnResolutionType" class="form-select" required><option value="refund">Hoàn tiền cho khách</option><option value="exchange">Đổi sang sản phẩm khác</option><option value="mixed">Một phần hoàn tiền + một phần đổi</option></select></div>
+                        <div class="col-md-4" id="cashRefundAmountBox" style="display:none"><label class="form-label fw-bold">Số tiền hoàn trực tiếp</label><input type="number" min="1" name="cash_refund_amount" class="form-control" placeholder="Phần còn lại dùng đổi hàng"></div>
+                        <div class="col-md-4" id="exchangeNoteBox" style="display:none"><label class="form-label fw-bold">Sản phẩm khách muốn đổi</label><textarea name="exchange_note" class="form-control" rows="2" placeholder="Tên/mã sản phẩm, số lượng, yêu cầu chênh lệch..."></textarea></div>
+                    </div>
                     <div class="table-responsive mb-3">
                         <table class="table align-middle">
                             <thead><tr><th>Sản phẩm</th><th>Đã bán</th><th>Đã hoàn</th><th style="width:130px">Hoàn lần này</th></tr></thead>
@@ -249,6 +254,21 @@ return asset('storage/' . ltrim($image, '/'));
             </div>
         </div>
         @endif
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const type = document.getElementById('returnResolutionType');
+                if (!type) return;
+                const cash = document.getElementById('cashRefundAmountBox');
+                const exchange = document.getElementById('exchangeNoteBox');
+                const update = () => {
+                    cash.style.display = type.value === 'mixed' ? '' : 'none';
+                    exchange.style.display = ['exchange', 'mixed'].includes(type.value) ? '' : 'none';
+                };
+                type.addEventListener('change', update);
+                update();
+            });
+        </script>
 
         @if($order->returns->isNotEmpty())
         <div class="card border-0 shadow-sm mb-3">

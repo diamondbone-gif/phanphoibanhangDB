@@ -103,11 +103,21 @@ class ReturnOrderService
                 );
             }
 
+            $cashRefundCents = $this->cashRefundCents($data, $refundTotalCents);
+            if (($data['resolution_type'] ?? null) === 'mixed' && Money::cents($data['cash_refund_amount'] ?? 0) >= $refundTotalCents) {
+                throw new RuntimeException('Hoàn kết hợp phải dành lại một phần giá trị để đổi sản phẩm.');
+            }
+
             $return = CustomerOrderReturn::create([
                 'return_code' => $this->makeCode(),
                 'customer_order_id' => $order->id,
                 'refund_amount' => Money::decimal($refundTotalCents),
                 'refund_method' => $data['refund_method'] ?? null,
+                'resolution_type' => $data['resolution_type'],
+                'cash_refund_amount' => Money::decimal($cashRefundCents),
+                'exchange_credit_amount' => Money::decimal($refundTotalCents - $cashRefundCents),
+                'resolution_status' => $data['resolution_type'] === 'refund' ? 'completed' : 'pending_exchange',
+                'exchange_note' => $data['exchange_note'] ?? null,
                 'status' => OrderReturnState::Completed->value,
                 'reason' => trim((string) $data['reason']),
                 'note' => $data['note'] ?? null,
@@ -134,14 +144,16 @@ class ReturnOrderService
                 );
             }
 
-            $this->financialTransactionService->recordCompletedRefund(
-                $order,
-                $return,
-                Money::decimal($refundTotalCents),
-                $data['refund_method'] ?? null,
-                $adminId,
-                $data['note'] ?? null,
-            );
+            if ($cashRefundCents > 0) {
+                $this->financialTransactionService->recordCompletedRefund(
+                    $order,
+                    $return,
+                    Money::decimal($cashRefundCents),
+                    $data['refund_method'] ?? null,
+                    $adminId,
+                    $data['note'] ?? null,
+                );
+            }
 
             $finalAmountCents = Money::cents($order->final_amount);
             $returnedAmountCents = min(
@@ -202,5 +214,15 @@ class ReturnOrderService
         } while (CustomerOrderReturn::query()->where('return_code', $code)->exists());
 
         return $code;
+    }
+
+    private function cashRefundCents(array $data, int $returnValueCents): int
+    {
+        return match ($data['resolution_type']) {
+            'refund' => $returnValueCents,
+            'exchange' => 0,
+            'mixed' => min($returnValueCents, Money::cents($data['cash_refund_amount'] ?? 0)),
+            default => throw new RuntimeException('Hình thức xử lý hoàn đơn không hợp lệ.'),
+        };
     }
 }
