@@ -103,8 +103,11 @@ class StockDocumentService
         $this->movement($document, $warehouse, $product, $batch, $isIncrease ? $quantity : -$quantity, $before, $after, $unitCostCents, $adminId);
 
         if ($isIncrease && $unitCostCents > 0) {
-            $oldValue = Money::cents($product->average_cost) * max(0, $product->total_quantity - $quantity);
-            $product->update(['average_cost' => Money::decimal(intdiv($oldValue + ($unitCostCents * $quantity), max(1, $product->total_quantity)))]);
+            $product->refresh();
+            $newQuantity = max(0, (int) $product->total_quantity);
+            $oldQuantity = max(0, $newQuantity - $quantity);
+            $oldValue = Money::cents($product->average_cost) * $oldQuantity;
+            $product->update(['average_cost' => Money::decimal(intdiv($oldValue + ($unitCostCents * $quantity), max(1, $newQuantity)))]);
             $batch?->update(['unit_cost' => Money::decimal($unitCostCents)]);
         }
     }

@@ -7,18 +7,22 @@ use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\ProductCategory;
 use App\Models\ProductStockMovement;
+use App\Services\StockDocumentService;
 use App\Services\WarehouseInventoryService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
-    public function __construct(private WarehouseInventoryService $warehouseInventoryService) {}
+    public function __construct(
+        private WarehouseInventoryService $warehouseInventoryService,
+        private StockDocumentService $stockDocumentService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -45,45 +49,51 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeProductInput($request);
         $data = $this->validateProduct($request);
+        $data['product_code'] = filled($data['product_code'] ?? null)
+            ? $data['product_code']
+            : $this->generateProductCode();
+        $data['unit_name'] = filled($data['unit_name'] ?? null) ? $data['unit_name'] : 'Sản phẩm';
 
-        if ((int) $request->input('initial_quantity', 0) > 0 && ! $request->filled('batch_number')) {
-            throw ValidationException::withMessages([
-                'batch_number' => 'Vui lòng nhập số lô khi có số lượng nhập ban đầu.',
-            ]);
-        }
-
-        DB::transaction(function () use ($request, $data) {
+        $product = DB::transaction(function () use ($request, $data) {
             $adminId = Auth::guard('admin')->id();
+            $openingStock = [
+                'quantity' => (int) ($data['initial_quantity'] ?? 0),
+                'batch_number' => $data['batch_number'] ?? null,
+                'manufacture_date' => $data['manufacture_date'] ?? null,
+                'expiry_date' => $data['expiry_date'] ?? null,
+                'note' => $data['stock_note'] ?? null,
+            ];
+
+            unset(
+                $data['initial_quantity'],
+                $data['batch_number'],
+                $data['manufacture_date'],
+                $data['expiry_date'],
+                $data['stock_note'],
+            );
 
             $data['main_image'] = $this->storeProductImage($request);
             $data['is_active'] = $request->boolean('is_active');
-            $data['track_batch'] = $request->boolean('track_batch');
-            $data['track_expiry'] = $request->boolean('track_expiry');
-            $data['is_commissionable'] = $request->boolean('is_commissionable');
-            $data['allow_sell_without_stock'] = $request->boolean('allow_sell_without_stock');
             $data['created_by'] = $adminId;
             $data['updated_by'] = $adminId;
 
-            $product = Product::create($data);
+            $product = Product::query()->create($data);
 
-            $initialQuantity = (int) $request->input('initial_quantity', 0);
-
-            if ($initialQuantity > 0) {
-                $this->importStockForProduct(
-                    product: $product,
-                    batchNumber: $request->input('batch_number'),
-                    quantity: $initialQuantity,
-                    manufactureDate: $request->input('manufacture_date'),
-                    expiryDate: $request->input('expiry_date'),
-                    note: $request->input('stock_note') ?: 'Nhập kho ban đầu khi tạo sản phẩm.'
-                );
+            if ($openingStock['quantity'] > 0) {
+                $this->createOpeningStock($product, $openingStock, $adminId);
             }
+
+            return $product;
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Thêm sản phẩm thành công.',
+            'product_id' => $product->id,
+            'message' => (int) ($data['initial_quantity'] ?? 0) > 0
+                ? 'Đã tạo sản phẩm và ghi nhận phiếu nhập tồn ban đầu.'
+                : 'Thêm sản phẩm thành công.',
         ]);
     }
 
@@ -117,7 +127,14 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        $this->normalizeProductInput($request);
         $data = $this->validateProduct($request, $product->id);
+        $data['product_code'] = filled($data['product_code'] ?? null)
+            ? $data['product_code']
+            : $product->product_code;
+        $data['unit_name'] = filled($data['unit_name'] ?? null)
+            ? $data['unit_name']
+            : ($product->unit_name ?: 'Sản phẩm');
 
         DB::transaction(function () use ($request, $product, $data) {
             $adminId = Auth::guard('admin')->id();
@@ -128,10 +145,6 @@ class ProductController extends Controller
             }
 
             $data['is_active'] = $request->boolean('is_active');
-            $data['track_batch'] = $request->boolean('track_batch');
-            $data['track_expiry'] = $request->boolean('track_expiry');
-            $data['is_commissionable'] = $request->boolean('is_commissionable');
-            $data['allow_sell_without_stock'] = $request->boolean('allow_sell_without_stock');
             $data['updated_by'] = $adminId;
 
             $product->update($data);
@@ -231,17 +244,42 @@ class ProductController extends Controller
         ]);
 
         DB::transaction(function () use ($data) {
-            $product = Product::findOrFail($data['product_id']);
-
-            $this->importStockForProduct(
-                product: $product,
-                batchNumber: $data['batch_number'],
-                quantity: (int) $data['quantity'],
-                manufactureDate: $data['manufacture_date'] ?? null,
-                expiryDate: $data['expiry_date'] ?? null,
-                supplierName: $data['supplier_name'] ?? null,
-                note: $data['note'] ?? 'Lập phiếu nhập kho.'
+            $product = Product::query()->lockForUpdate()->findOrFail($data['product_id']);
+            $warehouse = $this->warehouseInventoryService->defaultWarehouse();
+            $batch = ProductBatch::query()->firstOrCreate(
+                ['product_id' => $product->id, 'batch_number' => $data['batch_number']],
+                [
+                    'manufacture_date' => $data['manufacture_date'] ?? null,
+                    'expiry_date' => $data['expiry_date'],
+                    'supplier_name' => $data['supplier_name'] ?? null,
+                    'initial_quantity' => 0,
+                    'current_quantity' => 0,
+                    'status' => 'active',
+                    'is_active' => true,
+                    'created_by' => Auth::guard('admin')->id(),
+                ],
             );
+
+            $this->stockDocumentService->createAndPost([
+                'document_type' => 'receipt',
+                'destination_warehouse_id' => $warehouse->id,
+                'document_date' => now(),
+                'reason' => $data['note'] ?? 'Nhập kho từ màn hình quản lý lô.',
+            ], [[
+                'product_id' => $product->id,
+                'product_batch_id' => $batch->id,
+                'quantity' => (int) $data['quantity'],
+                'note' => $data['supplier_name'] ?? null,
+            ]], Auth::guard('admin')->id());
+
+            $batch->increment('initial_quantity', (int) $data['quantity']);
+            $batch->update([
+                'manufacture_date' => $data['manufacture_date'] ?? $batch->manufacture_date,
+                'expiry_date' => $data['expiry_date'],
+                'supplier_name' => $data['supplier_name'] ?? $batch->supplier_name,
+                'note' => $data['note'] ?? $batch->note,
+                'updated_by' => Auth::guard('admin')->id(),
+            ]);
         });
 
         return response()->json([
@@ -286,56 +324,25 @@ class ProductController extends Controller
             'manufacture_date' => ['nullable', 'date'],
             'expiry_date' => ['required', 'date', 'after_or_equal:manufacture_date'],
             'supplier_name' => ['nullable', 'string', 'max:255'],
-            'initial_quantity' => ['required', 'integer', 'min:0'],
-            'current_quantity' => ['required', 'integer', 'min:0'],
             'note' => ['nullable', 'string'],
         ], [
             'batch_number.required' => 'Vui lòng nhập số lô.',
             'batch_number.unique' => 'Số lô này đã tồn tại với sản phẩm này.',
             'expiry_date.required' => 'Vui lòng nhập hạn sử dụng.',
             'expiry_date.after_or_equal' => 'Hạn sử dụng phải lớn hơn hoặc bằng ngày sản xuất.',
-            'initial_quantity.required' => 'Vui lòng nhập số lượng ban đầu.',
-            'current_quantity.required' => 'Vui lòng nhập số lượng còn lại.',
         ]);
 
         DB::transaction(function () use ($data, $batch) {
-            $before = (int) $batch->current_quantity;
-            $after = (int) $data['current_quantity'];
-            $delta = $after - $before;
-
             $batch->update([
                 'batch_number' => $data['batch_number'],
                 'manufacture_date' => $data['manufacture_date'] ?? null,
                 'expiry_date' => $data['expiry_date'],
                 'supplier_name' => $data['supplier_name'] ?? null,
-                'initial_quantity' => (int) $data['initial_quantity'],
-                'current_quantity' => $after,
-                'status' => $this->resolveBatchStatus($after, $data['expiry_date']),
+                'status' => $this->resolveBatchStatus((int) $batch->current_quantity, $data['expiry_date']),
                 'note' => $data['note'] ?? null,
                 'updated_by' => Auth::guard('admin')->id(),
             ]);
 
-            if ($delta !== 0) {
-                $warehouse = $this->warehouseInventoryService->defaultWarehouse();
-                ProductStockMovement::create([
-                    'product_id' => $batch->product_id,
-                    'product_batch_id' => $batch->id,
-                    'warehouse_id' => $warehouse->id,
-                    'movement_type' => 'adjustment',
-                    'quantity' => $delta,
-                    'before_quantity' => $before,
-                    'after_quantity' => $after,
-                    'reference_type' => 'manual',
-                    'movement_date' => now(),
-                    'note' => 'Điều chỉnh số lượng lô.',
-                    'created_by' => Auth::guard('admin')->id(),
-                ]);
-                $this->warehouseInventoryService->syncActualStock($batch->product, $after, $batch, $warehouse);
-            }
-
-            if ($batch->product) {
-                $this->refreshProductTotal($batch->product);
-            }
         });
 
         return response()->json([
@@ -359,35 +366,40 @@ class ProductController extends Controller
 
     public function destroyBatch(ProductBatch $batch)
     {
-        DB::transaction(function () use ($batch) {
-            $product = $batch->product;
-            $before = (int) $batch->current_quantity;
+        $result = DB::transaction(function () use ($batch) {
+            $lockedBatch = ProductBatch::query()->lockForUpdate()->findOrFail($batch->id);
 
-            $warehouse = $this->warehouseInventoryService->defaultWarehouse();
-            ProductStockMovement::create([
-                'product_id' => $batch->product_id,
-                'product_batch_id' => $batch->id,
-                'warehouse_id' => $warehouse->id,
-                'movement_type' => 'delete_batch',
-                'quantity' => -$before,
-                'before_quantity' => $before,
-                'after_quantity' => 0,
-                'reference_type' => 'manual',
-                'movement_date' => now(),
-                'note' => 'Xóa lô hàng khỏi kho.',
-                'created_by' => Auth::guard('admin')->id(),
-            ]);
-
-            $batch->delete();
-
-            if ($product) {
-                $this->refreshProductTotal($product);
+            if ((int) $lockedBatch->current_quantity > 0) {
+                return 'has_stock';
             }
+
+            if ($lockedBatch->movements()->exists()) {
+                $lockedBatch->update([
+                    'is_active' => false,
+                    'status' => 'out_of_stock',
+                    'updated_by' => Auth::guard('admin')->id(),
+                ]);
+
+                return 'archived';
+            }
+
+            $lockedBatch->delete();
+
+            return 'deleted';
         });
+
+        if ($result === 'has_stock') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lô vẫn còn tồn kho. Hãy lập phiếu điều chỉnh giảm về 0 trước khi ngừng sử dụng lô.',
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Xóa lô hàng thành công.',
+            'message' => $result === 'archived'
+                ? 'Lô đã có lịch sử giao dịch nên được lưu trữ và ngừng sử dụng, không xóa dữ liệu đối soát.'
+                : 'Xóa lô chưa phát sinh giao dịch thành công.',
         ]);
     }
 
@@ -477,68 +489,6 @@ class ProductController extends Controller
         ];
     }
 
-    private function importStockForProduct(
-        Product $product,
-        string $batchNumber,
-        int $quantity,
-        ?string $manufactureDate = null,
-        ?string $expiryDate = null,
-        ?string $supplierName = null,
-        ?string $note = null
-    ): void {
-        $batch = ProductBatch::firstOrNew([
-            'product_id' => $product->id,
-            'batch_number' => $batchNumber,
-        ]);
-
-        $before = (int) ($batch->current_quantity ?? 0);
-        $after = $before + $quantity;
-
-        if (! $batch->exists) {
-            $batch->initial_quantity = 0;
-            $batch->created_by = Auth::guard('admin')->id();
-        }
-
-        $batch->manufacture_date = $manufactureDate;
-        $batch->expiry_date = $expiryDate;
-        $batch->supplier_name = $supplierName;
-        $batch->initial_quantity = (int) $batch->initial_quantity + $quantity;
-        $batch->current_quantity = $after;
-        $batch->status = $this->resolveBatchStatus($after, $expiryDate);
-        $batch->is_active = true;
-        $batch->note = $note;
-        $batch->updated_by = Auth::guard('admin')->id();
-        $batch->save();
-
-        ProductStockMovement::create([
-            'product_id' => $product->id,
-            'product_batch_id' => $batch->id,
-            'warehouse_id' => $this->warehouseInventoryService->defaultWarehouse()->id,
-            'movement_type' => 'import',
-            'quantity' => $quantity,
-            'before_quantity' => $before,
-            'after_quantity' => $after,
-            'reference_type' => 'manual',
-            'movement_date' => now(),
-            'note' => $note,
-            'created_by' => Auth::guard('admin')->id(),
-        ]);
-
-        $this->warehouseInventoryService->syncActualStock($product, $after, $batch);
-
-        $this->refreshProductTotal($product);
-    }
-
-    private function refreshProductTotal(Product $product): void
-    {
-        $totalQuantity = $product->batches()->sum('current_quantity');
-
-        $product->update([
-            'total_quantity' => $totalQuantity,
-            'updated_by' => Auth::guard('admin')->id(),
-        ]);
-    }
-
     private function resolveBatchStatus(int $quantity, ?string $expiryDate = null): string
     {
         if ($quantity <= 0) {
@@ -590,34 +540,103 @@ class ProductController extends Controller
         return $request->validate([
             'product_category_id' => ['nullable', 'exists:product_categories,id'],
             'product_code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:100',
                 Rule::unique('products', 'product_code')->ignore($ignoreId),
             ],
             'product_name' => ['required', 'string', 'max:255'],
             'unit_name' => ['nullable', 'string', 'max:100'],
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'decimal:0,2', 'min:0', 'max:9999999999999.99'],
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
             'min_quantity_alert' => ['nullable', 'integer', 'min:0'],
             'default_commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
-
-            'initial_quantity' => ['nullable', 'integer', 'min:0'],
-            'batch_number' => ['nullable', 'string', 'max:100'],
-            'manufacture_date' => ['nullable', 'date'],
-            'expiry_date' => ['nullable', 'date', 'after_or_equal:manufacture_date'],
-            'stock_note' => ['nullable', 'string'],
+            'initial_quantity' => [$ignoreId === null ? 'nullable' : 'exclude', 'integer', 'min:0'],
+            'batch_number' => [
+                $ignoreId === null
+                    ? Rule::requiredIf(fn (): bool => (int) $request->input('initial_quantity', 0) > 0)
+                    : 'exclude',
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'manufacture_date' => [$ignoreId === null ? 'nullable' : 'exclude', 'date'],
+            'expiry_date' => [
+                $ignoreId === null
+                    ? Rule::requiredIf(fn (): bool => (int) $request->input('initial_quantity', 0) > 0)
+                    : 'exclude',
+                'nullable',
+                'date',
+                'after_or_equal:manufacture_date',
+            ],
+            'stock_note' => [$ignoreId === null ? 'nullable' : 'exclude', 'string', 'max:1000'],
         ], [
-            'product_code.required' => 'Vui lòng nhập mã SKU.',
             'product_code.unique' => 'Mã SKU này đã tồn tại.',
             'product_name.required' => 'Vui lòng nhập tên sản phẩm.',
             'price.required' => 'Vui lòng nhập giá bán.',
+            'batch_number.required' => 'Vui lòng nhập số lô khi có tồn ban đầu.',
+            'expiry_date.required' => 'Vui lòng nhập hạn sử dụng khi có tồn ban đầu.',
             'main_image.image' => 'File tải lên phải là hình ảnh.',
             'main_image.max' => 'Hình ảnh không được vượt quá 4MB.',
         ]);
+    }
+
+    private function normalizeProductInput(Request $request): void
+    {
+        $request->merge([
+            'product_name' => trim((string) $request->input('product_name')),
+            'product_code' => Str::upper(trim((string) $request->input('product_code'))),
+            'unit_name' => trim((string) $request->input('unit_name')),
+            'batch_number' => Str::upper(trim((string) $request->input('batch_number'))),
+        ]);
+    }
+
+    private function createOpeningStock(Product $product, array $stock, ?int $adminId): void
+    {
+        $warehouse = $this->warehouseInventoryService->defaultWarehouse();
+        $batch = ProductBatch::query()->create([
+            'product_id' => $product->id,
+            'batch_number' => $stock['batch_number'],
+            'manufacture_date' => $stock['manufacture_date'],
+            'expiry_date' => $stock['expiry_date'],
+            'initial_quantity' => 0,
+            'current_quantity' => 0,
+            'status' => 'active',
+            'is_active' => true,
+            'note' => $stock['note'],
+            'created_by' => $adminId,
+            'updated_by' => $adminId,
+        ]);
+
+        $this->stockDocumentService->createAndPost([
+            'document_type' => 'receipt',
+            'destination_warehouse_id' => $warehouse->id,
+            'document_date' => now(),
+            'reason' => 'Nhập tồn ban đầu khi tạo sản phẩm.',
+            'note' => $stock['note'],
+        ], [[
+            'product_id' => $product->id,
+            'product_batch_id' => $batch->id,
+            'quantity' => $stock['quantity'],
+            'note' => $stock['note'],
+        ]], $adminId);
+
+        $batch->update([
+            'initial_quantity' => $stock['quantity'],
+            'status' => $this->resolveBatchStatus($stock['quantity'], $stock['expiry_date']),
+        ]);
+    }
+
+    private function generateProductCode(): string
+    {
+        do {
+            $code = 'SP-'.Str::upper(Str::random(8));
+        } while (Product::query()->where('product_code', $code)->exists());
+
+        return $code;
     }
 
     private function storeProductImage(Request $request): ?string

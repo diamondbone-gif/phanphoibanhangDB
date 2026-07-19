@@ -28,7 +28,7 @@
     <div class="filter-card mb-3">
         <div class="row g-3 align-items-center">
             <div class="col-lg-5">
-                <input id="productKeyword" class="form-control" placeholder="Tìm tên sản phẩm, mã SKU, đơn vị tính...">
+                <input id="productKeyword" class="form-control" placeholder="Tìm tên sản phẩm, SKU, đơn vị tính...">
             </div>
 
             <div class="col-lg-3">
@@ -87,48 +87,14 @@
             <div class="modal-body">
                 <div id="productFormErrors"></div>
 
-                <div class="product-image-box mb-4">
-                    <label for="main_image" class="product-image-preview" id="productImagePreview">
-                        <i class="fa-regular fa-image"></i>
-
-                        <span class="camera-badge">
-                            <i class="fa-solid fa-camera"></i>
-                        </span>
-                    </label>
-
-                    <input type="file" name="main_image" id="main_image" class="d-none" accept="image/*">
-
-                    <div class="image-note">
-                        Kích thước chuẩn: 500×500px
-                    </div>
-                </div>
-
                 <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">
-                            Mã SKU <span class="text-danger">*</span>
-                        </label>
-
-                        <input type="text" name="product_code" id="product_code" class="form-control"
-                            placeholder="VD: SP-001">
-                    </div>
-
                     <div class="col-md-8">
                         <label class="form-label">
                             Tên sản phẩm <span class="text-danger">*</span>
                         </label>
 
-                        <input type="text" name="product_name" id="product_name" class="form-control"
-                            placeholder="Nhập tên sản phẩm">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">
-                            Đơn vị tính <span class="text-danger">*</span>
-                        </label>
-
-                        <input type="text" name="unit_name" id="unit_name" class="form-control"
-                            placeholder="VD: Hộp, Chai...">
+                        <input type="text" name="product_name" id="product_name" class="form-control" maxlength="255" required
+                            placeholder="Ví dụ: Canxi BoneCare" autocomplete="off" autofocus>
                     </div>
 
                     <div class="col-md-4">
@@ -137,34 +103,115 @@
                         </label>
 
                         <input type="number" name="price" id="price" class="form-control text-end" min="0" step="1000"
-                            value="0">
+                            inputmode="decimal" value="0" required>
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Trạng thái</label>
-
-                        <select name="is_active" id="is_active" class="form-select">
-                            <option value="1">Đang kinh doanh</option>
-                            <option value="0">Đã ẩn</option>
+                    <div class="col-md-6">
+                        <label class="form-label">Danh mục</label>
+                        <select name="product_category_id" id="product_category_id" class="form-select">
+                            <option value="">Chưa phân loại</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
-                    <div class="col-md-12">
-                        <label class="form-label">Mô tả ngắn</label>
-
-                        <textarea name="short_description" id="short_description" class="form-control" rows="3"
-                            placeholder="Nhập mô tả hoặc thành phần công dụng sản phẩm..."></textarea>
+                    <div class="col-md-6">
+                        <label class="form-label">Đơn vị tính</label>
+                        <input type="text" name="unit_name" id="unit_name" class="form-control"
+                            maxlength="100" placeholder="Mặc định: Sản phẩm">
                     </div>
 
-                    <input type="hidden" name="product_category_id" id="product_category_id" value="">
-                    <input type="hidden" name="description" id="description" value="">
-                    <input type="hidden" name="min_quantity_alert" id="min_quantity_alert" value="0">
-                    <input type="hidden" name="sort_order" id="sort_order" value="0">
-                    <input type="hidden" name="track_batch" value="1">
-                    <input type="hidden" name="track_expiry" value="1">
-                    <input type="hidden" name="is_commissionable" value="1">
-                    <input type="hidden" name="default_commission_rate" value="0">
-                    <input type="hidden" name="allow_sell_without_stock" value="0">
+                    <div class="col-md-12">
+                        <button class="product-advanced-toggle" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#productAdvancedFields" aria-expanded="false" aria-controls="productAdvancedFields">
+                            <span><i class="fa-solid fa-sliders me-2"></i>Thông tin thêm</span>
+                            <i class="fa-solid fa-chevron-down toggle-chevron"></i>
+                        </button>
+                    </div>
+
+                    <div class="collapse col-12" id="productAdvancedFields">
+                        <div class="product-advanced-panel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="product-image-box mb-0">
+                                        <label for="main_image" class="product-image-preview" id="productImagePreview">
+                                            <i class="fa-regular fa-image"></i>
+                                            <span class="camera-badge"><i class="fa-solid fa-camera"></i></span>
+                                        </label>
+                                        <input type="file" name="main_image" id="main_image" class="d-none" accept="image/*">
+                                        <div class="image-note">Ảnh vuông, tối đa 4 MB</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-8">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Mã SKU</label>
+                                            <input type="text" name="product_code" id="product_code" class="form-control"
+                                                placeholder="Để trống để tự tạo">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cảnh báo khi tồn dưới</label>
+                                            <input type="number" name="min_quantity_alert" id="min_quantity_alert"
+                                                class="form-control" min="0" value="0">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Trạng thái</label>
+                                            <select name="is_active" id="is_active" class="form-select">
+                                                <option value="1">Đang kinh doanh</option>
+                                                <option value="0">Tạm ẩn</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Mô tả ngắn</label>
+                                    <textarea name="short_description" id="short_description" class="form-control" rows="2"
+                                        placeholder="Thông tin ngắn giúp nhân viên nhận biết sản phẩm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12" id="openingStockSection">
+                        <div class="opening-stock-card">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="enableOpeningStock">
+                                <label class="form-check-label fw-bold" for="enableOpeningStock">Nhập tồn ban đầu ngay</label>
+                            </div>
+                            <div class="small text-muted mt-1">Hệ thống sẽ tự tạo lô và phiếu nhập kho, không chỉnh tồn trực tiếp.</div>
+
+                            <fieldset id="openingStockFields" class="opening-stock-fields mt-3" disabled>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Số lượng <span class="text-danger">*</span></label>
+                                        <input type="number" name="initial_quantity" id="initial_quantity" class="form-control"
+                                            min="1" value="1">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Số lô <span class="text-danger">*</span></label>
+                                        <input type="text" name="batch_number" id="batch_number" class="form-control"
+                                            maxlength="100" placeholder="VD: LOT-072026">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Hạn sử dụng <span class="text-danger">*</span></label>
+                                        <input type="date" name="expiry_date" id="expiry_date" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ngày sản xuất</label>
+                                        <input type="date" name="manufacture_date" id="manufacture_date" class="form-control">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Ghi chú nhập kho</label>
+                                        <input type="text" name="stock_note" id="stock_note" class="form-control"
+                                            maxlength="1000" placeholder="Nhà cung cấp hoặc ghi chú kiểm kê ban đầu">
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -204,6 +251,25 @@
     const productForm = document.getElementById('productForm');
     const mainImageInput = document.getElementById('main_image');
     const productImagePreview = document.getElementById('productImagePreview');
+    const productAdvancedFields = document.getElementById('productAdvancedFields');
+    const productAdvancedCollapse = bootstrap.Collapse.getOrCreateInstance(productAdvancedFields, { toggle: false });
+    const openingStockSection = document.getElementById('openingStockSection');
+    const enableOpeningStock = document.getElementById('enableOpeningStock');
+    const openingStockFields = document.getElementById('openingStockFields');
+
+    function setOpeningStockEnabled(enabled) {
+        enableOpeningStock.checked = enabled;
+        openingStockFields.disabled = !enabled;
+        openingStockFields.classList.toggle('is-enabled', enabled);
+    }
+
+    enableOpeningStock.addEventListener('change', () => {
+        setOpeningStockEnabled(enableOpeningStock.checked);
+
+        if (enableOpeningStock.checked) {
+            document.getElementById('initial_quantity').focus();
+        }
+    });
 
     function routeWithId(template, id) {
         return template.replace('__ID__', id);
@@ -286,14 +352,20 @@
 
         document.getElementById('productFormMethod').value = 'POST';
         document.getElementById('productId').value = '';
-        document.getElementById('productModalTitle').innerText = 'Thêm / Sửa Sản phẩm';
+        document.getElementById('productModalTitle').innerText = 'Thêm sản phẩm nhanh';
         document.getElementById('productFormErrors').innerHTML = '';
         document.getElementById('is_active').value = '1';
+        openingStockSection.classList.remove('d-none');
+        setOpeningStockEnabled(false);
+        productAdvancedCollapse.hide();
 
         resetImagePreview();
 
         productForm.action = productRoutes.store;
         productModal.show();
+        document.getElementById('productModal').addEventListener('shown.bs.modal', () => {
+            document.getElementById('product_name').focus();
+        }, { once: true });
     }
 
     function openEditProductModal(productId) {
@@ -307,7 +379,7 @@
             .then(data => {
                 const product = data.product;
 
-                document.getElementById('productModalTitle').innerText = 'Thêm / Sửa Sản phẩm';
+                document.getElementById('productModalTitle').innerText = 'Cập nhật sản phẩm';
                 document.getElementById('productFormMethod').value = 'PUT';
                 document.getElementById('productId').value = product.id;
 
@@ -320,7 +392,6 @@
                 document.getElementById('short_description').value = product.short_description || '';
                 document.getElementById('product_category_id').value = product.product_category_id || '';
                 document.getElementById('min_quantity_alert').value = product.min_quantity_alert || 0;
-                document.getElementById('sort_order').value = product.sort_order || 0;
                 document.getElementById('is_active').value = product.is_active ? '1' : '0';
 
                 if (product.image_url) {
@@ -332,6 +403,9 @@
                     `;
                 }
 
+                productAdvancedCollapse.show();
+                setOpeningStockEnabled(false);
+                openingStockSection.classList.add('d-none');
                 productModal.show();
             });
     }
@@ -340,6 +414,11 @@
         event.preventDefault();
 
         const formData = new FormData(productForm);
+        const submitButton = productForm.querySelector('button[type="submit"]');
+        const originalButtonHtml = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+        document.getElementById('productFormErrors').innerHTML = '';
 
         fetch(productForm.action, {
                 method: 'POST',
@@ -355,14 +434,24 @@
                 if (!response.ok) {
                     if (data.errors) {
                         renderFormErrors(data.errors);
+                        productAdvancedCollapse.show();
                     }
 
-                    return;
+                    throw new Error(data.message || 'Không thể lưu sản phẩm.');
                 }
 
                 productModal.hide();
                 showProductAlert(data.message);
                 loadProductTable();
+            })
+            .catch(error => {
+                if (!document.getElementById('productFormErrors').innerHTML) {
+                    renderFormErrors({ general: [error.message] });
+                }
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonHtml;
             });
     });
 

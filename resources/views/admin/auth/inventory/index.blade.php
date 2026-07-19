@@ -309,21 +309,21 @@
 
                     <div class="col-md-6">
                         <label class="form-label">
-                            SL ban đầu <span class="text-danger">*</span>
+                            SL đã nhập
                         </label>
-                        <input type="number" name="initial_quantity" id="edit_initial_quantity"
-                            class="form-control required-input" min="1">
+                        <input type="number" id="edit_initial_quantity" class="form-control" disabled>
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">
-                            SL còn lại <span class="text-danger">*</span>
+                            SL tồn hiện tại
                         </label>
-                        <input type="number" name="current_quantity" id="edit_current_quantity"
-                            class="form-control required-input" min="0">
+                        <input type="number" id="edit_current_quantity" class="form-control" disabled>
+                    </div>
 
-                        <div id="quantityCompareWarning" class="quantity-warning">
-                            SL còn lại không được lớn hơn SL ban đầu.
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">
+                            Số lượng chỉ được thay đổi bằng phiếu nhập, xuất hoặc kiểm kê để bảo toàn lịch sử kho.
                         </div>
                     </div>
 
@@ -473,72 +473,6 @@
         return true;
     }
 
-    function validateEditQuantities() {
-        const initialInput = document.getElementById('edit_initial_quantity');
-        const currentInput = document.getElementById('edit_current_quantity');
-        const warning = document.getElementById('quantityCompareWarning');
-
-        const initialQuantity = Number(initialInput.value);
-        const currentQuantity = Number(currentInput.value);
-
-        initialInput.classList.remove('input-error', 'input-success');
-        currentInput.classList.remove('input-error', 'input-success');
-
-        if (warning) {
-            warning.classList.remove('show');
-        }
-
-        if (!initialInput.value || !currentInput.value) {
-            setInputError(initialInput);
-            setInputError(currentInput);
-
-            renderErrors('editBatchErrors', {
-                quantity: ['Vui lòng nhập đầy đủ SL ban đầu và SL còn lại.']
-            });
-
-            return false;
-        }
-
-        if (initialQuantity <= 0) {
-            setInputError(initialInput);
-
-            renderErrors('editBatchErrors', {
-                initial_quantity: ['SL ban đầu phải lớn hơn 0.']
-            });
-
-            return false;
-        }
-
-        if (currentQuantity < 0) {
-            setInputError(currentInput);
-
-            renderErrors('editBatchErrors', {
-                current_quantity: ['SL còn lại không được nhỏ hơn 0.']
-            });
-
-            return false;
-        }
-
-        if (currentQuantity > initialQuantity) {
-            setInputError(initialInput);
-            setInputError(currentInput);
-
-            if (warning) {
-                warning.classList.add('show');
-            }
-
-            renderErrors('editBatchErrors', {
-                quantity: ['SL còn lại không được lớn hơn SL ban đầu.']
-            });
-
-            return false;
-        }
-
-        setInputSuccess(initialInput);
-        setInputSuccess(currentInput);
-        return true;
-    }
-
     function validateEditForm() {
         clearInputErrors(editBatchForm);
 
@@ -574,52 +508,9 @@
             return false;
         }
 
-        if (!validateEditQuantities()) {
-            return false;
-        }
-
         [batchInput, manufactureInput, expiryInput].forEach(setInputSuccess);
         return true;
     }
-
-    function liveCheckEditQuantities() {
-        const initialInput = document.getElementById('edit_initial_quantity');
-        const currentInput = document.getElementById('edit_current_quantity');
-        const warning = document.getElementById('quantityCompareWarning');
-
-        if (!initialInput || !currentInput) {
-            return;
-        }
-
-        const initialQuantity = Number(initialInput.value);
-        const currentQuantity = Number(currentInput.value);
-
-        initialInput.classList.remove('input-error', 'input-success');
-        currentInput.classList.remove('input-error', 'input-success');
-
-        if (warning) {
-            warning.classList.remove('show');
-        }
-
-        if (!initialInput.value || !currentInput.value) {
-            return;
-        }
-
-        if (currentQuantity > initialQuantity) {
-            setInputError(initialInput);
-            setInputError(currentInput);
-
-            if (warning) {
-                warning.classList.add('show');
-            }
-
-            return;
-        }
-
-        setInputSuccess(initialInput);
-        setInputSuccess(currentInput);
-    }
-
     function loadInventoryTable(url = null) {
         const params = new URLSearchParams({
             keyword: document.getElementById('inventoryKeyword').value,
@@ -727,7 +618,6 @@
         editBatchForm.reset();
         clearInputErrors(editBatchForm);
         document.getElementById('editBatchErrors').innerHTML = '';
-        document.getElementById('quantityCompareWarning').classList.remove('show');
 
         fetch(routeWithId(inventoryRoutes.editBatch, batchId), {
                 headers: {
@@ -752,7 +642,6 @@
                 editBatchForm.action = routeWithId(inventoryRoutes.updateBatch, batch.id);
                 editBatchModal.show();
 
-                setTimeout(liveCheckEditQuantities, 100);
             })
             .catch(() => {
                 showInventoryAlert('Không lấy được dữ liệu lô hàng để sửa.', 'danger');
@@ -883,8 +772,6 @@
         }
     });
 
-    document.getElementById('edit_initial_quantity').addEventListener('input', liveCheckEditQuantities);
-    document.getElementById('edit_current_quantity').addEventListener('input', liveCheckEditQuantities);
 
     document.querySelectorAll('.required-input').forEach(input => {
         input.addEventListener('input', function() {

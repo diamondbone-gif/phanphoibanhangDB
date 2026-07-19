@@ -51,6 +51,67 @@
         min-height: 42px;
     }
 
+    .product-advanced-toggle {
+        width: 100%;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid #d8e3f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 700;
+        transition: border-color .2s ease, background-color .2s ease;
+    }
+
+    .product-advanced-toggle:hover,
+    .product-advanced-toggle[aria-expanded="true"] {
+        border-color: #93b4ef;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .product-advanced-toggle .toggle-chevron {
+        transition: transform .2s ease;
+    }
+
+    .product-advanced-toggle[aria-expanded="true"] .toggle-chevron {
+        transform: rotate(180deg);
+    }
+
+    .product-advanced-panel {
+        margin-top: 2px;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .opening-stock-card {
+        padding: 16px;
+        border: 1px solid #dbe7d8;
+        border-radius: 14px;
+        background: #f7fcf6;
+    }
+
+    .opening-stock-card .form-check-input:checked {
+        border-color: #198754;
+        background-color: #198754;
+    }
+
+    .opening-stock-fields {
+        padding-top: 14px;
+        border-top: 1px dashed #c8d9c4;
+        opacity: .55;
+        transition: opacity .2s ease;
+    }
+
+    .opening-stock-fields.is-enabled {
+        opacity: 1;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | TABLE DANH SÁCH SẢN PHẨM

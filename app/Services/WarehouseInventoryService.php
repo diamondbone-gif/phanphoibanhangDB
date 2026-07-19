@@ -56,6 +56,7 @@ class WarehouseInventoryService
             }
             $stock->on_hand_quantity = $quantity;
             $stock->save();
+            $this->refreshLegacyTotals($product, $batch);
 
             return $stock;
         });
