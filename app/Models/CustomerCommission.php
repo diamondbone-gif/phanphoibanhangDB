@@ -84,6 +84,7 @@ class CustomerCommission extends Model
         |--------------------------------------------------------------------------
         */
         'paid_amount',
+        'clawback_amount',
         'paid_by',
         'paid_at',
 
@@ -128,6 +129,7 @@ class CustomerCommission extends Model
         'commission_amount' => 'decimal:2',
 
         'paid_amount' => 'decimal:2',
+        'clawback_amount' => 'decimal:2',
 
         'commission_status_id' => 'integer',
         'approved_by' => 'integer',

@@ -175,20 +175,5 @@ $originCustomerUrl = \Illuminate\Support\Facades\URL::signedRoute('admin.custome
 @endsection
 
 @push('styles')
-<style>
-    .referred-detail-page {
-        padding: 20px 24px 40px;
-    }
-
-    .referred-card {
-        border-radius: 18px;
-    }
-
-    .table thead th {
-        background: #f8fafc;
-        color: #46536a;
-        font-weight: 800;
-        border-bottom: 1px solid #cbd5e1;
-    }
-</style>
+<link rel="stylesheet" href="{{ asset('admin/css/pages/auth-ctvs-referred-show.css') }}">
 @endpush

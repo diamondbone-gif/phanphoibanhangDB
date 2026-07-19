@@ -4,18 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreOrderRequest;
+use App\Http\Requests\Admin\StoreOrderReturnRequest;
 use App\Models\Customer;
 use App\Models\CustomerOrder;
 use App\Models\Product;
 use App\Services\OrderService;
+use App\Services\ReturnOrderService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class OrderController extends Controller
 {
     public function __construct(
-        private OrderService $orderService
+        private OrderService $orderService,
+        private ReturnOrderService $returnOrderService,
     ) {}
 
     /*
@@ -40,9 +42,7 @@ class OrderController extends Controller
                         $customerQuery->where('full_name', 'like', "%{$keyword}%")
                             ->orWhere('phone', 'like', "%{$keyword}%");
 
-                        if (Schema::hasColumn('customers', 'customer_code')) {
-                            $customerQuery->orWhere('customer_code', 'like', "%{$keyword}%");
-                        }
+                        $customerQuery->orWhere('customer_code', 'like', "%{$keyword}%");
                     });
             })
             ->latest('id')
@@ -83,9 +83,7 @@ class OrderController extends Controller
                 $query->where('full_name', 'like', "%{$keyword}%")
                     ->orWhere('phone', 'like', "%{$keyword}%");
 
-                if (Schema::hasColumn('customers', 'customer_code')) {
-                    $query->orWhere('customer_code', 'like', "%{$keyword}%");
-                }
+                $query->orWhere('customer_code', 'like', "%{$keyword}%");
             })
             ->orderBy('full_name')
             ->limit(10)
@@ -148,11 +146,31 @@ class OrderController extends Controller
             'invoice',
             'payments',
             'histories',
+            'returns.items.orderItem',
+            'returns.creator',
             'commission.ctvCustomer',
             'commission.referredCustomer',
         ]);
 
         return view('admin.auth.orders.show', compact('order'));
+    }
+
+    public function storeReturn(StoreOrderReturnRequest $request, CustomerOrder $order)
+    {
+        try {
+            $return = $this->returnOrderService->create(
+                $order,
+                $request->validated(),
+                auth('admin')->id()
+            );
+
+            return back()->with(
+                'success',
+                "Đã tạo phiếu hoàn {$return->return_code}, nhập lại kho và tính lại hoa hồng."
+            );
+        } catch (Throwable $e) {
+            return back()->withInput()->with('error', 'Không thể hoàn trả đơn hàng: ' . $e->getMessage());
+        }
     }
 
     /*
@@ -297,9 +315,7 @@ class OrderController extends Controller
     {
         $query = Product::query();
 
-        if (Schema::hasColumn('products', 'is_active')) {
-            $query->where('is_active', true);
-        }
+        $query->where('is_active', true);
 
         return $query
             ->select($this->productSelectColumns())
@@ -331,11 +347,7 @@ class OrderController extends Controller
             'default_commission_rate',
         ];
 
-        foreach ($optionalColumns as $column) {
-            if (Schema::hasColumn('products', $column)) {
-                $columns[] = $column;
-            }
-        }
+        $columns = array_merge($columns, $optionalColumns);
 
         return $columns;
     }
@@ -353,9 +365,7 @@ class OrderController extends Controller
             'phone',
         ];
 
-        if (Schema::hasColumn('customers', 'customer_code')) {
-            $columns[] = 'customer_code';
-        }
+        $columns[] = 'customer_code';
 
         return $columns;
     }

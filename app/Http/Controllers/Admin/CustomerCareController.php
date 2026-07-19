@@ -3,97 +3,296 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
+use App\Models\CustomerCareLog;
 use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class CustomerCareController extends Controller
 {
-    /**
-     * Danh sách khách hàng và lịch chăm sóc.
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Danh sách khách hàng và lịch chăm sóc
+    |--------------------------------------------------------------------------
+    */
     public function index(Request $request): View
     {
         $customerKeyword = trim(
-            (string) $request->input('customer_keyword')
+            (string) $request->input('customer_keyword', '')
+        );
+
+        $consultationStatus = (string) $request->input(
+            'consultation_status',
+            'all'
         );
 
         $reminderPhone = trim(
-            (string) $request->input('reminder_phone')
+            (string) $request->input('reminder_phone', '')
         );
 
-        $reminderDate = $request->input('reminder_date');
+        $reminderDate = (string) $request->input(
+            'reminder_date',
+            ''
+        );
 
-        $reminderStatus = $request->input(
+        $reminderStatus = (string) $request->input(
             'reminder_status',
-            'pending'
+            'all'
         );
 
         /*
         |--------------------------------------------------------------------------
         | Danh sách khách hàng
         |--------------------------------------------------------------------------
+        | log_type = consultation: nội dung tư vấn mới.
+        | log_type = NULL: dữ liệu tư vấn cũ trước khi thêm cột log_type.
+        | log_type = system: nhật ký tự động, không tính là tư vấn.
         */
-        $customers = DB::table('customers')
+        $latestConsultationOrder =
+            'COALESCE(
+                customer_care_logs.care_date,
+                customer_care_logs.created_at
+            )';
+
+        $customersQuery = Customer::query()
             ->leftJoin(
-                'customer_details',
-                'customer_details.customer_id',
+                'customer_details as customer_detail',
+                'customer_detail.customer_id',
                 '=',
                 'customers.id'
             )
             ->select([
-                'customers.id',
-                'customers.customer_code',
-                'customers.full_name',
-                'customers.phone',
-                'customers.email',
-                'customers.note',
-                'customers.created_at',
+                'customers.*',
 
-                'customer_details.address',
-                'customer_details.ward',
-                'customer_details.district',
-                'customer_details.province',
-                'customer_details.medical_note',
-                'customer_details.consultation_note',
+                'customer_detail.address',
+                'customer_detail.ward',
+                'customer_detail.district',
+                'customer_detail.province',
+                'customer_detail.medical_note',
+                'customer_detail.consultation_note',
             ])
-            ->when(
-                $customerKeyword !== '',
-                function ($query) use ($customerKeyword) {
-                    $query->where(function ($subQuery) use (
-                        $customerKeyword
-                    ) {
-                        $subQuery
+            ->addSelect([
+                /*
+                |--------------------------------------------------------------------------
+                | Tổng số lần tư vấn
+                |--------------------------------------------------------------------------
+                */
+                'consultation_count' => CustomerCareLog::query()
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn(
+                        'customer_care_logs.customer_id',
+                        'customers.id'
+                    )
+                    ->where(function ($query) {
+                        $query
                             ->where(
-                                'customers.full_name',
-                                'like',
-                                "%{$customerKeyword}%"
+                                'customer_care_logs.log_type',
+                                'consultation'
                             )
-                            ->orWhere(
-                                'customers.phone',
-                                'like',
-                                "%{$customerKeyword}%"
-                            )
-                            ->orWhere(
-                                'customers.customer_code',
-                                'like',
-                                "%{$customerKeyword}%"
-                            )
-                            ->orWhere(
-                                'customers.email',
-                                'like',
-                                "%{$customerKeyword}%"
+                            ->orWhereNull(
+                                'customer_care_logs.log_type'
                             );
-                    });
+                    }),
+
+                /*
+                |--------------------------------------------------------------------------
+                | ID nội dung tư vấn mới nhất
+                |--------------------------------------------------------------------------
+                */
+                'latest_consultation_id' => CustomerCareLog::query()
+                    ->select('customer_care_logs.id')
+                    ->whereColumn(
+                        'customer_care_logs.customer_id',
+                        'customers.id'
+                    )
+                    ->where(function ($query) {
+                        $query
+                            ->where(
+                                'customer_care_logs.log_type',
+                                'consultation'
+                            )
+                            ->orWhereNull(
+                                'customer_care_logs.log_type'
+                            );
+                    })
+                    ->orderByRaw(
+                        $latestConsultationOrder.' DESC'
+                    )
+                    ->orderByDesc(
+                        'customer_care_logs.id'
+                    )
+                    ->limit(1),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Nội dung tư vấn mới nhất
+                |--------------------------------------------------------------------------
+                */
+                'latest_consultation_content' => CustomerCareLog::query()
+                    ->select(
+                        'customer_care_logs.content'
+                    )
+                    ->whereColumn(
+                        'customer_care_logs.customer_id',
+                        'customers.id'
+                    )
+                    ->where(function ($query) {
+                        $query
+                            ->where(
+                                'customer_care_logs.log_type',
+                                'consultation'
+                            )
+                            ->orWhereNull(
+                                'customer_care_logs.log_type'
+                            );
+                    })
+                    ->orderByRaw(
+                        $latestConsultationOrder
+                            .' DESC'
+                    )
+                    ->orderByDesc(
+                        'customer_care_logs.id'
+                    )
+                    ->limit(1),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Ngày tư vấn mới nhất
+                |--------------------------------------------------------------------------
+                */
+                'latest_consultation_date' => CustomerCareLog::query()
+                    ->selectRaw(
+                        'COALESCE(
+                                customer_care_logs.care_date,
+                                customer_care_logs.created_at
+                            )'
+                    )
+                    ->whereColumn(
+                        'customer_care_logs.customer_id',
+                        'customers.id'
+                    )
+                    ->where(function ($query) {
+                        $query
+                            ->where(
+                                'customer_care_logs.log_type',
+                                'consultation'
+                            )
+                            ->orWhereNull(
+                                'customer_care_logs.log_type'
+                            );
+                    })
+                    ->orderByRaw(
+                        $latestConsultationOrder
+                            .' DESC'
+                    )
+                    ->orderByDesc(
+                        'customer_care_logs.id'
+                    )
+                    ->limit(1),
+            ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tìm khách hàng
+        |--------------------------------------------------------------------------
+        */
+        if ($customerKeyword !== '') {
+            $customersQuery->where(
+                function ($query) use ($customerKeyword) {
+                    $query
+                        ->where(
+                            'customers.full_name',
+                            'like',
+                            '%'.$customerKeyword.'%'
+                        )
+                        ->orWhere(
+                            'customers.customer_code',
+                            'like',
+                            '%'.$customerKeyword.'%'
+                        )
+                        ->orWhere(
+                            'customers.phone',
+                            'like',
+                            '%'.$customerKeyword.'%'
+                        )
+                        ->orWhere(
+                            'customers.email',
+                            'like',
+                            '%'.$customerKeyword.'%'
+                        );
                 }
-            )
-            ->orderByDesc('customers.created_at')
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Chỉ hiện khách chưa được tư vấn
+        |--------------------------------------------------------------------------
+        */
+        if ($consultationStatus === 'not_consulted') {
+            $customersQuery->whereNotExists(
+                function ($query) {
+                    $query
+                        ->selectRaw('1')
+                        ->from('customer_care_logs')
+                        ->whereColumn(
+                            'customer_care_logs.customer_id',
+                            'customers.id'
+                        )
+                        ->where(function ($subQuery) {
+                            $subQuery
+                                ->where(
+                                    'customer_care_logs.log_type',
+                                    'consultation'
+                                )
+                                ->orWhereNull(
+                                    'customer_care_logs.log_type'
+                                );
+                        });
+                }
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Chỉ hiện khách đã được tư vấn
+        |--------------------------------------------------------------------------
+        */
+        if ($consultationStatus === 'consulted') {
+            $customersQuery->whereExists(
+                function ($query) {
+                    $query
+                        ->selectRaw('1')
+                        ->from('customer_care_logs')
+                        ->whereColumn(
+                            'customer_care_logs.customer_id',
+                            'customers.id'
+                        )
+                        ->where(function ($subQuery) {
+                            $subQuery
+                                ->where(
+                                    'customer_care_logs.log_type',
+                                    'consultation'
+                                )
+                                ->orWhereNull(
+                                    'customer_care_logs.log_type'
+                                );
+                        });
+                }
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Phân trang danh sách khách hàng
+        |--------------------------------------------------------------------------
+        */
+        $customers = $customersQuery
+            ->orderByDesc('customers.id')
             ->paginate(
-                12,
+                10,
                 ['*'],
                 'customers_page'
             )
@@ -101,162 +300,197 @@ class CustomerCareController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Danh sách lịch hẹn chăm sóc
+        | Định dạng ngày tư vấn gần nhất
         |--------------------------------------------------------------------------
         */
-        $reminders = DB::table('customer_care_reminders')
+        $customers->getCollection()->transform(
+            function ($customer) {
+                $customer->latest_consultation_date_display =
+                    $customer->latest_consultation_date
+                    ? Carbon::parse(
+                        $customer
+                            ->latest_consultation_date
+                    )->format('d/m/Y H:i')
+                    : null;
+
+                return $customer;
+            }
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Danh sách lịch nhắc
+        |--------------------------------------------------------------------------
+        */
+        $reminderMomentSql = $this->reminderMomentSql(
+            'care_reminder'
+        );
+
+        $remindersQuery = DB::table(
+            'customer_care_reminders as care_reminder'
+        )
             ->join(
-                'customers',
-                'customers.id',
+                'customers as customer',
+                'customer.id',
                 '=',
-                'customer_care_reminders.customer_id'
+                'care_reminder.customer_id'
             )
             ->leftJoin(
-                'customer_details',
-                'customer_details.customer_id',
+                'customer_details as customer_detail',
+                'customer_detail.customer_id',
                 '=',
-                'customers.id'
+                'customer.id'
             )
             ->leftJoin(
-                'operation_managers',
-                'operation_managers.id',
+                'operation_managers as staff',
+                'staff.id',
                 '=',
-                'customer_care_reminders.assigned_staff_id'
+                'care_reminder.assigned_staff_id'
             )
             ->leftJoin(
-                'care_priorities',
-                'care_priorities.id',
+                'care_statuses as care_status',
+                'care_status.id',
                 '=',
-                'customer_care_reminders.care_priority_id'
+                'care_reminder.care_status_id'
             )
             ->leftJoin(
-                'care_statuses',
-                'care_statuses.id',
+                'care_priorities as care_priority',
+                'care_priority.id',
                 '=',
-                'customer_care_reminders.care_status_id'
+                'care_reminder.care_priority_id'
             )
             ->select([
-                'customer_care_reminders.id',
-                'customer_care_reminders.customer_id',
-                'customer_care_reminders.reminder_date',
-                'customer_care_reminders.reminder_time',
-                'customer_care_reminders.content',
-                'customer_care_reminders.completed_at',
-                'customer_care_reminders.created_at',
+                'care_reminder.*',
 
-                'customers.customer_code',
-                'customers.full_name',
-                'customers.phone',
-                'customers.email',
-                'customers.note as customer_note',
+                'customer.full_name',
+                'customer.phone',
+                'customer.email',
+                'customer.customer_code',
+                'customer.note as customer_note',
 
-                'customer_details.address',
-                'customer_details.ward',
-                'customer_details.district',
-                'customer_details.province',
-                'customer_details.consultation_note',
+                'customer_detail.address',
+                'customer_detail.ward',
+                'customer_detail.district',
+                'customer_detail.province',
+                'customer_detail.consultation_note',
 
-                'operation_managers.name as staff_name',
+                'staff.name as staff_name',
 
-                'care_priorities.name as priority_name',
-                'care_priorities.code as priority_code',
+                'care_status.code as status_code',
+                'care_status.name as status_name',
 
-                'care_statuses.name as status_name',
-                'care_statuses.code as status_code',
-            ])
-            ->when(
-                $reminderPhone !== '',
-                function ($query) use ($reminderPhone) {
-                    $query->where(
-                        'customers.phone',
-                        'like',
-                        "%{$reminderPhone}%"
-                    );
-                }
-            )
-            ->when(
-                !empty($reminderDate),
-                function ($query) use ($reminderDate) {
-                    $query->whereDate(
-                        'customer_care_reminders.reminder_date',
-                        $reminderDate
-                    );
-                }
-            )
-            ->when(
-                $reminderStatus === 'pending',
+                'care_priority.code as priority_code',
+                'care_priority.name as priority_name',
+            ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tìm lịch theo số điện thoại
+        |--------------------------------------------------------------------------
+        */
+        if ($reminderPhone !== '') {
+            $remindersQuery->where(
+                'customer.phone',
+                'like',
+                '%'.$reminderPhone.'%'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tìm lịch theo ngày
+        |--------------------------------------------------------------------------
+        */
+        if ($reminderDate !== '') {
+            $remindersQuery->whereDate(
+                'care_reminder.reminder_date',
+                $reminderDate
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lọc lịch đang chờ
+        |--------------------------------------------------------------------------
+        */
+        if ($reminderStatus === 'pending') {
+            $this->applyOpenReminderCondition(
+                $remindersQuery,
+                'care_reminder',
+                'care_status'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lọc lịch đã đến giờ hoặc quá hạn
+        |--------------------------------------------------------------------------
+        */
+        if ($reminderStatus === 'overdue') {
+            $this->applyOpenReminderCondition(
+                $remindersQuery,
+                'care_reminder',
+                'care_status'
+            );
+
+            $remindersQuery->whereRaw(
+                $reminderMomentSql.' <= ?',
+                [
+                    now()->format(
+                        'Y-m-d H:i:s'
+                    ),
+                ]
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lọc lịch đã hoàn thành
+        |--------------------------------------------------------------------------
+        */
+        if ($reminderStatus === 'completed') {
+            $remindersQuery->where(
                 function ($query) {
-                    $query->whereNull(
-                        'customer_care_reminders.completed_at'
-                    );
-                }
-            )
-            ->when(
-                $reminderStatus === 'completed',
-                function ($query) {
-                    $query->whereNotNull(
-                        'customer_care_reminders.completed_at'
-                    );
-                }
-            )
-            ->when(
-                $reminderStatus === 'overdue',
-                function ($query) {
-                    $today = now()->toDateString();
-                    $currentTime = now()->format('H:i:s');
-
                     $query
-                        ->whereNull(
-                            'customer_care_reminders.completed_at'
+                        ->whereNotNull(
+                            'care_reminder.completed_at'
                         )
-                        ->where(function ($subQuery) use (
-                            $today,
-                            $currentTime
-                        ) {
-                            $subQuery
-                                ->whereDate(
-                                    'customer_care_reminders.reminder_date',
-                                    '<',
-                                    $today
-                                )
-                                ->orWhere(function ($dateQuery) use (
-                                    $today,
-                                    $currentTime
-                                ) {
-                                    $dateQuery
-                                        ->whereDate(
-                                            'customer_care_reminders.reminder_date',
-                                            $today
-                                        )
-                                        ->whereRaw(
-                                            "COALESCE(
-                                                customer_care_reminders.reminder_time,
-                                                '00:00:00'
-                                            ) <= ?",
-                                            [$currentTime]
-                                        );
-                                });
-                        });
+                        ->orWhere(
+                            'care_status.code',
+                            'completed'
+                        );
                 }
-            )
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Phân trang danh sách lịch nhắc
+        |--------------------------------------------------------------------------
+        */
+        $reminders = $remindersQuery
             ->orderByRaw(
-                'CASE
-                    WHEN customer_care_reminders.completed_at IS NULL
+                "CASE
+                    WHEN care_reminder.completed_at IS NULL
+                        AND (
+                            care_status.code IS NULL
+                            OR care_status.code NOT IN (
+                                'completed',
+                                'cancelled'
+                            )
+                        )
                     THEN 0
                     ELSE 1
-                END'
-            )
-            ->orderBy(
-                'customer_care_reminders.reminder_date'
+                END"
             )
             ->orderByRaw(
-                "COALESCE(
-                    customer_care_reminders.reminder_time,
-                    '23:59:59'
-                )"
+                $reminderMomentSql.' ASC'
+            )
+            ->orderBy(
+                'care_reminder.id'
             )
             ->paginate(
-                15,
+                10,
                 ['*'],
                 'reminders_page'
             )
@@ -264,61 +498,100 @@ class CustomerCareController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Thống kê
+        | Định dạng dữ liệu lịch nhắc
         |--------------------------------------------------------------------------
         */
-        $today = now()->toDateString();
-        $currentTime = now()->format('H:i:s');
+        $reminders->getCollection()->transform(
+            function ($reminder) {
+                return $this->decorateReminder(
+                    $reminder
+                );
+            }
+        );
 
-        $statistics = [
-            'total_customers' => DB::table('customers')->count(),
-
-            'today_reminders' => DB::table(
-                'customer_care_reminders'
+        /*
+        |--------------------------------------------------------------------------
+        | Thống kê khách chưa tư vấn
+        |--------------------------------------------------------------------------
+        */
+        $notConsultedCount = DB::table(
+            'customers as customer'
+        )
+            ->whereNotExists(
+                function ($query) {
+                    $query
+                        ->selectRaw('1')
+                        ->from('customer_care_logs')
+                        ->whereColumn(
+                            'customer_care_logs.customer_id',
+                            'customer.id'
+                        )
+                        ->where(function ($subQuery) {
+                            $subQuery
+                                ->where(
+                                    'customer_care_logs.log_type',
+                                    'consultation'
+                                )
+                                ->orWhereNull(
+                                    'customer_care_logs.log_type'
+                                );
+                        });
+                }
             )
-                ->whereDate('reminder_date', $today)
-                ->whereNull('completed_at')
-                ->count(),
+            ->count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Thống kê lịch hôm nay chưa hoàn thành
+        |--------------------------------------------------------------------------
+        */
+        $todayReminderQuery = DB::table(
+            'customer_care_reminders as care_reminder'
+        )
+            ->leftJoin(
+                'care_statuses as care_status',
+                'care_status.id',
+                '=',
+                'care_reminder.care_status_id'
+            );
+
+        $this->applyOpenReminderCondition(
+            $todayReminderQuery,
+            'care_reminder',
+            'care_status'
+        );
+
+        $todayReminderCount = $todayReminderQuery
+            ->whereDate(
+                'care_reminder.reminder_date',
+                today()->format('Y-m-d')
+            )
+            ->count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Dữ liệu thống kê
+        |--------------------------------------------------------------------------
+        */
+        $statistics = [
+            'total_customers' => DB::table(
+                'customers'
+            )->count(),
+
+            'not_consulted' => $notConsultedCount,
+
+            'today_reminders' => $todayReminderCount,
 
             'completed_today' => DB::table(
                 'customer_care_reminders'
             )
-                ->whereDate('completed_at', $today)
+                ->whereDate(
+                    'completed_at',
+                    today()->format('Y-m-d')
+                )
                 ->count(),
 
-            'due_reminders' => DB::table(
-                'customer_care_reminders'
-            )
-                ->whereNull('completed_at')
-                ->where(function ($query) use (
-                    $today,
-                    $currentTime
-                ) {
-                    $query
-                        ->whereDate(
-                            'reminder_date',
-                            '<',
-                            $today
-                        )
-                        ->orWhere(function ($subQuery) use (
-                            $today,
-                            $currentTime
-                        ) {
-                            $subQuery
-                                ->whereDate(
-                                    'reminder_date',
-                                    $today
-                                )
-                                ->whereRaw(
-                                    "COALESCE(
-                                        reminder_time,
-                                        '00:00:00'
-                                    ) <= ?",
-                                    [$currentTime]
-                                );
-                        });
-                })
-                ->count(),
+            'due_reminders' => $this->countDueReminders(),
         ];
 
         return view(
@@ -328,6 +601,7 @@ class CustomerCareController extends Controller
                 'reminders',
                 'statistics',
                 'customerKeyword',
+                'consultationStatus',
                 'reminderPhone',
                 'reminderDate',
                 'reminderStatus'
@@ -335,148 +609,350 @@ class CustomerCareController extends Controller
         );
     }
 
-    /**
-     * Chi tiết chăm sóc của một khách hàng.
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Chi tiết chăm sóc một khách hàng
+    |--------------------------------------------------------------------------
+    */
     public function show(int $customerId): View
     {
-        $customer = DB::table('customers')
+        /*
+        |--------------------------------------------------------------------------
+        | Thông tin khách hàng
+        |--------------------------------------------------------------------------
+        */
+        $customer = Customer::query()
             ->leftJoin(
-                'customer_details',
-                'customer_details.customer_id',
+                'customer_details as customer_detail',
+                'customer_detail.customer_id',
                 '=',
                 'customers.id'
             )
-            ->where('customers.id', $customerId)
             ->select([
+                'customers.*',
+
+                'customer_detail.address',
+                'customer_detail.ward',
+                'customer_detail.district',
+                'customer_detail.province',
+                'customer_detail.medical_note',
+                'customer_detail.consultation_note',
+            ])
+            ->where(
                 'customers.id',
-                'customers.customer_code',
-                'customers.full_name',
-                'customers.phone',
-                'customers.email',
-                'customers.gender',
-                'customers.birth_date',
-                'customers.note',
-                'customers.created_at',
+                $customerId
+            )
+            ->firstOrFail();
 
-                'customer_details.address',
-                'customer_details.ward',
-                'customer_details.district',
-                'customer_details.province',
-                'customer_details.medical_note',
-                'customer_details.consultation_note',
-            ])
-            ->first();
-
-        abort_if(
-            !$customer,
-            404,
-            'Không tìm thấy khách hàng.'
-        );
-
-        $careLogs = DB::table('customer_care_logs')
+        /*
+        |--------------------------------------------------------------------------
+        | Lịch sử tư vấn và nhật ký hệ thống
+        |--------------------------------------------------------------------------
+        */
+        $careLogs = DB::table(
+            'customer_care_logs as care_log'
+        )
             ->leftJoin(
-                'operation_managers',
-                'operation_managers.id',
+                'operation_managers as staff',
+                'staff.id',
                 '=',
-                'customer_care_logs.staff_id'
+                'care_log.staff_id'
             )
             ->leftJoin(
-                'care_channels',
-                'care_channels.id',
+                'care_channels as care_channel',
+                'care_channel.id',
                 '=',
-                'customer_care_logs.care_channel_id'
+                'care_log.care_channel_id'
             )
             ->leftJoin(
-                'care_priorities',
-                'care_priorities.id',
+                'care_priorities as care_priority',
+                'care_priority.id',
                 '=',
-                'customer_care_logs.care_priority_id'
+                'care_log.care_priority_id'
             )
             ->leftJoin(
-                'care_statuses',
-                'care_statuses.id',
+                'care_statuses as care_status',
+                'care_status.id',
                 '=',
-                'customer_care_logs.care_status_id'
+                'care_log.care_status_id'
             )
             ->where(
-                'customer_care_logs.customer_id',
+                'care_log.customer_id',
                 $customerId
             )
             ->select([
-                'customer_care_logs.*',
-                'operation_managers.name as staff_name',
-                'care_channels.name as channel_name',
-                'care_priorities.name as priority_name',
-                'care_statuses.name as status_name',
-            ])
-            ->orderByDesc('customer_care_logs.care_date')
-            ->orderByDesc('customer_care_logs.id')
-            ->get();
+                'care_log.*',
 
-        $reminders = DB::table('customer_care_reminders')
-            ->leftJoin(
-                'operation_managers',
-                'operation_managers.id',
-                '=',
-                'customer_care_reminders.assigned_staff_id'
-            )
-            ->leftJoin(
-                'care_priorities',
-                'care_priorities.id',
-                '=',
-                'customer_care_reminders.care_priority_id'
-            )
-            ->leftJoin(
-                'care_statuses',
-                'care_statuses.id',
-                '=',
-                'customer_care_reminders.care_status_id'
-            )
-            ->where(
-                'customer_care_reminders.customer_id',
-                $customerId
-            )
-            ->select([
-                'customer_care_reminders.*',
-                'operation_managers.name as staff_name',
-                'care_priorities.name as priority_name',
-                'care_statuses.name as status_name',
+                'staff.name as staff_name',
+
+                'care_channel.name as channel_name',
+
+                'care_priority.name as priority_name',
+
+                'care_status.code as status_code',
+                'care_status.name as status_name',
             ])
             ->orderByRaw(
-                'CASE
-                    WHEN customer_care_reminders.completed_at IS NULL
+                'COALESCE(
+                    care_log.care_date,
+                    care_log.created_at
+                ) DESC'
+            )
+            ->orderByDesc(
+                'care_log.id'
+            )
+            ->paginate(
+                10,
+                ['*'],
+                'care_logs_page'
+            )
+            ->withQueryString();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Định dạng dữ liệu lịch sử
+        |--------------------------------------------------------------------------
+        */
+        $careLogs->getCollection()->transform(
+            function ($careLog) {
+                $careLog->care_date_display =
+                    $careLog->care_date
+                    ? Carbon::parse(
+                        $careLog->care_date
+                    )->format('d/m/Y H:i')
+                    : 'Chưa cập nhật';
+
+                $careLog->care_date_form =
+                    $careLog->care_date
+                    ? Carbon::parse(
+                        $careLog->care_date
+                    )->format('Y-m-d\TH:i')
+                    : now()->format(
+                        'Y-m-d\TH:i'
+                    );
+
+                $careLog->next_follow_up_display =
+                    $careLog->next_follow_up_at
+                    ? Carbon::parse(
+                        $careLog
+                            ->next_follow_up_at
+                    )->format('d/m/Y H:i')
+                    : null;
+
+                $careLog->next_follow_up_form =
+                    $careLog->next_follow_up_at
+                    ? Carbon::parse(
+                        $careLog
+                            ->next_follow_up_at
+                    )->format('Y-m-d\TH:i')
+                    : '';
+
+                /*
+                | Dữ liệu cũ có log_type = NULL
+                | vẫn được xem là nội dung tư vấn.
+                */
+                $careLog->is_consultation =
+                    $careLog->log_type === null
+                    || $careLog->log_type
+                    === 'consultation';
+
+                return $careLog;
+            }
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lịch nhắc của khách hàng
+        |--------------------------------------------------------------------------
+        */
+        $reminderMomentSql = $this->reminderMomentSql(
+            'care_reminder'
+        );
+
+        $reminders = DB::table(
+            'customer_care_reminders as care_reminder'
+        )
+            ->leftJoin(
+                'operation_managers as staff',
+                'staff.id',
+                '=',
+                'care_reminder.assigned_staff_id'
+            )
+            ->leftJoin(
+                'care_priorities as care_priority',
+                'care_priority.id',
+                '=',
+                'care_reminder.care_priority_id'
+            )
+            ->leftJoin(
+                'care_statuses as care_status',
+                'care_status.id',
+                '=',
+                'care_reminder.care_status_id'
+            )
+            ->where(
+                'care_reminder.customer_id',
+                $customerId
+            )
+            ->select([
+                'care_reminder.*',
+
+                'staff.name as staff_name',
+
+                'care_priority.name as priority_name',
+
+                'care_status.code as status_code',
+                'care_status.name as status_name',
+            ])
+            ->orderByRaw(
+                "CASE
+                    WHEN care_reminder.completed_at IS NULL
+                        AND (
+                            care_status.code IS NULL
+                            OR care_status.code NOT IN (
+                                'completed',
+                                'cancelled'
+                            )
+                        )
                     THEN 0
                     ELSE 1
-                END'
+                END"
+            )
+            ->orderByRaw(
+                $reminderMomentSql.' ASC'
             )
             ->orderBy(
-                'customer_care_reminders.reminder_date'
+                'care_reminder.id'
+            )
+            ->paginate(
+                10,
+                ['*'],
+                'customer_reminders_page'
+            )
+            ->withQueryString();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Định dạng lịch nhắc
+        |--------------------------------------------------------------------------
+        */
+        $reminders->getCollection()->transform(
+            function ($reminder) {
+                return $this->decorateReminder(
+                    $reminder
+                );
+            }
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Danh sách kênh chăm sóc
+        |--------------------------------------------------------------------------
+        */
+        $careChannels = DB::table(
+            'care_channels'
+        )
+            ->where(
+                'is_active',
+                1
             )
             ->orderBy(
-                'customer_care_reminders.reminder_time'
+                'sort_order'
             )
+            ->orderBy('id')
             ->get();
 
-        $careChannels = DB::table('care_channels')
-            ->where('is_active', 1)
-            ->orderBy('sort_order')
+        /*
+        |--------------------------------------------------------------------------
+        | Danh sách mức ưu tiên
+        |--------------------------------------------------------------------------
+        */
+        $carePriorities = DB::table(
+            'care_priorities'
+        )
+            ->where(
+                'is_active',
+                1
+            )
+            ->orderBy(
+                'sort_order'
+            )
+            ->orderBy('id')
             ->get();
 
-        $carePriorities = DB::table('care_priorities')
-            ->where('is_active', 1)
-            ->orderBy('sort_order')
+        /*
+        |--------------------------------------------------------------------------
+        | Danh sách trạng thái
+        |--------------------------------------------------------------------------
+        */
+        $careStatuses = DB::table(
+            'care_statuses'
+        )
+            ->where(
+                'is_active',
+                1
+            )
+            ->orderBy(
+                'sort_order'
+            )
+            ->orderBy('id')
             ->get();
 
-        $careStatuses = DB::table('care_statuses')
-            ->where('is_active', 1)
-            ->orderBy('sort_order')
-            ->get();
-
-        $staffMembers = DB::table('operation_managers')
-            ->where('status', 'active')
+        /*
+        |--------------------------------------------------------------------------
+        | Danh sách nhân viên đang hoạt động
+        |--------------------------------------------------------------------------
+        */
+        $staffMembers = DB::table(
+            'operation_managers'
+        )
+            ->where(
+                'status',
+                'active'
+            )
             ->orderBy('name')
             ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tổng số lần tư vấn thật
+        |--------------------------------------------------------------------------
+        */
+        $consultationCount = DB::table(
+            'customer_care_logs'
+        )
+            ->where(
+                'customer_id',
+                $customerId
+            )
+            ->where(function ($query) {
+                $query
+                    ->where(
+                        'log_type',
+                        'consultation'
+                    )
+                    ->orWhereNull(
+                        'log_type'
+                    );
+            })
+            ->count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Giá trị mặc định cho biểu mẫu
+        |--------------------------------------------------------------------------
+        */
+        $defaultCompletedStatusId =
+            $this->statusId('completed');
+
+        $defaultPendingStatusId =
+            $this->statusId('pending');
+
+        $defaultNormalPriorityId =
+            $this->priorityId('normal');
+
+        $currentStaffId =
+            auth('admin')->id();
 
         return view(
             'admin.auth.customer-care.show',
@@ -487,562 +963,390 @@ class CustomerCareController extends Controller
                 'careChannels',
                 'carePriorities',
                 'careStatuses',
-                'staffMembers'
+                'staffMembers',
+                'consultationCount',
+                'defaultCompletedStatusId',
+                'defaultPendingStatusId',
+                'defaultNormalPriorityId',
+                'currentStaffId'
             )
         );
     }
 
-    /**
-     * Lưu lịch sử chăm sóc.
-     */
-    public function storeLog(
-        Request $request,
-        int $customerId
-    ): RedirectResponse {
-        abort_unless(
-            DB::table('customers')
-                ->where('id', $customerId)
-                ->exists(),
-            404,
-            'Không tìm thấy khách hàng.'
-        );
+    /*
+    |--------------------------------------------------------------------------
+    | Lưu nội dung tư vấn mới
+    |--------------------------------------------------------------------------
+    */
 
-        $validated = $request->validate(
-            [
-                'care_channel_id' => [
-                    'nullable',
-                    'integer',
-                    'exists:care_channels,id',
-                ],
+    /*
+    |--------------------------------------------------------------------------
+    | Cập nhật nội dung tư vấn
+    |--------------------------------------------------------------------------
+    */
 
-                'care_date' => [
-                    'required',
-                    'date',
-                ],
+    /*
+    |--------------------------------------------------------------------------
+    | Xóa nội dung tư vấn
+    |--------------------------------------------------------------------------
+    */
 
-                'content' => [
-                    'required',
-                    'string',
-                    'max:5000',
-                ],
+    /*
+    |--------------------------------------------------------------------------
+    | Tạo lịch nhắc thủ công
+    |--------------------------------------------------------------------------
+    */
 
-                'internal_note' => [
-                    'nullable',
-                    'string',
-                    'max:5000',
-                ],
+    /*
+    |--------------------------------------------------------------------------
+    | Hoàn thành lịch chăm sóc
+    |--------------------------------------------------------------------------
+    */
 
-                'next_follow_up_at' => [
-                    'nullable',
-                    'date',
-                    'after_or_equal:care_date',
-                    'required_if:create_reminder,1',
-                ],
+    /*
+    |--------------------------------------------------------------------------
+    | Mở lại lịch chăm sóc
+    |--------------------------------------------------------------------------
+    */
 
-                'care_priority_id' => [
-                    'nullable',
-                    'integer',
-                    'exists:care_priorities,id',
-                ],
+    /*
+    |--------------------------------------------------------------------------
+    | Xóa lịch nhắc
+    |--------------------------------------------------------------------------
+    */
 
-                'care_status_id' => [
-                    'nullable',
-                    'integer',
-                    'exists:care_statuses,id',
-                ],
+    /*
+    |--------------------------------------------------------------------------
+    | API lấy lịch đã đến giờ
+    |--------------------------------------------------------------------------
+    */
 
-                'create_reminder' => [
-                    'nullable',
-                    'boolean',
-                ],
-            ],
-            [
-                'care_date.required' =>
-                'Vui lòng chọn thời gian chăm sóc.',
+    /*
+    |--------------------------------------------------------------------------
+    | Tương thích route cũ
+    |--------------------------------------------------------------------------
+    */
 
-                'content.required' =>
-                'Vui lòng nhập nội dung chăm sóc.',
+    /*
+    |--------------------------------------------------------------------------
+    | Xác nhận đã xem thông báo
+    |--------------------------------------------------------------------------
+    */
 
-                'next_follow_up_at.required_if' =>
-                'Vui lòng chọn thời gian chăm sóc tiếp theo.',
+    /*
+    |--------------------------------------------------------------------------
+    | Nhắc lại sau 10 phút
+    |--------------------------------------------------------------------------
+    */
 
-                'next_follow_up_at.after_or_equal' =>
-                'Thời gian chăm sóc tiếp theo không hợp lệ.',
-            ]
-        );
+    /*
+    |--------------------------------------------------------------------------
+    | Đồng bộ lịch nhắc từ nội dung tư vấn
+    |--------------------------------------------------------------------------
+    */
 
-        DB::transaction(function () use (
-            $validated,
-            $request,
-            $customerId
-        ) {
-            $staffId = Auth::guard('admin')->id();
+    /*
+    |--------------------------------------------------------------------------
+    | Validation nội dung tư vấn
+    |--------------------------------------------------------------------------
+    */
 
-            DB::table('customer_care_logs')->insert([
-                'customer_id' => $customerId,
-                'staff_id' => $staffId,
-                'care_channel_id' =>
-                $validated['care_channel_id'] ?? null,
-                'care_date' => $validated['care_date'],
-                'content' => $validated['content'],
-                'internal_note' =>
-                $validated['internal_note'] ?? null,
-                'next_follow_up_at' =>
-                $validated['next_follow_up_at'] ?? null,
-                'care_priority_id' =>
-                $validated['care_priority_id'] ?? null,
-                'care_status_id' =>
-                $validated['care_status_id'] ?? null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+    /*
+    |--------------------------------------------------------------------------
+    | Chuẩn hóa dữ liệu tư vấn trước khi lưu
+    |--------------------------------------------------------------------------
+    */
 
-            if (
-                $request->boolean('create_reminder')
-                && !empty($validated['next_follow_up_at'])
-            ) {
-                $followUp = Carbon::parse(
-                    $validated['next_follow_up_at']
-                );
+    /*
+    |--------------------------------------------------------------------------
+    | Nội dung thông báo validation
+    |--------------------------------------------------------------------------
+    */
 
-                $pendingStatusId = DB::table('care_statuses')
-                    ->where('code', 'pending')
-                    ->value('id');
-
-                DB::table(
-                    'customer_care_reminders'
-                )->insert([
-                    'customer_id' => $customerId,
-                    'assigned_staff_id' => $staffId,
-                    'reminder_date' =>
-                    $followUp->format('Y-m-d'),
-                    'reminder_time' =>
-                    $followUp->format('H:i:s'),
-                    'content' => $validated['content'],
-                    'care_priority_id' =>
-                    $validated['care_priority_id'] ?? null,
-                    'care_status_id' => $pendingStatusId,
-                    'completed_at' => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        });
-
-        return redirect()
-            ->route(
-                'admin.customer-care.show',
-                ['customerId' => $customerId]
+    /*
+    |--------------------------------------------------------------------------
+    | Lấy ID trạng thái theo mã
+    |--------------------------------------------------------------------------
+    */
+    private function statusId(
+        string $code
+    ): ?int {
+        $id = DB::table(
+            'care_statuses'
+        )
+            ->where(
+                'code',
+                $code
             )
-            ->with(
-                'success',
-                'Đã lưu lịch sử chăm sóc khách hàng.'
-            );
-    }
-
-    /**
-     * Tạo lịch nhắc chăm sóc.
-     */
-    public function storeReminder(
-        Request $request,
-        int $customerId
-    ): RedirectResponse {
-        abort_unless(
-            DB::table('customers')
-                ->where('id', $customerId)
-                ->exists(),
-            404,
-            'Không tìm thấy khách hàng.'
-        );
-
-        $validated = $request->validate(
-            [
-                'assigned_staff_id' => [
-                    'nullable',
-                    'integer',
-                    'exists:operation_managers,id',
-                ],
-
-                'reminder_date' => [
-                    'required',
-                    'date',
-                    'after_or_equal:today',
-                ],
-
-                'reminder_time' => [
-                    'required',
-                    'date_format:H:i',
-                ],
-
-                'content' => [
-                    'required',
-                    'string',
-                    'max:5000',
-                ],
-
-                'care_priority_id' => [
-                    'nullable',
-                    'integer',
-                    'exists:care_priorities,id',
-                ],
-            ],
-            [
-                'reminder_date.required' =>
-                'Vui lòng chọn ngày chăm sóc.',
-
-                'reminder_date.after_or_equal' =>
-                'Ngày chăm sóc không được nhỏ hơn ngày hiện tại.',
-
-                'reminder_time.required' =>
-                'Vui lòng chọn giờ nhắc.',
-
-                'content.required' =>
-                'Vui lòng nhập nội dung cần chăm sóc.',
-            ]
-        );
-
-        $pendingStatusId = DB::table('care_statuses')
-            ->where('code', 'pending')
             ->value('id');
 
-        DB::table('customer_care_reminders')->insert([
-            'customer_id' => $customerId,
-
-            'assigned_staff_id' =>
-            $validated['assigned_staff_id']
-                ?? Auth::guard('admin')->id(),
-
-            'reminder_date' =>
-            $validated['reminder_date'],
-
-            'reminder_time' =>
-            $validated['reminder_time'],
-
-            'content' =>
-            $validated['content'],
-
-            'care_priority_id' =>
-            $validated['care_priority_id'] ?? null,
-
-            'care_status_id' =>
-            $pendingStatusId,
-
-            'completed_at' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return redirect()
-            ->route(
-                'admin.customer-care.show',
-                ['customerId' => $customerId]
-            )
-            ->with(
-                'success',
-                'Đã tạo lịch nhắc chăm sóc.'
-            );
+        return $id !== null
+            ? (int) $id
+            : null;
     }
 
-    /**
-     * Đánh dấu lịch nhắc đã hoàn thành.
-     */
-    public function completeReminder(
-        Request $request,
-        int $reminderId
-    ): RedirectResponse {
-        $validated = $request->validate([
-            'completion_note' => [
-                'nullable',
-                'string',
-                'max:5000',
-            ],
-        ]);
+    /*
+    |--------------------------------------------------------------------------
+    | Lấy ID mức ưu tiên theo mã
+    |--------------------------------------------------------------------------
+    */
+    private function priorityId(
+        string $code
+    ): ?int {
+        $id = DB::table(
+            'care_priorities'
+        )
+            ->where(
+                'code',
+                $code
+            )
+            ->value('id');
 
-        $reminder = DB::table('customer_care_reminders')
-            ->where('id', $reminderId)
-            ->first();
+        return $id !== null
+            ? (int) $id
+            : null;
+    }
 
-        abort_if(
-            !$reminder,
-            404,
-            'Không tìm thấy lịch nhắc.'
-        );
-
-        if ($reminder->completed_at !== null) {
-            return back()->with(
-                'success',
-                'Lịch chăm sóc này đã hoàn thành trước đó.'
-            );
+    /*
+    |--------------------------------------------------------------------------
+    | Xử lý chuỗi rỗng thành NULL
+    |--------------------------------------------------------------------------
+    */
+    private function nullableTrim(
+        ?string $value
+    ): ?string {
+        if ($value === null) {
+            return null;
         }
 
-        DB::transaction(function () use (
-            $validated,
-            $reminder
-        ) {
-            $completedStatusId = DB::table('care_statuses')
-                ->where('code', 'completed')
-                ->value('id');
+        $value = trim($value);
 
-            DB::table('customer_care_reminders')
-                ->where('id', $reminder->id)
-                ->update([
-                    'care_status_id' =>
-                    $completedStatusId
-                        ?? $reminder->care_status_id,
+        return $value === ''
+            ? null
+            : $value;
+    }
 
-                    'completed_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-            $logContent = trim(
-                (string) (
-                    $validated['completion_note'] ?? ''
+    /*
+    |--------------------------------------------------------------------------
+    | SQL xác định thời điểm nhắc
+    |--------------------------------------------------------------------------
+    | Nếu lịch đang tạm hoãn thì ưu tiên snoozed_until.
+    | Nếu không thì ghép reminder_date và reminder_time.
+    */
+    private function reminderMomentSql(
+        string $alias
+    ): string {
+        return "
+            COALESCE(
+                {$alias}.snoozed_until,
+                CONCAT(
+                    {$alias}.reminder_date,
+                    ' ',
+                    COALESCE(
+                        {$alias}.reminder_time,
+                        '00:00:00'
+                    )
                 )
+            )
+        ";
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Điều kiện lịch chưa hoàn thành
+    |--------------------------------------------------------------------------
+    */
+    private function applyOpenReminderCondition(
+        $query,
+        string $reminderAlias,
+        string $statusAlias
+    ): void {
+        $query
+            ->whereNull(
+                $reminderAlias
+                    .'.completed_at'
+            )
+            ->where(
+                function ($subQuery) use (
+                    $statusAlias
+                ) {
+                    $subQuery
+                        ->whereNull(
+                            $statusAlias
+                                .'.code'
+                        )
+                        ->orWhereNotIn(
+                            $statusAlias
+                                .'.code',
+                            [
+                                'completed',
+                                'cancelled',
+                            ]
+                        );
+                }
+            );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Đếm lịch đã đến giờ hoặc quá hạn
+    |--------------------------------------------------------------------------
+    */
+    private function countDueReminders(): int
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | SQL thời điểm nhắc
+        |--------------------------------------------------------------------------
+        */
+        $momentSql =
+            $this->reminderMomentSql(
+                'care_reminder'
             );
 
-            if ($logContent === '') {
-                $logContent =
-                    'Đã hoàn thành lịch chăm sóc: '
-                    . $reminder->content;
-            }
+        /*
+        |--------------------------------------------------------------------------
+        | Truy vấn lịch nhắc
+        |--------------------------------------------------------------------------
+        */
+        $query = DB::table(
+            'customer_care_reminders as care_reminder'
+        )
+            ->leftJoin(
+                'care_statuses as care_status',
+                'care_status.id',
+                '=',
+                'care_reminder.care_status_id'
+            );
 
-            DB::table('customer_care_logs')->insert([
-                'customer_id' => $reminder->customer_id,
-                'staff_id' => Auth::guard('admin')->id(),
-                'care_channel_id' => null,
-                'care_date' => now(),
-                'content' => $logContent,
-                'internal_note' =>
-                'Lịch nhắc: ' . $reminder->content,
-                'next_follow_up_at' => null,
-                'care_priority_id' =>
-                $reminder->care_priority_id,
-                'care_status_id' =>
-                $completedStatusId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        });
-
-        return back()->with(
-            'success',
-            'Đã hoàn thành lịch chăm sóc khách hàng.'
+        /*
+        |--------------------------------------------------------------------------
+        | Chỉ lấy lịch chưa hoàn thành
+        |--------------------------------------------------------------------------
+        */
+        $this->applyOpenReminderCondition(
+            $query,
+            'care_reminder',
+            'care_status'
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Đếm lịch đến hạn
+        |--------------------------------------------------------------------------
+        */
+        return $query
+            ->whereNotNull(
+                'care_reminder.reminder_date'
+            )
+            ->whereRaw(
+                $momentSql.' <= ?',
+                [
+                    now()->format(
+                        'Y-m-d H:i:s'
+                    ),
+                ]
+            )
+            ->count();
     }
 
-    /**
-     * Xóa lịch nhắc nhập sai.
-     */
-    public function destroyReminder(
-        int $reminderId
-    ): RedirectResponse {
-        $reminder = DB::table('customer_care_reminders')
-            ->where('id', $reminderId)
-            ->first();
+    /*
+    |--------------------------------------------------------------------------
+    | Định dạng dữ liệu một lịch nhắc
+    |--------------------------------------------------------------------------
+    */
+    private function decorateReminder(
+        object $reminder
+    ): object {
+        /*
+        |--------------------------------------------------------------------------
+        | Mã trạng thái
+        |--------------------------------------------------------------------------
+        */
+        $statusCode =
+            $reminder->status_code
+            ?? null;
 
-        abort_if(
-            !$reminder,
-            404,
-            'Không tìm thấy lịch nhắc.'
+        /*
+        |--------------------------------------------------------------------------
+        | Kiểm tra lịch đã hoàn thành
+        |--------------------------------------------------------------------------
+        */
+        $isCompleted =
+            $reminder->completed_at !== null
+            || $statusCode === 'completed';
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lịch chưa có thời gian nhắc
+        |--------------------------------------------------------------------------
+        */
+        if (
+            empty($reminder->reminder_date)
+            && empty($reminder->snoozed_until)
+        ) {
+            $reminder->reminder_at_display =
+                'Chưa đặt thời gian';
+
+            $reminder->is_completed =
+                $isCompleted;
+
+            $reminder->is_due =
+                false;
+
+            return $reminder;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Xác định thời gian thực tế
+        |--------------------------------------------------------------------------
+        */
+        $rawMoment =
+            $reminder->snoozed_until
+            ?: trim(
+                (string) $reminder
+                    ->reminder_date
+                    .' '
+                    .(
+                        (string) $reminder
+                            ->reminder_time
+                        ?: '00:00:00'
+                    )
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Chuyển thành đối tượng thời gian
+        |--------------------------------------------------------------------------
+        */
+        $moment = Carbon::parse(
+            $rawMoment
         );
 
-        DB::table('customer_care_reminders')
-            ->where('id', $reminderId)
-            ->delete();
+        /*
+        |--------------------------------------------------------------------------
+        | Định dạng để hiển thị
+        |--------------------------------------------------------------------------
+        */
+        $reminder->reminder_at_display =
+            $moment->format(
+                'd/m/Y H:i'
+            );
 
-        return back()->with(
-            'success',
-            'Đã xóa lịch nhắc chăm sóc.'
-        );
-    }
+        $reminder->is_completed =
+            $isCompleted;
 
-    /**
-     * API lấy các lịch đã đến giờ để hiện thông báo.
-     */
-    public function dueNotifications(): JsonResponse
-    {
-        $staffId = Auth::guard('admin')->id();
+        /*
+        |--------------------------------------------------------------------------
+        | Kiểm tra lịch đã đến giờ
+        |--------------------------------------------------------------------------
+        */
+        $reminder->is_due =
+            ! $isCompleted
+            && $statusCode !== 'cancelled'
+            && $moment->lte(now());
 
-        $today = now()->toDateString();
-        $currentTime = now()->format('H:i:s');
-
-        $reminders = DB::table('customer_care_reminders')
-            ->join(
-                'customers',
-                'customers.id',
-                '=',
-                'customer_care_reminders.customer_id'
-            )
-            ->leftJoin(
-                'customer_details',
-                'customer_details.customer_id',
-                '=',
-                'customers.id'
-            )
-            ->leftJoin(
-                'care_priorities',
-                'care_priorities.id',
-                '=',
-                'customer_care_reminders.care_priority_id'
-            )
-            ->whereNull(
-                'customer_care_reminders.completed_at'
-            )
-            ->where(function ($query) use ($staffId) {
-                $query
-                    ->whereNull(
-                        'customer_care_reminders.assigned_staff_id'
-                    )
-                    ->orWhere(
-                        'customer_care_reminders.assigned_staff_id',
-                        $staffId
-                    );
-            })
-            ->where(function ($query) use (
-                $today,
-                $currentTime
-            ) {
-                $query
-                    ->whereDate(
-                        'customer_care_reminders.reminder_date',
-                        '<',
-                        $today
-                    )
-                    ->orWhere(function ($subQuery) use (
-                        $today,
-                        $currentTime
-                    ) {
-                        $subQuery
-                            ->whereDate(
-                                'customer_care_reminders.reminder_date',
-                                $today
-                            )
-                            ->whereRaw(
-                                "COALESCE(
-                                    customer_care_reminders.reminder_time,
-                                    '00:00:00'
-                                ) <= ?",
-                                [$currentTime]
-                            );
-                    });
-            })
-            ->select([
-                'customer_care_reminders.id',
-                'customer_care_reminders.customer_id',
-                'customer_care_reminders.reminder_date',
-                'customer_care_reminders.reminder_time',
-                'customer_care_reminders.content',
-
-                'customers.full_name',
-                'customers.phone',
-                'customers.note as customer_note',
-
-                'customer_details.address',
-                'customer_details.ward',
-                'customer_details.district',
-                'customer_details.province',
-                'customer_details.consultation_note',
-
-                'care_priorities.name as priority_name',
-            ])
-            ->orderBy(
-                'customer_care_reminders.reminder_date'
-            )
-            ->orderByRaw(
-                "COALESCE(
-                    customer_care_reminders.reminder_time,
-                    '00:00:00'
-                )"
-            )
-            ->limit(20)
-            ->get()
-            ->map(function ($reminder) {
-                $address = implode(
-                    ', ',
-                    array_filter(
-                        [
-                            $reminder->address,
-                            $reminder->ward,
-                            $reminder->district,
-                            $reminder->province,
-                        ],
-                        fn($value) =>
-                        $value !== null
-                            && trim((string) $value) !== ''
-                    )
-                );
-
-                $reminderAt = Carbon::parse(
-                    $reminder->reminder_date
-                        . ' '
-                        . (
-                            $reminder->reminder_time
-                            ?: '00:00:00'
-                        )
-                );
-
-                return [
-                    'id' => $reminder->id,
-
-                    'customer_id' =>
-                    $reminder->customer_id,
-
-                    'customer_name' =>
-                    $reminder->full_name,
-
-                    'phone' =>
-                    $reminder->phone,
-
-                    'address' =>
-                    $address !== ''
-                        ? $address
-                        : 'Chưa cập nhật địa chỉ',
-
-                    'content' =>
-                    $reminder->content
-                        ?: 'Không có nội dung ghi chú',
-
-                    'customer_note' =>
-                    $reminder->customer_note
-                        ?: 'Không có ghi chú khách hàng',
-
-                    'consultation_note' =>
-                    $reminder->consultation_note
-                        ?: 'Không có ghi chú tư vấn',
-
-                    'priority_name' =>
-                    $reminder->priority_name
-                        ?: 'Bình thường',
-
-                    'reminder_at' =>
-                    $reminderAt->format(
-                        'd/m/Y H:i'
-                    ),
-
-                    'customer_url' => route(
-                        'admin.customer-care.show',
-                        [
-                            'customerId' =>
-                            $reminder->customer_id,
-                        ]
-                    ),
-
-                    'complete_url' => route(
-                        'admin.customer-care.reminders.complete',
-                        [
-                            'reminderId' =>
-                            $reminder->id,
-                        ]
-                    ),
-                ];
-            })
-            ->values();
-
-        return response()->json([
-            'success' => true,
-            'server_time' =>
-            now()->format('d/m/Y H:i:s'),
-            'reminders' => $reminders,
-        ]);
+        return $reminder;
     }
 }

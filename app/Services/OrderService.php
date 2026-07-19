@@ -6,6 +6,7 @@ use App\Models\CustomerInvoice;
 use App\Models\CustomerOrder;
 use App\Models\OrderHistory;
 use App\Models\Payment;
+use App\Support\Money;
 use App\Support\StatusHelper;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -30,8 +31,8 @@ class OrderService
 
                 'order_status_id' => StatusHelper::id('order_statuses', 'pending'),
                 'payment_status_id' => $this->paymentStatusId(
-                    (float) $calc['paid_amount'],
-                    (float) $calc['final_amount']
+                    $calc['paid_amount'],
+                    $calc['final_amount']
                 ),
 
                 'subtotal_amount' => $calc['subtotal_amount'],
@@ -40,6 +41,9 @@ class OrderService
                 'order_discount_percent' => $calc['order_discount_percent'],
                 'order_discount_amount' => $calc['order_discount_amount'],
                 'final_amount' => $calc['final_amount'],
+                'returned_amount' => 0,
+                'net_amount' => $calc['final_amount'],
+                'return_status' => 'none',
                 'paid_amount' => $calc['paid_amount'],
                 'debt_amount' => $calc['debt_amount'],
 
@@ -68,12 +72,12 @@ class OrderService
                 'created_by' => $adminId,
             ]);
 
-            if ((float) $calc['paid_amount'] > 0) {
+            if (Money::cents($calc['paid_amount']) > 0) {
                 Payment::create([
                     'customer_order_id' => $order->id,
                     'payment_status_id' => $this->paymentStatusId(
-                        (float) $calc['paid_amount'],
-                        (float) $calc['final_amount']
+                        $calc['paid_amount'],
+                        $calc['final_amount']
                     ),
                     'payment_code' => $this->makeCode('PAY', 'payments', 'payment_code'),
                     'amount' => $calc['paid_amount'],
@@ -109,6 +113,14 @@ class OrderService
                 throw new RuntimeException('Đơn hàng đã hủy, không thể sửa.');
             }
 
+            if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
+                throw new RuntimeException('Đơn hàng đã hoàn thành không thể sửa; hãy dùng chức năng hoàn trả.');
+            }
+
+            if (($order->return_status ?? 'none') !== 'none') {
+                throw new RuntimeException('Đơn hàng đã phát sinh hoàn trả, không thể sửa nội dung gốc.');
+            }
+
             $oldData = $order->load('items')->toArray();
 
             /*
@@ -116,7 +128,7 @@ class OrderService
             | HOÀN KHO CŨ TRƯỚC KHI SỬA ĐƠN
             |--------------------------------------------------------------------------
             */
-            if (!$order->stock_reverted) {
+            if (! $order->stock_reverted) {
                 $this->stockService->returnOrderStock($order, 'edit_return', $adminId);
             }
 
@@ -147,8 +159,8 @@ class OrderService
                 'customer_id' => $data['customer_id'],
 
                 'payment_status_id' => $this->paymentStatusId(
-                    (float) $calc['paid_amount'],
-                    (float) $calc['final_amount']
+                    $calc['paid_amount'],
+                    $calc['final_amount']
                 ),
 
                 'subtotal_amount' => $calc['subtotal_amount'],
@@ -157,6 +169,9 @@ class OrderService
                 'order_discount_percent' => $calc['order_discount_percent'],
                 'order_discount_amount' => $calc['order_discount_amount'],
                 'final_amount' => $calc['final_amount'],
+                'returned_amount' => 0,
+                'net_amount' => $calc['final_amount'],
+                'return_status' => 'none',
                 'paid_amount' => $calc['paid_amount'],
                 'debt_amount' => $calc['debt_amount'],
 
@@ -185,7 +200,8 @@ class OrderService
             */
             if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
                 $this->commissionService->createForOrder(
-                    $order->fresh(['items.product', 'customer'])
+                    $order->fresh(['items.product', 'customer']),
+                    $adminId
                 );
             }
 
@@ -212,6 +228,16 @@ class OrderService
 
             if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'cancelled')) {
                 throw new RuntimeException('Đơn hàng đã hủy, không thể hoàn thành.');
+            }
+
+            if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
+                $this->commissionService->createForOrder($order, $adminId);
+
+                return $order->fresh(['items', 'invoice', 'customer', 'commission']);
+            }
+
+            if (($order->return_status ?? 'none') !== 'none') {
+                throw new RuntimeException('Đơn hàng đã phát sinh hoàn trả, không thể hoàn thành lại.');
             }
 
             $oldData = $order->toArray();
@@ -243,7 +269,8 @@ class OrderService
             |--------------------------------------------------------------------------
             */
             $this->commissionService->createForOrder(
-                $order->fresh(['items.product', 'customer'])
+                $order->fresh(['items.product', 'customer']),
+                $adminId
             );
 
             $this->history(
@@ -271,6 +298,14 @@ class OrderService
                 return $order;
             }
 
+            if ((int) $order->order_status_id === StatusHelper::id('order_statuses', 'completed')) {
+                throw new RuntimeException('Đơn hàng đã hoàn thành không thể hủy; hãy hoàn trả hàng hóa.');
+            }
+
+            if (($order->return_status ?? 'none') !== 'none') {
+                throw new RuntimeException('Đơn hàng đã phát sinh hoàn trả, không thể hủy theo luồng hủy đơn.');
+            }
+
             $oldData = $order->toArray();
 
             /*
@@ -278,7 +313,7 @@ class OrderService
             | HOÀN KHO KHI HỦY ĐƠN
             |--------------------------------------------------------------------------
             */
-            if (!$order->stock_reverted) {
+            if (! $order->stock_reverted) {
                 $this->stockService->returnOrderStock($order, 'cancel_return', $adminId);
             }
 
@@ -309,7 +344,7 @@ class OrderService
                     'status' => 'void',
                     'voided_by' => $adminId,
                     'voided_at' => now(),
-                    'note' => trim(($order->invoice->note ?? '') . "\nHủy hóa đơn: " . $reason),
+                    'note' => trim(($order->invoice->note ?? '')."\nHủy hóa đơn: ".$reason),
                 ]);
             }
 
@@ -354,13 +389,16 @@ class OrderService
         });
     }
 
-    private function paymentStatusId(float $paidAmount, float $finalAmount): int
+    private function paymentStatusId(int|float|string $paidAmount, int|float|string $finalAmount): int
     {
-        if ($paidAmount <= 0) {
+        $paidCents = Money::cents($paidAmount);
+        $finalCents = Money::cents($finalAmount);
+
+        if ($paidCents <= 0) {
             return StatusHelper::id('payment_statuses', 'unpaid');
         }
 
-        if ($paidAmount >= $finalAmount) {
+        if ($paidCents >= $finalCents) {
             return StatusHelper::id('payment_statuses', 'paid');
         }
 
@@ -395,7 +433,7 @@ class OrderService
     private function makeCode(string $prefix, string $table, string $column): string
     {
         do {
-            $code = $prefix . now()->format('ymdHis') . random_int(100, 999);
+            $code = $prefix.now()->format('ymdHis').random_int(100, 999);
         } while (DB::table($table)->where($column, $code)->exists());
 
         return $code;

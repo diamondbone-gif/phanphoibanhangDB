@@ -2,7 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\CommissionState;
 use App\Models\CustomerOrder;
+use App\Models\CustomerOrderReturn;
+use App\Support\Money;
+use App\Support\StatusHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -29,7 +33,7 @@ class CommissionService
                 ->lockForUpdate()
                 ->find($order->id);
 
-            if (!$order) {
+            if (! $order) {
                 return null;
             }
 
@@ -38,7 +42,7 @@ class CommissionService
             | 1. Chỉ tính hoa hồng khi đơn đã hoàn thành
             |--------------------------------------------------------------------------
             */
-            $completedStatusId = $this->getStatusId('order_statuses', 'completed', 2);
+            $completedStatusId = StatusHelper::id('order_statuses', 'completed');
 
             if ((int) $order->order_status_id !== (int) $completedStatusId) {
                 return null;
@@ -51,23 +55,9 @@ class CommissionService
             */
             $existingCommission = DB::table('customer_commissions')
                 ->where('customer_order_id', $order->id)
-                ->when(
-                    Schema::hasColumn('customer_commissions', 'deleted_at'),
-                    fn($query) => $query->whereNull('deleted_at')
-                )
-                ->where(function ($query) {
-                    if (Schema::hasColumn('customer_commissions', 'status')) {
-                        $query->whereNull('status')
-                            ->orWhere('status', '!=', 'cancelled');
-                    }
-                })
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
                 ->first();
-
-            if ($existingCommission) {
-                $this->markOrderCommissionCreated($order, (float) $order->final_amount, $adminId);
-
-                return $existingCommission;
-            }
 
             /*
             |--------------------------------------------------------------------------
@@ -76,7 +66,7 @@ class CommissionService
             */
             $referral = $this->findReferralForCustomer((int) $order->customer_id);
 
-            if (!$referral || empty($referral->referrer_customer_id)) {
+            if (! $referral || empty($referral->referrer_customer_id)) {
                 return null;
             }
 
@@ -84,7 +74,7 @@ class CommissionService
                 ->where('id', $referral->referrer_customer_id)
                 ->first();
 
-            if (!$ctv) {
+            if (! $ctv) {
                 return null;
             }
 
@@ -98,7 +88,9 @@ class CommissionService
             */
             $commissionRate = $this->getCommissionRate($ctv, $referral);
 
-            if ($commissionRate <= 0) {
+            $commissionBasisPoints = Money::percentBasisPoints($commissionRate);
+
+            if ($commissionBasisPoints <= 0) {
                 return null;
             }
 
@@ -114,9 +106,13 @@ class CommissionService
             | Tuyệt đối không tính theo subtotal_amount.
             |--------------------------------------------------------------------------
             */
-            $orderFinalAmount = (float) $order->final_amount;
+            $orderFinalAmount = ($order->return_status ?? 'none') === 'none'
+                ? $order->final_amount
+                : $order->net_amount;
 
-            if ($orderFinalAmount <= 0) {
+            $orderFinalCents = Money::cents($orderFinalAmount);
+
+            if ($orderFinalCents <= 0) {
                 return null;
             }
 
@@ -125,7 +121,9 @@ class CommissionService
             | 6. Tính hoa hồng
             |--------------------------------------------------------------------------
             */
-            $commissionAmount = round($orderFinalAmount * $commissionRate / 100, 2);
+            $commissionAmount = Money::decimal(
+                Money::percentage($orderFinalCents, $commissionBasisPoints)
+            );
 
             /*
             |--------------------------------------------------------------------------
@@ -150,8 +148,8 @@ class CommissionService
                 'commission_rate_percent' => $commissionRate,
                 'commission_amount' => $commissionAmount,
 
-                'commission_status_id' => $this->getStatusId('commission_statuses', 'pending', 1),
-                'status' => 'unpaid',
+                'commission_status_id' => StatusHelper::id('commission_statuses', 'pending'),
+                'status' => CommissionState::Unpaid->value,
 
                 'paid_amount' => 0,
                 'commission_date' => now(),
@@ -163,9 +161,36 @@ class CommissionService
                 'updated_at' => now(),
             ];
 
-            $commissionId = DB::table('customer_commissions')->insertGetId(
-                $this->onlyExistingColumns('customer_commissions', $commissionData)
-            );
+            if ($existingCommission) {
+                $paidAmountCents = Money::cents($existingCommission->paid_amount ?? 0);
+                $commissionAmountCents = Money::cents($commissionAmount);
+                $clawbackCents = max(0, $paidAmountCents - $commissionAmountCents);
+                $status = match (true) {
+                    $clawbackCents > 0 => CommissionState::Clawback->value,
+                    $paidAmountCents >= $commissionAmountCents => CommissionState::Paid->value,
+                    default => CommissionState::Unpaid->value,
+                };
+
+                $commissionData['status'] = $status;
+                $commissionData['commission_status_id'] = StatusHelper::id(
+                    'commission_statuses',
+                    $status === CommissionState::Paid->value ? 'paid' : 'pending'
+                );
+                $commissionData['clawback_amount'] = Money::decimal($clawbackCents);
+                $commissionData['cancelled_at'] = null;
+                $commissionData['cancelled_by'] = null;
+                $commissionData['cancel_reason'] = null;
+                $commissionData['cancelled_reason'] = null;
+                $commissionData['updated_at'] = now();
+                unset($commissionData['commission_code'], $commissionData['paid_amount'], $commissionData['created_at']);
+
+                DB::table('customer_commissions')
+                    ->where('id', $existingCommission->id)
+                    ->update($commissionData);
+                $commissionId = $existingCommission->id;
+            } else {
+                $commissionId = DB::table('customer_commissions')->insertGetId($commissionData);
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -191,6 +216,104 @@ class CommissionService
         return $this->createForOrder($order, $adminId);
     }
 
+    public function recalculateForOrder(
+        CustomerOrder $order,
+        ?int $adminId = null,
+        ?CustomerOrderReturn $orderReturn = null
+    ): ?object {
+        return DB::transaction(function () use ($order, $adminId, $orderReturn) {
+            $order = CustomerOrder::query()->lockForUpdate()->findOrFail($order->id);
+            $commission = DB::table('customer_commissions')
+                ->where('customer_order_id', $order->id)
+                ->where(function ($query) {
+                    $query->whereNull('status')->orWhere('status', '!=', CommissionState::Cancelled->value);
+                })
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
+            $commissionBaseCents = max(0, Money::cents($order->net_amount ?? $order->final_amount));
+
+            if (! $commission) {
+                return $commissionBaseCents > 0 ? $this->createForOrder($order, $adminId) : null;
+            }
+
+            $rate = $commission->commission_rate_percent ?? $commission->commission_rate ?? 0;
+            $newAmountCents = Money::percentage(
+                $commissionBaseCents,
+                Money::percentBasisPoints($rate)
+            );
+            $paidAmountCents = Money::cents($commission->paid_amount ?? 0);
+            $clawbackCents = max(0, $paidAmountCents - $newAmountCents);
+
+            $status = match (true) {
+                $clawbackCents > 0 => CommissionState::Clawback->value,
+                $newAmountCents <= 0 => CommissionState::Cancelled->value,
+                $paidAmountCents >= $newAmountCents => CommissionState::Paid->value,
+                default => CommissionState::Unpaid->value,
+            };
+
+            $update = [
+                'order_amount' => Money::decimal($commissionBaseCents),
+                'order_final_amount' => Money::decimal($commissionBaseCents),
+                'commission_amount' => Money::decimal($newAmountCents),
+                'clawback_amount' => Money::decimal($clawbackCents),
+                'status' => $status,
+                'commission_status_id' => StatusHelper::id(
+                    'commission_statuses',
+                    $status === CommissionState::Cancelled->value
+                        ? 'cancelled'
+                        : ($status === CommissionState::Paid->value ? 'paid' : 'pending')
+                ),
+                'cancelled_at' => $status === CommissionState::Cancelled->value ? now() : null,
+                'cancelled_by' => $status === CommissionState::Cancelled->value ? $adminId : null,
+                'cancel_reason' => $status === CommissionState::Cancelled->value ? 'Đơn hàng đã hoàn trả toàn bộ' : null,
+                'updated_at' => now(),
+            ];
+
+            DB::table('customer_commissions')
+                ->where('id', $commission->id)
+                ->update($update);
+
+            if ($clawbackCents > 0 && $orderReturn) {
+                $recordedClawbackCents = Money::cents(
+                    DB::table('customer_commission_adjustments')
+                        ->where('customer_commission_id', $commission->id)
+                        ->where('adjustment_type', 'clawback')
+                        ->sum('amount')
+                );
+                $newAdjustmentCents = max(0, $clawbackCents - $recordedClawbackCents);
+
+                if ($newAdjustmentCents > 0) {
+                    DB::table('customer_commission_adjustments')->updateOrInsert(
+                        ['customer_order_return_id' => $orderReturn->id],
+                        [
+                            'customer_commission_id' => $commission->id,
+                            'adjustment_code' => 'THH'.$orderReturn->id,
+                            'adjustment_type' => 'clawback',
+                            'amount' => Money::decimal($newAdjustmentCents),
+                            'recovered_amount' => 0,
+                            'status' => 'pending',
+                            'reason' => 'Thu hồi hoa hồng do hoàn đơn '.$order->order_code.' ('.$orderReturn->return_code.').',
+                            'created_by' => $adminId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+                }
+            }
+
+            DB::table('customer_orders')->where('id', $order->id)->update([
+                'commission_created' => $newAmountCents > 0,
+                'commission_base_amount' => Money::decimal($commissionBaseCents),
+                'updated_by' => $adminId,
+                'updated_at' => now(),
+            ]);
+
+            return DB::table('customer_commissions')->where('id', $commission->id)->first();
+        });
+    }
+
     /*
     |--------------------------------------------------------------------------
     | HỦY HOA HỒNG KHI HỦY ĐƠN
@@ -202,11 +325,11 @@ class CommissionService
         ?int $adminId = null
     ): void {
         DB::transaction(function () use ($order, $reason, $adminId) {
-            $cancelStatusId = $this->getStatusId('commission_statuses', 'cancelled', 4);
+            $cancelStatusId = StatusHelper::id('commission_statuses', 'cancelled');
 
             $updateData = [
                 'commission_status_id' => $cancelStatusId,
-                'status' => 'cancelled',
+                'status' => CommissionState::Cancelled->value,
                 'cancelled_at' => now(),
                 'cancelled_by' => $adminId,
                 'cancel_reason' => $reason,
@@ -216,17 +339,9 @@ class CommissionService
 
             DB::table('customer_commissions')
                 ->where('customer_order_id', $order->id)
-                ->when(
-                    Schema::hasColumn('customer_commissions', 'deleted_at'),
-                    fn($query) => $query->whereNull('deleted_at')
-                )
-                ->where(function ($query) {
-                    if (Schema::hasColumn('customer_commissions', 'status')) {
-                        $query->whereNull('status')
-                            ->orWhere('status', '!=', 'cancelled');
-                    }
-                })
-                ->update($this->onlyExistingColumns('customer_commissions', $updateData));
+                ->whereNull('deleted_at')
+                ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', CommissionState::Cancelled->value))
+                ->update($updateData);
 
             $orderUpdateData = [
                 'commission_created' => false,
@@ -237,7 +352,7 @@ class CommissionService
 
             DB::table('customer_orders')
                 ->where('id', $order->id)
-                ->update($this->onlyExistingColumns('customer_orders', $orderUpdateData));
+                ->update($orderUpdateData);
         });
     }
 
@@ -250,15 +365,35 @@ class CommissionService
     */
     private function findReferralForCustomer(int $customerId): ?object
     {
-        if (!Schema::hasTable('customer_referrals')) {
-            return null;
+        $query = DB::table('customer_referrals')
+            ->where('referred_customer_id', $customerId)
+            ->whereNotNull('referrer_customer_id');
+
+        if (Schema::hasColumn('customer_referrals', 'status')) {
+            $query->where(function ($query): void {
+                $query->whereNull('status')->orWhere('status', 'active');
+            });
+        }
+        if (Schema::hasColumn('customer_referrals', 'started_at')) {
+            $query->where(function ($query): void {
+                $query->whereNull('started_at')->orWhere('started_at', '<=', now());
+            });
+        }
+        if (Schema::hasColumn('customer_referrals', 'ended_at')) {
+            $query->whereNull('ended_at');
+        }
+        if (Schema::hasColumn('customer_referrals', 'effective_from')) {
+            $query->where(function ($query): void {
+                $query->whereNull('effective_from')->orWhere('effective_from', '<=', now());
+            });
+        }
+        if (Schema::hasColumn('customer_referrals', 'effective_to')) {
+            $query->where(function ($query): void {
+                $query->whereNull('effective_to')->orWhere('effective_to', '>=', now());
+            });
         }
 
-        return DB::table('customer_referrals')
-            ->where('referred_customer_id', $customerId)
-            ->whereNotNull('referrer_customer_id')
-            ->orderByDesc('id')
-            ->first();
+        return $query->orderByDesc('id')->first();
     }
 
     /*
@@ -266,25 +401,25 @@ class CommissionService
     | LẤY % HOA HỒNG CỦA CTV
     |--------------------------------------------------------------------------
     */
-    private function getCommissionRate(object $ctv, object $referral): float
+    private function getCommissionRate(object $ctv, object $referral): string
     {
-        $ctvRate = isset($ctv->commission_rate)
-            ? (float) $ctv->commission_rate
-            : 0;
-
-        if ($ctvRate > 0) {
-            return $ctvRate;
-        }
-
         $referralRate = isset($referral->commission_rate)
-            ? (float) $referral->commission_rate
-            : 0;
+            ? (string) $referral->commission_rate
+            : '0';
 
-        if ($referralRate > 0) {
+        if (Money::percentBasisPoints($referralRate) > 0) {
             return $referralRate;
         }
 
-        return 0;
+        $ctvRate = isset($ctv->commission_rate)
+            ? (string) $ctv->commission_rate
+            : '0';
+
+        if (Money::percentBasisPoints($ctvRate) > 0) {
+            return $ctvRate;
+        }
+
+        return '0';
     }
 
     /*
@@ -294,7 +429,7 @@ class CommissionService
     */
     private function markOrderCommissionCreated(
         CustomerOrder $order,
-        float $orderFinalAmount,
+        int|float|string $orderFinalAmount,
         ?int $adminId = null
     ): void {
         $updateData = [
@@ -306,29 +441,7 @@ class CommissionService
 
         DB::table('customer_orders')
             ->where('id', $order->id)
-            ->update($this->onlyExistingColumns('customer_orders', $updateData));
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | LẤY ID TRẠNG THÁI THEO CODE
-    |--------------------------------------------------------------------------
-    */
-    private function getStatusId(string $table, string $code, ?int $default = null): ?int
-    {
-        if (!Schema::hasTable($table)) {
-            return $default;
-        }
-
-        if (!Schema::hasColumn($table, 'code')) {
-            return $default;
-        }
-
-        $id = DB::table($table)
-            ->where('code', $code)
-            ->value('id');
-
-        return $id ? (int) $id : $default;
+            ->update($updateData);
     }
 
     /*
@@ -339,33 +452,13 @@ class CommissionService
     private function makeCommissionCode(): string
     {
         do {
-            $code = 'HH' . now()->format('ymdHis') . strtoupper(Str::random(4));
+            $code = 'HH'.now()->format('ymdHis').strtoupper(Str::random(4));
         } while (
             DB::table('customer_commissions')
-            ->where('commission_code', $code)
-            ->exists()
+                ->where('commission_code', $code)
+                ->exists()
         );
 
         return $code;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | CHỈ GHI NHỮNG CỘT CÓ TỒN TẠI TRONG DATABASE
-    |--------------------------------------------------------------------------
-    | Giúp tránh lỗi nếu database thiếu một cột nào đó.
-    |--------------------------------------------------------------------------
-    */
-    private function onlyExistingColumns(string $table, array $data): array
-    {
-        $result = [];
-
-        foreach ($data as $column => $value) {
-            if (Schema::hasColumn($table, $column)) {
-                $result[$column] = $value;
-            }
-        }
-
-        return $result;
     }
 }

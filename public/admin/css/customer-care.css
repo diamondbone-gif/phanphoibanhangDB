@@ -1,0 +1,1497 @@
+:root {
+    /* ================================================================
+    | MÀU CHỮ
+    ================================================================= */
+    --commission-text: #111827;
+    --commission-title: #0f172a;
+    --commission-muted: #64748b;
+    --commission-white: #ffffff;
+    /* ================================================================
+    | MÀU NỀN
+    ================================================================= */
+    --commission-bg-main: #eef5ff;
+    --commission-bg-light: #f8fbff;
+    --commission-bg-white: #ffffff;
+    --commission-bg-soft-blue: #eff6ff;
+    --commission-bg-soft-card: #f2f8ff;
+    --commission-bg-table-head: #e8f2ff;
+    /* ================================================================
+    | MÀU VIỀN
+    ================================================================= */
+    --commission-border: #dbeafe;
+    --commission-border-soft: #edf4ff;
+    --commission-border-blue: #c9dcfb;
+    /* ================================================================
+    | MÀU CHÍNH
+    ================================================================= */
+    --commission-blue: #2376e5;
+    --commission-blue-dark: #164b9a;
+    --commission-blue-light: #42b9e2;
+    --commission-cyan: #14b8d4;
+    --commission-purple: #6d4ce8;
+    --commission-purple-light: #8258ec;
+    --commission-green: #20b95b;
+    --commission-green-dark: #149347;
+    --commission-green-light: #52cc7a;
+    --commission-red: #f04a32;
+    --commission-red-dark: #d93d2b;
+    --commission-orange: #fb6c42;
+    --commission-warning: #e59a13;
+    --commission-warning-bg: #fff8e5;
+    /* ================================================================
+    | SHADOW
+    ================================================================= */
+    --commission-shadow-xs: 0 3px 10px rgba(15, 23, 42, 0.035);
+    --commission-shadow-sm: 0 7px 18px rgba(30, 64, 175, 0.06);
+    --commission-shadow-md: 0 12px 32px rgba(37, 99, 235, 0.09);
+    --commission-shadow-lg: 0 18px 46px rgba(15, 23, 42, 0.11);
+    --commission-shadow-modal: 0 28px 85px rgba(15, 23, 42, 0.28);
+    /* ================================================================
+    | GRADIENT
+    ================================================================= */
+    --commission-gradient-page: radial-gradient(circle at 9% 6%, rgba(37, 99, 235, 0.16), transparent 30%), radial-gradient(circle at 92% 11%, rgba(6, 182, 212, 0.13), transparent 32%), linear-gradient(135deg, #edf4ff 0%, #f8fbff 49%, #eefaff 100%);
+    --commission-gradient-blue: linear-gradient(135deg, #2375e4 0%, #248fdc 55%, #41b9dd 100%);
+    --commission-gradient-purple: linear-gradient(135deg, #4458ed 0%, #6550ea 52%, #8258ec 100%);
+    --commission-gradient-green: linear-gradient(135deg, #18aa4f 0%, #25bd5e 52%, #53cd7c 100%);
+    --commission-gradient-red: linear-gradient(135deg, #f14535 0%, #fb5837 54%, #ff754b 100%);
+    --commission-gradient-cyan: linear-gradient(135deg, #1a84df 0%, #259fdc 52%, #42bee0 100%);
+}
+
+
+/* ====================================================================
+| RESET TRONG TRANG CHĂM SÓC
+===================================================================== */
+
+.customer-care-page,
+.customer-care-page *,
+.customer-care-page *::before,
+.customer-care-page *::after,
+.care-modal,
+.care-modal *,
+.care-modal *::before,
+.care-modal *::after {
+    box-sizing: border-box;
+}
+
+
+/* ====================================================================
+| KHUNG TRANG
+===================================================================== */
+
+.customer-care-page {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    padding: clamp(24px, 2.5vw, 38px) clamp(16px, 2.5vw, 36px) clamp(32px, 4vw, 56px);
+    overflow-x: hidden;
+    color: var(--commission-text);
+    background: var(--commission-gradient-page);
+    background-attachment: fixed;
+    isolation: isolate;
+}
+
+.customer-care-page::before {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    content: "";
+    pointer-events: none;
+    background: linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15));
+}
+
+.customer-care-page::after {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    pointer-events: none;
+    opacity: 0.17;
+    background-image: linear-gradient(rgba(65, 105, 225, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(65, 105, 225, 0.1) 1px, transparent 1px);
+    background-size: 44px 44px;
+}
+
+.customer-care-page>* {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+
+/* ====================================================================
+| HIỆU ỨNG KÍNH
+===================================================================== */
+
+.care-glass {
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(244, 249, 255, 0.76));
+    box-shadow: var(--commission-shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    -webkit-backdrop-filter: blur(25px) saturate(165%);
+    backdrop-filter: blur(25px) saturate(165%);
+}
+
+
+/* ====================================================================
+| TIÊU ĐỀ TRANG
+===================================================================== */
+
+.care-page-header {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 142px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    padding: clamp(22px, 2.5vw, 32px) clamp(22px, 3vw, 38px);
+    overflow: hidden;
+    border-radius: 24px;
+}
+
+.care-page-header::before {
+    position: absolute;
+    top: -115%;
+    left: -7%;
+    width: 40%;
+    height: 320%;
+    content: "";
+    pointer-events: none;
+    opacity: 0.48;
+    transform: rotate(18deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+}
+
+.care-page-header::after {
+    position: absolute;
+    top: -100px;
+    right: -55px;
+    width: 245px;
+    height: 245px;
+    content: "";
+    pointer-events: none;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 69%);
+}
+
+.care-page-header>div {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+}
+
+.care-breadcrumb,
+.care-back-link {
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    padding: 5px 11px;
+    border: 1px solid var(--commission-border-blue);
+    border-radius: 999px;
+    color: var(--commission-blue-dark);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: var(--commission-shadow-xs), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.3;
+    text-decoration: none;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.care-back-link:hover {
+    color: var(--commission-blue);
+    border-color: var(--commission-blue);
+    box-shadow: var(--commission-shadow-sm);
+    transform: translateX(-2px);
+}
+
+.care-page-title {
+    max-width: 100%;
+    margin: 0;
+    color: var(--commission-title);
+    font-size: clamp(1.55rem, 2.5vw, 2.25rem);
+    font-weight: 850;
+    line-height: 1.15;
+    letter-spacing: -0.045em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.care-page-description {
+    max-width: 780px;
+    margin: 10px 0 0;
+    color: var(--commission-muted);
+    font-size: clamp(0.78rem, 1.1vw, 0.92rem);
+    font-weight: 550;
+    line-height: 1.65;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+
+/* ====================================================================
+| THÔNG BÁO
+===================================================================== */
+
+.care-alert {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 15px 18px;
+    overflow: hidden;
+    border-radius: 17px;
+    box-shadow: var(--commission-shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.55;
+    -webkit-backdrop-filter: blur(18px) saturate(155%);
+    backdrop-filter: blur(18px) saturate(155%);
+}
+
+.care-alert>div {
+    min-width: 0;
+}
+
+.care-alert ul {
+    padding-left: 20px;
+}
+
+.care-alert-success {
+    color: #0b7c44;
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(220, 252, 231, 0.82));
+}
+
+.care-alert-danger {
+    color: #c9382d;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 237, 234, 0.87));
+}
+
+.care-alert-warning {
+    color: #986100;
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 220, 0.88));
+}
+
+
+/* ====================================================================
+| THẺ THỐNG KÊ
+===================================================================== */
+
+.care-stat-card {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 134px;
+    flex-direction: column;
+    justify-content: center;
+    padding: 19px 20px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 17px;
+    color: var(--commission-white);
+    box-shadow: 0 13px 28px rgba(28, 69, 145, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    isolation: isolate;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.care-stat-card::before {
+    position: absolute;
+    top: -42px;
+    right: -27px;
+    z-index: -1;
+    width: 108px;
+    height: 108px;
+    content: "";
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.care-stat-card::after {
+    position: absolute;
+    right: 21px;
+    bottom: 13px;
+    z-index: -1;
+    width: 47px;
+    height: 47px;
+    content: "";
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    transform: rotate(18deg);
+}
+
+.care-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 19px 38px rgba(28, 69, 145, 0.19), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.care-stat-blue {
+    background: var(--commission-gradient-blue);
+}
+
+.care-stat-cyan {
+    background: var(--commission-gradient-cyan);
+}
+
+.care-stat-purple {
+    background: var(--commission-gradient-purple);
+}
+
+.care-stat-green {
+    background: var(--commission-gradient-green);
+}
+
+.care-stat-red {
+    background: var(--commission-gradient-red);
+}
+
+.care-stat-card span {
+    position: relative;
+    z-index: 1;
+    font-size: 0.68rem;
+    font-weight: 850;
+    line-height: 1.35;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.care-stat-card strong {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin: 9px 0 5px;
+    color: var(--commission-white);
+    font-size: clamp(1.85rem, 3vw, 2.55rem);
+    font-weight: 850;
+    line-height: 1;
+    letter-spacing: -0.055em;
+}
+
+.care-stat-card small {
+    position: relative;
+    z-index: 1;
+    opacity: 0.9;
+    font-size: 0.7rem;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+
+/* ====================================================================
+| PANEL
+===================================================================== */
+
+.care-panel {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    padding: clamp(18px, 2vw, 25px);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.84);
+    border-radius: 21px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.91), rgba(247, 251, 255, 0.79));
+    box-shadow: var(--commission-shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    -webkit-backdrop-filter: blur(25px) saturate(160%);
+    backdrop-filter: blur(25px) saturate(160%);
+}
+
+.care-panel::before {
+    position: absolute;
+    top: 0;
+    left: 8%;
+    width: 62%;
+    height: 1px;
+    content: "";
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.98), transparent);
+}
+
+.care-panel::after {
+    position: absolute;
+    top: -95px;
+    right: -65px;
+    width: 180px;
+    height: 180px;
+    content: "";
+    pointer-events: none;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.09), transparent 70%);
+}
+
+.care-panel>* {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.care-table-panel {
+    padding: 0;
+}
+
+.care-panel-heading {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 78px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 18px 21px;
+    border-bottom: 1px solid var(--commission-border-soft);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(242, 248, 255, 0.57));
+}
+
+.care-panel-heading>div {
+    min-width: 0;
+}
+
+.care-section-title {
+    max-width: 100%;
+    margin: 0;
+    color: var(--commission-title);
+    font-size: clamp(1rem, 1.5vw, 1.15rem);
+    font-weight: 850;
+    line-height: 1.35;
+    letter-spacing: -0.025em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.care-section-description {
+    max-width: 100%;
+    margin: 5px 0 0;
+    color: var(--commission-muted);
+    font-size: 0.75rem;
+    font-weight: 550;
+    line-height: 1.5;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+
+/* ====================================================================
+| THÔNG TIN KHÁCH HÀNG
+===================================================================== */
+
+.care-info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.care-info-item {
+    position: relative;
+    min-width: 0;
+    min-height: 102px;
+    padding: 15px 16px;
+    overflow: hidden;
+    border: 1px solid var(--commission-border);
+    border-radius: 15px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.93), rgba(239, 246, 255, 0.76));
+    box-shadow: var(--commission-shadow-xs), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+}
+
+.care-info-item::after {
+    position: absolute;
+    top: -28px;
+    right: -22px;
+    width: 74px;
+    height: 74px;
+    content: "";
+    pointer-events: none;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.09), transparent 70%);
+}
+
+.care-info-item:hover {
+    border-color: #b8d3fb;
+    box-shadow: var(--commission-shadow-sm);
+    transform: translateY(-2px);
+}
+
+.care-info-item span {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin-bottom: 7px;
+    color: var(--commission-muted);
+    font-size: 0.67rem;
+    font-weight: 850;
+    line-height: 1.35;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.care-info-item strong {
+    position: relative;
+    z-index: 1;
+    display: block;
+    max-width: 100%;
+    color: var(--commission-title);
+    font-size: 0.81rem;
+    font-weight: 750;
+    line-height: 1.58;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+
+/* ====================================================================
+| FORM
+===================================================================== */
+
+.care-form-label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--commission-title);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.care-form-control {
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 9px 13px;
+    border: 1px solid var(--commission-border-blue);
+    border-radius: 12px;
+    color: var(--commission-text);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(244, 248, 255, 0.87));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98), var(--commission-shadow-xs);
+    font-size: 0.78rem;
+    font-weight: 550;
+    line-height: 1.5;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.care-form-control::placeholder {
+    color: #8794a9;
+    opacity: 0.85;
+}
+
+.care-form-control:hover {
+    border-color: #a9c9f8;
+}
+
+.care-form-control:focus {
+    color: var(--commission-text);
+    border-color: var(--commission-blue);
+    background: var(--commission-white);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1), var(--commission-shadow-sm);
+    outline: none;
+}
+
+textarea.care-form-control {
+    min-height: 96px;
+    resize: vertical;
+}
+
+select.care-form-control {
+    cursor: pointer;
+}
+
+.care-muted {
+    display: block;
+    max-width: 100%;
+    margin-top: 4px;
+    color: var(--commission-muted);
+    font-size: 0.69rem;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.care-text-danger {
+    color: var(--commission-red) !important;
+    font-weight: 750;
+}
+
+
+/* ====================================================================
+| NÚT
+===================================================================== */
+
+.care-btn {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 14px;
+    overflow: hidden;
+    border-radius: 11px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.care-btn::before {
+    position: absolute;
+    top: -130%;
+    left: -55%;
+    width: 48%;
+    height: 350%;
+    content: "";
+    pointer-events: none;
+    opacity: 0;
+    transform: rotate(22deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.68), transparent);
+    transition: left 0.48s ease, opacity 0.25s ease;
+}
+
+.care-btn:hover::before {
+    left: 115%;
+    opacity: 1;
+}
+
+.care-btn:hover {
+    text-decoration: none;
+    transform: translateY(-2px);
+}
+
+.care-btn-primary {
+    border: 1px solid #2193df;
+    color: var(--commission-white);
+    background: var(--commission-gradient-blue);
+    box-shadow: var(--commission-shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.care-btn-primary:hover {
+    color: var(--commission-white);
+    box-shadow: var(--commission-shadow-md);
+}
+
+.care-btn-secondary {
+    border: 1px solid var(--commission-border-blue);
+    color: var(--commission-blue-dark);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(238, 246, 255, 0.89));
+    box-shadow: var(--commission-shadow-xs), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+.care-btn-secondary:hover {
+    color: var(--commission-white);
+    border-color: var(--commission-blue);
+    background: var(--commission-gradient-blue);
+    box-shadow: var(--commission-shadow-sm);
+}
+
+.care-btn-success {
+    border: 1px solid #22b85b;
+    color: var(--commission-white);
+    background: var(--commission-gradient-green);
+    box-shadow: var(--commission-shadow-xs), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.care-btn-success:hover {
+    color: var(--commission-white);
+    box-shadow: var(--commission-shadow-sm);
+}
+
+.care-btn-warning {
+    border: 1px solid rgba(229, 154, 19, 0.45);
+    color: #915a00;
+    background: linear-gradient(135deg, #fffdf5, #fff0bd);
+    box-shadow: var(--commission-shadow-xs);
+}
+
+.care-btn-warning:hover {
+    color: #754800;
+    border-color: var(--commission-warning);
+    box-shadow: var(--commission-shadow-sm);
+}
+
+.care-btn-danger {
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    color: #d53b30;
+    background: linear-gradient(135deg, #fffafa, #ffede9);
+    box-shadow: var(--commission-shadow-xs);
+}
+
+.care-btn-danger:hover {
+    color: var(--commission-white);
+    border-color: var(--commission-red);
+    background: var(--commission-gradient-red);
+    box-shadow: var(--commission-shadow-sm);
+}
+
+.care-btn:disabled,
+.care-btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.62;
+    transform: none;
+}
+
+
+/* ====================================================================
+| LIÊN KẾT
+===================================================================== */
+
+.care-phone-link,
+.care-email-link {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    color: var(--commission-blue);
+    font-weight: 800;
+    text-decoration: none;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.care-phone-link:hover,
+.care-email-link:hover {
+    color: var(--commission-blue-dark);
+    transform: translateX(2px);
+}
+
+.care-email-link {
+    margin-top: 3px;
+    color: var(--commission-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+
+/* ====================================================================
+| TABLE
+===================================================================== */
+
+.care-table-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0 0 20px 20px;
+    background: linear-gradient(135deg, rgba(248, 251, 255, 0.94), rgba(255, 255, 255, 0.95));
+    scrollbar-width: thin;
+    scrollbar-color: #bdd4f6 #f5f9ff;
+}
+
+.care-table-wrap::-webkit-scrollbar {
+    height: 8px;
+}
+
+.care-table-wrap::-webkit-scrollbar-track {
+    background: #f5f9ff;
+}
+
+.care-table-wrap::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #bdd4f6;
+}
+
+.care-table-wrap::-webkit-scrollbar-thumb:hover {
+    background: #99bdf1;
+}
+
+.care-table {
+    width: 100% !important;
+    min-width: 1120px;
+    margin: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 7px !important;
+    table-layout: fixed !important;
+    color: var(--commission-text);
+    background: transparent !important;
+}
+
+.care-table thead {
+    position: relative;
+    z-index: 4;
+}
+
+.care-table thead tr {
+    background: #1e86db !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 7px 18px rgba(37, 99, 235, 0.12);
+}
+
+.care-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 12px 14px !important;
+    overflow: hidden;
+    border: 0 !important;
+    color: var(--commission-white) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 0.67rem;
+    font-weight: 850;
+    line-height: 1.4;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    vertical-align: middle !important;
+}
+
+.care-table thead th:first-child {
+    border-radius: 11px 0 0 11px !important;
+    text-align: center;
+}
+
+.care-table thead th:last-child {
+    border-radius: 0 11px 11px 0 !important;
+}
+
+.care-table tbody tr {
+    background: var(--commission-bg-white);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), var(--commission-shadow-xs);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.care-table tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+
+.care-table tbody tr:nth-child(even) {
+    background: #eef5ff;
+}
+
+.care-table tbody tr:hover {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.98), var(--commission-shadow-sm);
+    transform: translateY(-1px);
+}
+
+.care-table tbody td {
+    position: relative;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 13px 14px !important;
+    overflow: hidden;
+    border: 0 !important;
+    color: var(--commission-text) !important;
+    background: transparent !important;
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.58 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    vertical-align: top !important;
+}
+
+.care-table tbody td:first-child {
+    border-radius: 12px 0 0 12px !important;
+}
+
+.care-table tbody td:last-child {
+    border-radius: 0 12px 12px 0 !important;
+}
+
+.care-table tbody td>*,
+.care-table tbody td strong,
+.care-customer-name,
+.care-note-preview {
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.care-table tbody td strong,
+.care-customer-name {
+    color: var(--commission-title);
+    font-weight: 850;
+}
+
+.care-note-preview {
+    display: -webkit-box;
+    overflow: hidden;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+}
+
+
+/* ====================================================================
+| BADGE
+===================================================================== */
+
+.care-badge {
+    display: inline-flex;
+    max-width: 100%;
+    min-height: 25px;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 850;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.care-badge-success {
+    color: #118144;
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    background: linear-gradient(135deg, #effdf4, #dff8e8);
+}
+
+.care-badge-danger {
+    color: #d13e32;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: linear-gradient(135deg, #fff7f6, #ffe8e5);
+}
+
+.care-badge-warning {
+    color: #a66a08;
+    border: 1px solid rgba(245, 158, 11, 0.29);
+    background: linear-gradient(135deg, #fffdf4, #fff1c8);
+}
+
+.care-badge-info {
+    color: #1762b5;
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    background: linear-gradient(135deg, #f2f8ff, #deecff);
+}
+
+
+/* ====================================================================
+| THAO TÁC
+===================================================================== */
+
+.care-actions {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.care-actions form {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+
+/* ====================================================================
+| TRẠNG THÁI TRỐNG
+===================================================================== */
+
+.care-empty-state {
+    padding: 32px 18px !important;
+    color: var(--commission-muted) !important;
+    background: linear-gradient(135deg, rgba(248, 251, 255, 0.94), rgba(255, 255, 255, 0.95)) !important;
+    font-size: 0.76rem !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+}
+
+
+/* ====================================================================
+| PHÂN TRANG
+===================================================================== */
+
+.care-pagination {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 15px 18px;
+    border-top: 1px solid var(--commission-border-soft);
+    background: rgba(240, 247, 255, 0.58);
+}
+
+.care-pagination nav {
+    max-width: 100%;
+}
+
+.care-pagination .pagination {
+    margin: 0;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.care-pagination .page-item .page-link {
+    display: inline-flex;
+    min-width: 34px;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 9px;
+    border: 1px solid var(--commission-border-blue);
+    border-radius: 9px;
+    color: var(--commission-blue-dark);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--commission-shadow-xs), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    font-size: 0.69rem;
+    font-weight: 800;
+    transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.care-pagination .page-item .page-link:hover {
+    color: var(--commission-white);
+    border-color: var(--commission-blue);
+    background: var(--commission-gradient-blue);
+    transform: translateY(-1px);
+}
+
+.care-pagination .page-item.active .page-link {
+    color: var(--commission-white);
+    border-color: var(--commission-blue);
+    background: var(--commission-gradient-blue);
+    box-shadow: var(--commission-shadow-sm);
+}
+
+.care-pagination .page-item.disabled .page-link {
+    color: #8d9aaf;
+    border-color: var(--commission-border-soft);
+    background: var(--commission-bg-light);
+    opacity: 0.7;
+}
+
+
+/* ====================================================================
+| MODAL SỬA TƯ VẤN
+===================================================================== */
+
+.care-modal .modal-dialog {
+    width: calc(100% - 24px);
+    max-width: 1060px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.care-modal .modal-content {
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.88);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(244, 249, 255, 0.96));
+    box-shadow: var(--commission-shadow-modal), inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    -webkit-backdrop-filter: blur(28px) saturate(165%);
+    backdrop-filter: blur(28px) saturate(165%);
+}
+
+.care-modal .modal-header {
+    padding: 17px 20px;
+    border-bottom: 0;
+    color: var(--commission-white);
+    background: linear-gradient(135deg, #2375e4 0%, #5257e9 52%, #7955e8 100%);
+}
+
+.care-modal .modal-title {
+    font-size: 1rem;
+    font-weight: 850;
+}
+
+.care-modal .modal-body {
+    padding: 21px;
+}
+
+.care-modal .modal-footer {
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--commission-border-soft);
+    background: rgba(241, 247, 255, 0.72);
+}
+
+
+/* ====================================================================
+| ANIMATION
+===================================================================== */
+
+.care-page-header,
+.care-panel,
+.care-stat-card,
+.care-alert {
+    animation: careGlassAppear 0.45s ease both;
+}
+
+.care-stat-card {
+    animation-delay: 0.035s;
+}
+
+.care-panel {
+    animation-delay: 0.06s;
+}
+
+@keyframes careGlassAppear {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.992);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+
+/* ====================================================================
+| LAPTOP
+===================================================================== */
+
+@media (max-width: 1399.98px) {
+    .customer-care-page {
+        padding-right: 22px;
+        padding-left: 22px;
+    }
+
+    .care-stat-card {
+        min-height: 128px;
+    }
+
+    .care-info-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .care-table tbody td {
+        padding: 12px 13px !important;
+    }
+}
+
+
+/* ====================================================================
+| TABLET
+===================================================================== */
+
+@media (max-width: 991.98px) {
+    .customer-care-page {
+        padding: 20px 14px 30px;
+    }
+
+    .care-page-header {
+        min-height: 128px;
+        padding: 21px;
+        border-radius: 20px;
+    }
+
+    .care-stat-card {
+        min-height: 122px;
+        border-radius: 16px;
+    }
+
+    .care-panel {
+        border-radius: 19px;
+    }
+
+    .care-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .care-table {
+        min-width: 1060px;
+    }
+
+    .care-table thead th {
+        padding: 11px 12px !important;
+        font-size: 0.64rem;
+    }
+
+    .care-table tbody td {
+        padding: 12px !important;
+        font-size: 0.7rem;
+    }
+
+    .care-actions {
+        justify-content: flex-start;
+    }
+}
+
+
+/* ====================================================================
+| ĐIỆN THOẠI LỚN
+===================================================================== */
+
+@media (max-width: 767.98px) {
+    .customer-care-page {
+        padding: 15px 10px 24px;
+    }
+
+    .customer-care-page .row {
+        --bs-gutter-x: 0.85rem;
+        --bs-gutter-y: 0.85rem;
+    }
+
+    .care-page-header {
+        min-height: auto;
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .care-page-title {
+        font-size: 1.5rem;
+    }
+
+    .care-page-description {
+        font-size: 0.79rem;
+    }
+
+    .care-alert {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .care-stat-card {
+        min-height: 116px;
+        padding: 17px;
+    }
+
+    .care-panel {
+        padding: 17px;
+        border-radius: 17px;
+    }
+
+    .care-table-panel {
+        padding: 0;
+    }
+
+    .care-panel-heading {
+        min-height: 70px;
+        padding: 15px 16px;
+    }
+
+    .care-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .care-pagination {
+        justify-content: center;
+    }
+}
+
+
+/* ====================================================================
+| ĐIỆN THOẠI
+===================================================================== */
+
+@media (max-width: 575.98px) {
+    .customer-care-page {
+        padding: 12px 8px 20px;
+    }
+
+    .care-page-header {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .care-breadcrumb,
+    .care-back-link {
+        min-height: 28px;
+        margin-bottom: 9px;
+        padding: 5px 9px;
+        font-size: 0.66rem;
+    }
+
+    .care-page-title {
+        font-size: 1.32rem;
+    }
+
+    .care-page-description {
+        margin-top: 7px;
+        font-size: 0.75rem;
+    }
+
+    .care-alert {
+        padding: 13px 14px;
+        border-radius: 14px;
+        font-size: 0.78rem;
+    }
+
+    .care-stat-card {
+        min-height: 108px;
+        padding: 15px;
+        border-radius: 15px;
+    }
+
+    .care-stat-card strong {
+        margin-top: 7px;
+        font-size: 1.85rem;
+    }
+
+    .care-panel {
+        padding: 15px;
+        border-radius: 16px;
+    }
+
+    .care-table-panel {
+        padding: 0;
+    }
+
+    .care-panel-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: auto;
+        padding: 14px 15px;
+    }
+
+    .care-section-title {
+        font-size: 0.95rem;
+    }
+
+    .care-section-description {
+        font-size: 0.7rem;
+    }
+
+    .care-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .care-info-item {
+        min-height: auto;
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .care-form-control {
+        min-height: 42px;
+        border-radius: 11px;
+        font-size: 0.76rem;
+    }
+
+    .care-btn {
+        min-height: 37px;
+        padding: 8px 11px;
+        border-radius: 10px;
+        font-size: 0.69rem;
+    }
+
+    .care-table {
+        min-width: 1020px;
+        border-spacing: 0 6px !important;
+    }
+
+    .care-table thead th {
+        padding: 10px !important;
+        font-size: 0.61rem;
+    }
+
+    .care-table tbody td {
+        padding: 10px !important;
+        font-size: 0.68rem;
+        line-height: 1.55 !important;
+    }
+
+    .care-actions {
+        gap: 5px;
+    }
+
+    .care-pagination {
+        padding: 13px 10px;
+    }
+
+    .care-pagination .pagination {
+        justify-content: center;
+    }
+
+    .care-modal .modal-body {
+        padding: 16px;
+    }
+
+    .care-modal .modal-header,
+    .care-modal .modal-footer {
+        padding: 14px 16px;
+    }
+}
+
+
+/* ====================================================================
+| ĐIỆN THOẠI NHỎ
+===================================================================== */
+
+@media (max-width: 419.98px) {
+    .customer-care-page {
+        padding-right: 6px;
+        padding-left: 6px;
+    }
+
+    .care-page-header,
+    .care-panel {
+        border-radius: 14px;
+    }
+
+    .care-page-header {
+        padding: 14px;
+    }
+
+    .care-panel {
+        padding: 13px;
+    }
+
+    .care-table-panel {
+        padding: 0;
+    }
+
+    .care-panel-heading {
+        padding: 13px;
+    }
+
+    .care-stat-card {
+        min-height: 102px;
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .care-table {
+        min-width: 980px;
+    }
+
+    .care-table thead th,
+    .care-table tbody td {
+        padding: 9px !important;
+    }
+
+    .care-table tbody td {
+        font-size: 0.66rem;
+    }
+}
+
+
+/* ====================================================================
+| GIẢM HIỆU ỨNG CHUYỂN ĐỘNG
+===================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .care-page-header,
+    .care-panel,
+    .care-stat-card,
+    .care-alert,
+    .care-btn,
+    .care-form-control,
+    .care-info-item,
+    .care-back-link,
+    .care-pagination .page-link {
+        animation: none !important;
+        transition: none !important;
+    }
+}

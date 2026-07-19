@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCustomerRequest;
 use App\Models\BuyForOption;
-use App\Models\CtvStatus;
 use App\Models\Customer;
 use App\Models\CustomerDetail;
 use App\Models\CustomerNeed;
@@ -17,14 +16,16 @@ use App\Models\CustomerStopReason;
 use App\Models\CustomerType;
 use App\Models\Product;
 use App\Models\ReferralStatus;
+use App\Services\CustomerReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class CustomerController extends Controller
 {
+    public function __construct(private readonly CustomerReferralService $referrals) {}
+
     public function index(Request $request)
     {
         $customerTypes = CustomerType::query()
@@ -64,15 +65,15 @@ class CustomerController extends Controller
             ->pluck('code')
             ->toArray();
 
-        if (!in_array($customerType, $validTypeCodes, true)) {
+        if (! in_array($customerType, $validTypeCodes, true)) {
             $customerType = '';
         }
 
-        if (!in_array($buyStatus, $validBuyStatuses, true)) {
+        if (! in_array($buyStatus, $validBuyStatuses, true)) {
             $buyStatus = '';
         }
 
-        if (!in_array($customerStatus, $validCustomerStatuses, true)) {
+        if (! in_array($customerStatus, $validCustomerStatuses, true)) {
             $customerStatus = '';
         }
 
@@ -218,96 +219,6 @@ class CustomerController extends Controller
     | KIỂM TRA NGƯỜI GIỚI THIỆU BẰNG SỐ ĐIỆN THOẠI
     |--------------------------------------------------------------------------
     */
-    public function checkReferrer(Request $request)
-    {
-        /*
-        |--------------------------------------------------------------------------
-        | Nhận số điện thoại
-        |--------------------------------------------------------------------------
-        |
-        | Hỗ trợ cả hai tên tham số:
-        | - phone
-        | - referrer_phone
-        |
-        */
-        $phoneInput = $request->input(
-            'phone',
-            $request->input('referrer_phone')
-        );
-
-        $phone = $this->normalizePhone($phoneInput);
-
-        if (!$phone) {
-            return response()->json([
-                'found' => false,
-                'success' => false,
-                'message' => 'Vui lòng nhập số điện thoại người giới thiệu.',
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Tìm người giới thiệu
-        |--------------------------------------------------------------------------
-        |
-        | Có thể tìm được các định dạng:
-        | - 0901234567
-        | - 090 123 4567
-        | - 090-123-4567
-        | - +84 901 234 567
-        | - 84901234567
-        |
-        */
-        $referrer = $this->findCustomerByPhone($phone);
-
-        if (!$referrer) {
-            return response()->json([
-                'found' => false,
-                'success' => false,
-                'message' => 'Không tìm thấy khách hàng/người giới thiệu với số điện thoại này.',
-            ]);
-        }
-
-        $referrer->loadMissing([
-            'role',
-            'ctvStatus',
-        ]);
-
-        return response()->json([
-            'found' => true,
-            'success' => true,
-
-            'id' => $referrer->id,
-            'full_name' => $referrer->full_name,
-            'phone' => $referrer->phone,
-            'commission_rate' => $referrer->commission_rate ?? 5,
-
-            'message' => 'Đã tìm thấy: '
-                . $referrer->full_name
-                . ' - '
-                . $referrer->phone,
-
-            'data' => [
-                'id' => $referrer->id,
-
-                'customer_code' => $referrer->customer_code ?? '',
-
-                'full_name' => $referrer->full_name,
-
-                'phone' => $referrer->phone,
-
-                'commission_rate' => $referrer->commission_rate ?? 5,
-
-                'role_code' => $referrer->role?->code,
-
-                'role_name' => $referrer->role?->name,
-
-                'ctv_status_code' => $referrer->ctvStatus?->code,
-
-                'ctv_status_name' => $referrer->ctvStatus?->name,
-            ],
-        ]);
-    }
 
     public function store(StoreCustomerRequest $request)
     {
@@ -378,22 +289,17 @@ class CustomerController extends Controller
 
                 'address' => $validated['address'] ?? null,
 
-                'source_channel_id' =>
-                $validated['customer_source'] === 'direct'
+                'source_channel_id' => $validated['customer_source'] === 'direct'
                     ? ($validated['source_channel_id'] ?? null)
                     : null,
 
-                'medical_note' =>
-                $validated['medical_note'] ?? null,
+                'medical_note' => $validated['medical_note'] ?? null,
 
-                'buy_for_option_id' =>
-                $validated['buy_for_option_id'] ?? null,
+                'buy_for_option_id' => $validated['buy_for_option_id'] ?? null,
 
-                'interested_product_id' =>
-                $validated['interested_product_id'] ?? null,
+                'interested_product_id' => $validated['interested_product_id'] ?? null,
 
-                'consultation_note' =>
-                $validated['consultation_note'] ?? null,
+                'consultation_note' => $validated['consultation_note'] ?? null,
             ]);
 
             foreach (
@@ -409,7 +315,7 @@ class CustomerController extends Controller
                 ($validated['customer_source'] ?? '')
                 === 'ctv_referral'
             ) {
-                $this->syncCustomerReferral(
+                $this->referrals->sync(
                     $customer,
                     $validated
                 );
@@ -551,12 +457,12 @@ class CustomerController extends Controller
 
         $totalCommissionAsReferrer =
             $commissionsAsReferrer
-            ->sum('commission_amount');
+                ->sum('commission_amount');
 
         $totalPaidCommissionAsReferrer =
             $commissionsAsReferrer
-            ->whereNotNull('paid_at')
-            ->sum('commission_amount');
+                ->whereNotNull('paid_at')
+                ->sum('commission_amount');
 
         $totalPendingCommissionAsReferrer =
             $totalCommissionAsReferrer
@@ -596,24 +502,24 @@ class CustomerController extends Controller
 
         $products = Schema::hasTable('products')
             ? DB::table('products')
-            ->select(
-                'id',
-                'product_name'
-            )
-            ->when(
-                Schema::hasColumn(
-                    'products',
-                    'is_active'
-                ),
-                function ($query) {
-                    $query->where(
-                        'is_active',
-                        1
-                    );
-                }
-            )
-            ->orderBy('product_name')
-            ->get()
+                ->select(
+                    'id',
+                    'product_name'
+                )
+                ->when(
+                    Schema::hasColumn(
+                        'products',
+                        'is_active'
+                    ),
+                    function ($query) {
+                        $query->where(
+                            'is_active',
+                            1
+                        );
+                    }
+                )
+                ->orderBy('product_name')
+                ->get()
             : collect();
 
         $customerNeeds = $this->optionRows([
@@ -636,11 +542,11 @@ class CustomerController extends Controller
         ) {
             $selectedNeedId =
                 DB::table('customer_need_maps')
-                ->where(
-                    'customer_id',
-                    $customer->id
-                )
-                ->value('customer_need_id');
+                    ->where(
+                        'customer_id',
+                        $customer->id
+                    )
+                    ->value('customer_need_id');
         }
 
         $currentReferrer =
@@ -669,11 +575,11 @@ class CustomerController extends Controller
         ) {
             $currentCommissionRate =
                 DB::table('customer_referrals')
-                ->where(
-                    'referred_customer_id',
-                    $customer->id
-                )
-                ->value('commission_rate')
+                    ->where(
+                        'referred_customer_id',
+                        $customer->id
+                    )
+                    ->value('commission_rate')
                 ?? 5;
         }
 
@@ -816,23 +722,17 @@ class CustomerController extends Controller
                 'max:3000',
             ],
         ], [
-            'full_name.required' =>
-            'Vui lòng nhập họ tên khách hàng.',
+            'full_name.required' => 'Vui lòng nhập họ tên khách hàng.',
 
-            'phone.required' =>
-            'Vui lòng nhập số điện thoại.',
+            'phone.required' => 'Vui lòng nhập số điện thoại.',
 
-            'phone.unique' =>
-            'Số điện thoại này đã tồn tại.',
+            'phone.unique' => 'Số điện thoại này đã tồn tại.',
 
-            'email.email' =>
-            'Email không đúng định dạng.',
+            'email.email' => 'Email không đúng định dạng.',
 
-            'email.unique' =>
-            'Email này đã tồn tại.',
+            'email.unique' => 'Email này đã tồn tại.',
 
-            'referrer_phone.required_if' =>
-            'Vui lòng nhập số điện thoại người giới thiệu.',
+            'referrer_phone.required_if' => 'Vui lòng nhập số điện thoại người giới thiệu.',
         ]);
 
         DB::transaction(
@@ -841,29 +741,21 @@ class CustomerController extends Controller
                 $customer
             ) {
                 $customerData = [
-                    'full_name' =>
-                    $request->full_name,
+                    'full_name' => $request->full_name,
 
-                    'phone' =>
-                    $request->phone,
+                    'phone' => $request->phone,
 
-                    'email' =>
-                    $request->email,
+                    'email' => $request->email,
 
-                    'gender' =>
-                    $request->gender,
+                    'gender' => $request->gender,
 
-                    'birth_date' =>
-                    $request->birth_date,
+                    'birth_date' => $request->birth_date,
 
-                    'birthday' =>
-                    $request->birth_date,
+                    'birthday' => $request->birth_date,
 
-                    'date_of_birth' =>
-                    $request->birth_date,
+                    'date_of_birth' => $request->birth_date,
 
-                    'note' =>
-                    $request->note,
+                    'note' => $request->note,
                 ];
 
                 if (
@@ -882,7 +774,7 @@ class CustomerController extends Controller
                         $customerData
                     );
 
-                if (!empty($customerData)) {
+                if (! empty($customerData)) {
                     $customer->update(
                         $customerData
                     );
@@ -894,38 +786,28 @@ class CustomerController extends Controller
                     )
                 ) {
                     $detailData = [
-                        'customer_id' =>
-                        $customer->id,
+                        'customer_id' => $customer->id,
 
-                        'province' =>
-                        $request->province,
+                        'province' => $request->province,
 
-                        'district' =>
-                        $request->district,
+                        'district' => $request->district,
 
-                        'ward' =>
-                        $request->ward,
+                        'ward' => $request->ward,
 
-                        'address' =>
-                        $request->address,
+                        'address' => $request->address,
 
-                        'source_channel_id' =>
-                        $request->customer_kind
+                        'source_channel_id' => $request->customer_kind
                             === 'self'
                             ? $request->source_channel_id
                             : null,
 
-                        'medical_note' =>
-                        $request->medical_note,
+                        'medical_note' => $request->medical_note,
 
-                        'buy_for_option_id' =>
-                        $request->buy_for_option_id,
+                        'buy_for_option_id' => $request->buy_for_option_id,
 
-                        'interested_product_id' =>
-                        $request->interested_product_id,
+                        'interested_product_id' => $request->interested_product_id,
 
-                        'consultation_note' =>
-                        $request->consultation_note,
+                        'consultation_note' => $request->consultation_note,
                     ];
 
                     $detailData =
@@ -936,11 +818,11 @@ class CustomerController extends Controller
 
                     $existingDetail =
                         DB::table('customer_details')
-                        ->where(
-                            'customer_id',
-                            $customer->id
-                        )
-                        ->first();
+                            ->where(
+                                'customer_id',
+                                $customer->id
+                            )
+                            ->first();
 
                     if ($existingDetail) {
                         if (
@@ -990,7 +872,7 @@ class CustomerController extends Controller
                 | Đồng bộ người giới thiệu
                 |--------------------------------------------------------------------------
                 */
-                $this->syncCustomerReferral(
+                $this->referrals->sync(
                     $customer,
                     $request
                 );
@@ -1021,11 +903,9 @@ class CustomerController extends Controller
                         )
                     ) {
                         $needMapData = [
-                            'customer_id' =>
-                            $customer->id,
+                            'customer_id' => $customer->id,
 
-                            'customer_need_id' =>
-                            $request->customer_need_id,
+                            'customer_need_id' => $request->customer_need_id,
                         ];
 
                         if (
@@ -1067,399 +947,11 @@ class CustomerController extends Controller
             );
     }
 
-    public function convertToCtv(
-        Customer $customer
-    ) {
-        $customer->loadMissing('role');
-
-        if (
-            $customer->role?->code === 'ctv'
-        ) {
-            return back()->with(
-                'success',
-                'Khách hàng này đã là CTV.'
-            );
-        }
-
-        $ctvRoleId = $this->findLookupId(
-            CustomerRole::class,
-            [
-                'ctv',
-                'cong_tac_vien',
-                'collaborator',
-            ]
-        );
-
-        if (!$ctvRoleId) {
-            return back()->with(
-                'error',
-                'Chưa có vai trò CTV trong hệ thống.'
-            );
-        }
-
-        $activeCtvStatusId =
-            $this->findLookupId(
-                CtvStatus::class,
-                [
-                    'active',
-                    'dang_hoat_dong',
-                    'hoat_dong',
-                ]
-            );
-
-        $activeCustomerStatusId =
-            $this->findLookupId(
-                CustomerStatus::class,
-                [
-                    'active',
-                    'dang_hoat_dong',
-                    'hoat_dong',
-                    'new',
-                    'moi',
-                ]
-            );
-
-        $customer->update([
-            'customer_role_id' =>
-            $ctvRoleId,
-
-            'ctv_status_id' =>
-            $activeCtvStatusId,
-
-            'customer_status_id' =>
-            $activeCustomerStatusId
-                ?: $customer->customer_status_id,
-
-            'commission_rate' =>
-            $customer->commission_rate ?? 5,
-
-            'ctv_approved_by' =>
-            auth('admin')->id(),
-
-            'ctv_approved_at' =>
-            now(),
-
-            'stopped_reason' =>
-            null,
-
-            'stopped_at' =>
-            null,
-
-            'updated_by' =>
-            auth('admin')->id(),
-        ]);
-
-        return back()->with(
-            'success',
-            'Đã chuyển khách hàng thành CTV thành công.'
-        );
-    }
-
-    public function markStoppedBuying(
-        Request $request,
-        Customer $customer
-    ) {
-        $validated = $request->validate([
-            'customer_stop_reason_id' => [
-                'required',
-                'integer',
-                'exists:customer_stop_reasons,id',
-            ],
-
-            'stopped_reason_note' => [
-                'nullable',
-                'string',
-                'max:5000',
-            ],
-        ], [
-            'customer_stop_reason_id.required' =>
-            'Vui lòng chọn lý do ngưng mua.',
-
-            'customer_stop_reason_id.exists' =>
-            'Lý do ngưng mua không hợp lệ.',
-
-            'stopped_reason_note.max' =>
-            'Ghi chú ngưng mua không được vượt quá 5000 ký tự.',
-        ]);
-
-        $reason = CustomerStopReason::query()
-            ->where('is_active', true)
-            ->find(
-                $validated['customer_stop_reason_id']
-            );
-
-        if (!$reason) {
-            return back()->with(
-                'error',
-                'Lý do ngưng mua không hợp lệ hoặc đã bị tắt.'
-            );
-        }
-
-        $stoppedStatusId =
-            $this->findLookupId(
-                CustomerStatus::class,
-                [
-                    'stopped_buying',
-                    'ngung_mua',
-                    'stop_buying',
-                    'inactive',
-                ]
-            );
-
-        $note = trim(
-            (string) (
-                $validated['stopped_reason_note']
-                ?? ''
-            )
-        );
-
-        $customer->update([
-            'customer_status_id' =>
-            $stoppedStatusId
-                ?: $customer->customer_status_id,
-
-            'stopped_reason' =>
-            $note !== ''
-                ? "Lý do: {$reason->name}\nGhi chú: {$note}"
-                : "Lý do: {$reason->name}",
-
-            'stopped_at' =>
-            now(),
-
-            'updated_by' =>
-            auth('admin')->id(),
-        ]);
-
-        return back()->with(
-            'success',
-            'Đã đánh dấu khách hàng ngưng mua.'
-        );
-    }
-
     /*
     |--------------------------------------------------------------------------
     | ĐỒNG BỘ THÔNG TIN NGƯỜI GIỚI THIỆU
     |--------------------------------------------------------------------------
     */
-    private function syncCustomerReferral(
-        Customer $customer,
-        Request|array $input
-    ): void {
-        $isRequest =
-            $input instanceof Request;
-
-        $customerKind = $isRequest
-            ? $input->input('customer_kind')
-            : (
-                ($input['customer_source'] ?? '')
-                === 'ctv_referral'
-                ? 'ctv'
-                : 'self'
-            );
-
-        $referrerPhoneInput = $isRequest
-            ? $input->input('referrer_phone')
-            : ($input['referrer_phone'] ?? null);
-
-        $commissionRate = $isRequest
-            ? (
-                $input->input('commission_rate')
-                ?: 5
-            )
-            : (
-                $input['commission_rate']
-                ?? 5
-            );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Khách tự tìm đến, không có người giới thiệu
-        |--------------------------------------------------------------------------
-        */
-        if ($customerKind === 'self') {
-            if (
-                Schema::hasColumn(
-                    'customers',
-                    'referrer_id'
-                )
-            ) {
-                $customer->update([
-                    'referrer_id' => null,
-                ]);
-            }
-
-            if (
-                Schema::hasTable(
-                    'customer_referrals'
-                )
-                && Schema::hasColumn(
-                    'customer_referrals',
-                    'referred_customer_id'
-                )
-            ) {
-                DB::table('customer_referrals')
-                    ->where(
-                        'referred_customer_id',
-                        $customer->id
-                    )
-                    ->delete();
-            }
-
-            return;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Chuẩn hóa và kiểm tra số điện thoại người giới thiệu
-        |--------------------------------------------------------------------------
-        */
-        $referrerPhone =
-            $this->normalizePhone(
-                $referrerPhoneInput
-            );
-
-        if (!$referrerPhone) {
-            throw ValidationException::withMessages([
-                'referrer_phone' =>
-                'Vui lòng nhập số điện thoại người giới thiệu.',
-            ]);
-        }
-
-        $referrer =
-            $this->findCustomerByPhone(
-                $referrerPhone
-            );
-
-        if (!$referrer) {
-            throw ValidationException::withMessages([
-                'referrer_phone' =>
-                'Không tìm thấy khách hàng/người giới thiệu theo số điện thoại đã nhập.',
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Không cho phép khách hàng tự giới thiệu chính mình
-        |--------------------------------------------------------------------------
-        */
-        if (
-            (int) $referrer->id
-            === (int) $customer->id
-        ) {
-            throw ValidationException::withMessages([
-                'referrer_phone' =>
-                'Khách hàng không thể tự giới thiệu chính mình.',
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Lưu người giới thiệu vào bảng customers
-        |--------------------------------------------------------------------------
-        */
-        if (
-            Schema::hasColumn(
-                'customers',
-                'referrer_id'
-            )
-        ) {
-            $customer->update([
-                'referrer_id' =>
-                $referrer->id,
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Lưu vào bảng customer_referrals
-        |--------------------------------------------------------------------------
-        */
-        if (
-            Schema::hasTable(
-                'customer_referrals'
-            )
-        ) {
-            $referralData = [
-                'referrer_customer_id' =>
-                $referrer->id,
-
-                'referred_customer_id' =>
-                $customer->id,
-
-                'referrer_phone' =>
-                $referrer->phone,
-
-                'commission_rate' =>
-                $commissionRate ?: 5,
-
-                'referral_status_id' =>
-                $this->findReferralStatusId(),
-
-                'status' =>
-                'active',
-
-                'started_at' =>
-                now(),
-
-                'ended_at' =>
-                null,
-
-                'note' =>
-                'Cập nhật thông tin người giới thiệu.',
-            ];
-
-            $referralData =
-                $this->filterExistingColumns(
-                    'customer_referrals',
-                    $referralData
-                );
-
-            if (
-                Schema::hasColumn(
-                    'customer_referrals',
-                    'updated_at'
-                )
-            ) {
-                $referralData['updated_at'] =
-                    now();
-            }
-
-            $existing =
-                DB::table('customer_referrals')
-                ->where(
-                    'referred_customer_id',
-                    $customer->id
-                )
-                ->first();
-
-            if ($existing) {
-                unset(
-                    $referralData['started_at']
-                );
-
-                DB::table('customer_referrals')
-                    ->where(
-                        'id',
-                        $existing->id
-                    )
-                    ->update($referralData);
-            } else {
-                if (
-                    Schema::hasColumn(
-                        'customer_referrals',
-                        'created_at'
-                    )
-                ) {
-                    $referralData['created_at'] =
-                        now();
-                }
-
-                DB::table('customer_referrals')
-                    ->insert($referralData);
-            }
-        }
-    }
-
     private function currentReferrer(
         Customer $customer
     ): ?Customer {
@@ -1478,10 +970,10 @@ class CustomerController extends Controller
         ) {
             $query =
                 DB::table('customer_referrals')
-                ->where(
-                    'referred_customer_id',
-                    $customer->id
-                );
+                    ->where(
+                        'referred_customer_id',
+                        $customer->id
+                    );
 
             if (
                 Schema::hasColumn(
@@ -1507,7 +999,7 @@ class CustomerController extends Controller
                 'customers',
                 'referrer_id'
             )
-            && !empty($customer->referrer_id)
+            && ! empty($customer->referrer_id)
         ) {
             return Customer::query()
                 ->find($customer->referrer_id);
@@ -1520,7 +1012,7 @@ class CustomerController extends Controller
         array $tables
     ) {
         foreach ($tables as $table) {
-            if (!Schema::hasTable($table)) {
+            if (! Schema::hasTable($table)) {
                 continue;
             }
 
@@ -1536,7 +1028,7 @@ class CustomerController extends Controller
                     ]
                 );
 
-            if (!$nameColumn) {
+            if (! $nameColumn) {
                 continue;
             }
 
@@ -1668,7 +1160,7 @@ class CustomerController extends Controller
     ): ?Customer {
         $phone = $this->normalizePhone($phone);
 
-        if (!$phone) {
+        if (! $phone) {
             return null;
         }
 
@@ -1696,7 +1188,7 @@ class CustomerController extends Controller
             && strlen($phone) >= 11
         ) {
             $phoneCandidates[] =
-                '0' . substr($phone, 2);
+                '0'.substr($phone, 2);
         }
 
         /*
@@ -1709,7 +1201,7 @@ class CustomerController extends Controller
             && strlen($phone) >= 10
         ) {
             $phoneCandidates[] =
-                '84' . substr($phone, 1);
+                '84'.substr($phone, 1);
         }
 
         /*
@@ -1718,15 +1210,15 @@ class CustomerController extends Controller
         |----------------------------------------------------------------------
         */
         if (
-            !str_starts_with($phone, '0')
-            && !str_starts_with($phone, '84')
+            ! str_starts_with($phone, '0')
+            && ! str_starts_with($phone, '84')
             && strlen($phone) === 9
         ) {
             $phoneCandidates[] =
-                '0' . $phone;
+                '0'.$phone;
 
             $phoneCandidates[] =
-                '84' . $phone;
+                '84'.$phone;
         }
 
         $phoneCandidates =
@@ -1811,7 +1303,7 @@ class CustomerController extends Controller
     private function normalizePhone(
         ?string $phone
     ): ?string {
-        if (!$phone) {
+        if (! $phone) {
             return null;
         }
 
@@ -1826,7 +1318,7 @@ class CustomerController extends Controller
             trim($phone)
         );
 
-        if (!$phone) {
+        if (! $phone) {
             return null;
         }
 
@@ -1842,7 +1334,7 @@ class CustomerController extends Controller
             )
         ) {
             $phone =
-                '84' . substr($phone, 4);
+                '84'.substr($phone, 4);
         }
 
         return $phone !== ''

@@ -28,7 +28,7 @@
     <div class="filter-card mb-3">
         <div class="row g-3 align-items-center">
             <div class="col-lg-5">
-                <input id="productKeyword" class="form-control" placeholder="Tìm tên sản phẩm, mã SKU, đơn vị tính...">
+                <input id="productKeyword" class="form-control" placeholder="Tìm tên sản phẩm, SKU, đơn vị tính...">
             </div>
 
             <div class="col-lg-3">
@@ -87,48 +87,14 @@
             <div class="modal-body">
                 <div id="productFormErrors"></div>
 
-                <div class="product-image-box mb-4">
-                    <label for="main_image" class="product-image-preview" id="productImagePreview">
-                        <i class="fa-regular fa-image"></i>
-
-                        <span class="camera-badge">
-                            <i class="fa-solid fa-camera"></i>
-                        </span>
-                    </label>
-
-                    <input type="file" name="main_image" id="main_image" class="d-none" accept="image/*">
-
-                    <div class="image-note">
-                        Kích thước chuẩn: 500×500px
-                    </div>
-                </div>
-
                 <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">
-                            Mã SKU <span class="text-danger">*</span>
-                        </label>
-
-                        <input type="text" name="product_code" id="product_code" class="form-control"
-                            placeholder="VD: SP-001">
-                    </div>
-
                     <div class="col-md-8">
                         <label class="form-label">
                             Tên sản phẩm <span class="text-danger">*</span>
                         </label>
 
-                        <input type="text" name="product_name" id="product_name" class="form-control"
-                            placeholder="Nhập tên sản phẩm">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">
-                            Đơn vị tính <span class="text-danger">*</span>
-                        </label>
-
-                        <input type="text" name="unit_name" id="unit_name" class="form-control"
-                            placeholder="VD: Hộp, Chai...">
+                        <input type="text" name="product_name" id="product_name" class="form-control" maxlength="255" required
+                            placeholder="Ví dụ: Canxi BoneCare" autocomplete="off" autofocus>
                     </div>
 
                     <div class="col-md-4">
@@ -137,34 +103,115 @@
                         </label>
 
                         <input type="number" name="price" id="price" class="form-control text-end" min="0" step="1000"
-                            value="0">
+                            inputmode="decimal" value="0" required>
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Trạng thái</label>
-
-                        <select name="is_active" id="is_active" class="form-select">
-                            <option value="1">Đang kinh doanh</option>
-                            <option value="0">Đã ẩn</option>
+                    <div class="col-md-6">
+                        <label class="form-label">Danh mục</label>
+                        <select name="product_category_id" id="product_category_id" class="form-select">
+                            <option value="">Chưa phân loại</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
-                    <div class="col-md-12">
-                        <label class="form-label">Mô tả ngắn</label>
-
-                        <textarea name="short_description" id="short_description" class="form-control" rows="3"
-                            placeholder="Nhập mô tả hoặc thành phần công dụng sản phẩm..."></textarea>
+                    <div class="col-md-6">
+                        <label class="form-label">Đơn vị tính</label>
+                        <input type="text" name="unit_name" id="unit_name" class="form-control"
+                            maxlength="100" placeholder="Mặc định: Sản phẩm">
                     </div>
 
-                    <input type="hidden" name="product_category_id" id="product_category_id" value="">
-                    <input type="hidden" name="description" id="description" value="">
-                    <input type="hidden" name="min_quantity_alert" id="min_quantity_alert" value="0">
-                    <input type="hidden" name="sort_order" id="sort_order" value="0">
-                    <input type="hidden" name="track_batch" value="1">
-                    <input type="hidden" name="track_expiry" value="1">
-                    <input type="hidden" name="is_commissionable" value="1">
-                    <input type="hidden" name="default_commission_rate" value="0">
-                    <input type="hidden" name="allow_sell_without_stock" value="0">
+                    <div class="col-md-12">
+                        <button class="product-advanced-toggle" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#productAdvancedFields" aria-expanded="false" aria-controls="productAdvancedFields">
+                            <span><i class="fa-solid fa-sliders me-2"></i>Thông tin thêm</span>
+                            <i class="fa-solid fa-chevron-down toggle-chevron"></i>
+                        </button>
+                    </div>
+
+                    <div class="collapse col-12" id="productAdvancedFields">
+                        <div class="product-advanced-panel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="product-image-box mb-0">
+                                        <label for="main_image" class="product-image-preview" id="productImagePreview">
+                                            <i class="fa-regular fa-image"></i>
+                                            <span class="camera-badge"><i class="fa-solid fa-camera"></i></span>
+                                        </label>
+                                        <input type="file" name="main_image" id="main_image" class="d-none" accept="image/*">
+                                        <div class="image-note">Ảnh vuông, tối đa 4 MB</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-8">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Mã SKU</label>
+                                            <input type="text" name="product_code" id="product_code" class="form-control"
+                                                placeholder="Để trống để tự tạo">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cảnh báo khi tồn dưới</label>
+                                            <input type="number" name="min_quantity_alert" id="min_quantity_alert"
+                                                class="form-control" min="0" value="0">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Trạng thái</label>
+                                            <select name="is_active" id="is_active" class="form-select">
+                                                <option value="1">Đang kinh doanh</option>
+                                                <option value="0">Tạm ẩn</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Mô tả ngắn</label>
+                                    <textarea name="short_description" id="short_description" class="form-control" rows="2"
+                                        placeholder="Thông tin ngắn giúp nhân viên nhận biết sản phẩm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12" id="openingStockSection">
+                        <div class="opening-stock-card">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="enableOpeningStock">
+                                <label class="form-check-label fw-bold" for="enableOpeningStock">Nhập tồn ban đầu ngay</label>
+                            </div>
+                            <div class="small text-muted mt-1">Hệ thống sẽ tự tạo lô và phiếu nhập kho, không chỉnh tồn trực tiếp.</div>
+
+                            <fieldset id="openingStockFields" class="opening-stock-fields mt-3" disabled>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Số lượng <span class="text-danger">*</span></label>
+                                        <input type="number" name="initial_quantity" id="initial_quantity" class="form-control"
+                                            min="1" value="1">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Số lô <span class="text-danger">*</span></label>
+                                        <input type="text" name="batch_number" id="batch_number" class="form-control"
+                                            maxlength="100" placeholder="VD: LOT-072026">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Hạn sử dụng <span class="text-danger">*</span></label>
+                                        <input type="date" name="expiry_date" id="expiry_date" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ngày sản xuất</label>
+                                        <input type="date" name="manufacture_date" id="manufacture_date" class="form-control">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Ghi chú nhập kho</label>
+                                        <input type="text" name="stock_note" id="stock_note" class="form-control"
+                                            maxlength="1000" placeholder="Nhà cung cấp hoặc ghi chú kiểm kê ban đầu">
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -184,356 +231,7 @@
 @endsection
 
 @push('styles')
-<style>
-    .product-page {
-        padding-bottom: 40px;
-    }
-
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        align-items: flex-start;
-    }
-
-    .page-title {
-        font-size: 28px;
-        font-weight: 800;
-        color: #172033;
-    }
-
-    .page-subtitle {
-        color: #6b7890;
-        font-size: 15px;
-    }
-
-    .breadcrumb {
-        font-size: 14px;
-    }
-
-    .breadcrumb-item {
-        color: #2563eb;
-        font-weight: 600;
-    }
-
-    .btn-page-action {
-        min-height: 42px;
-        padding-left: 18px;
-        padding-right: 18px;
-        font-weight: 700;
-        border-radius: 12px;
-    }
-
-    .filter-card {
-        background: #fff;
-        border-radius: 18px;
-        padding: 16px;
-        box-shadow: 0 10px 28px rgba(36, 58, 94, 0.08);
-    }
-
-    .form-control,
-    .form-select {
-        border-radius: 12px;
-        border-color: #d8e3f0;
-        min-height: 42px;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | TABLE DANH SÁCH SẢN PHẨM
-    |--------------------------------------------------------------------------
-    */
-
-    .product-table-card,
-    .card.border-0.shadow-sm {
-        background: #fff;
-        border-radius: 18px !important;
-        overflow: hidden;
-        box-shadow: 0 10px 28px rgba(36, 58, 94, 0.08) !important;
-    }
-
-    .product-table {
-        width: 100%;
-        margin-bottom: 0;
-        table-layout: auto;
-    }
-
-    .product-table thead th {
-        background: #f8fafc;
-        color: #465670;
-        font-weight: 800;
-        border-bottom: 1px solid #d8e0ec;
-        padding: 14px 12px;
-        white-space: nowrap;
-        vertical-align: middle;
-    }
-
-    .product-table tbody td {
-        padding: 12px;
-        vertical-align: middle;
-        border-bottom: 1px solid #e6edf5;
-        white-space: nowrap;
-    }
-
-    .product-table tbody tr:last-child td {
-        border-bottom: 0;
-    }
-
-    .product-table td[data-label="Sản phẩm"] {
-        min-width: 280px;
-        white-space: normal;
-    }
-
-    .product-table td[data-label="Danh mục"] {
-        min-width: 120px;
-        max-width: 160px;
-        white-space: normal;
-        line-height: 1.35;
-    }
-
-    .product-table td[data-label="Trạng thái"] {
-        min-width: 125px;
-    }
-
-    .product-table td[data-label="Thao tác"] {
-        min-width: 95px;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ÉP HÌNH SẢN PHẨM NHỎ LẠI NHƯ HÌNH MẪU
-    |--------------------------------------------------------------------------
-    | Dù file table đang dùng .product-thumb hay img thường,
-    | CSS này vẫn ép ảnh về 44x44px.
-    |--------------------------------------------------------------------------
-    */
-
-    .product-thumb,
-    .product-icon-box,
-    .product-table .product-thumb,
-    .product-table .product-icon-box {
-        width: 44px !important;
-        height: 44px !important;
-        min-width: 44px !important;
-        max-width: 44px !important;
-        min-height: 44px !important;
-        max-height: 44px !important;
-        border-radius: 10px !important;
-        border: 1px solid #edf2f7 !important;
-        background: #f5f7fb !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: hidden !important;
-        flex: 0 0 44px !important;
-        color: #2563eb !important;
-        font-size: 18px !important;
-    }
-
-    .product-thumb img,
-    .product-icon-box img,
-    .product-table .product-thumb img,
-    .product-table .product-icon-box img,
-    .product-table td[data-label="Sản phẩm"] img {
-        width: 44px !important;
-        height: 44px !important;
-        min-width: 44px !important;
-        max-width: 44px !important;
-        min-height: 44px !important;
-        max-height: 44px !important;
-        object-fit: cover !important;
-        border-radius: 10px !important;
-        display: block !important;
-    }
-
-    .product-table td[data-label="Sản phẩm"]>img {
-        width: 44px !important;
-        height: 44px !important;
-        object-fit: cover !important;
-        border-radius: 10px !important;
-    }
-
-    .product-thumb-placeholder {
-        width: 44px !important;
-        height: 44px !important;
-        min-width: 44px !important;
-        border-radius: 10px !important;
-        border: 1px solid #edf2f7 !important;
-        background: #f5f7fb !important;
-        color: #2563eb !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 18px !important;
-    }
-
-    .product-name,
-    .product-table .fw-bold {
-        font-weight: 800;
-        color: #000;
-    }
-
-    .price-text,
-    .product-table .text-danger {
-        color: #ef233c !important;
-        font-weight: 800;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | SỐ LÔ CÓ MÀU
-    |--------------------------------------------------------------------------
-    */
-
-    .batch-badge,
-    .badge-soft-secondary,
-    .product-table .badge {
-        background: #edf2f7 !important;
-        color: #536174 !important;
-        padding: 5px 10px !important;
-        border-radius: 999px !important;
-        font-size: 12px !important;
-        font-weight: 800 !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        line-height: 1 !important;
-        white-space: nowrap !important;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | SWITCH TRẠNG THÁI
-    |--------------------------------------------------------------------------
-    */
-
-    .status-wrap {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .status-switch,
-    .table-switch {
-        width: 44px !important;
-        height: 22px !important;
-        cursor: pointer;
-        margin: 0 !important;
-    }
-
-    .status-switch:checked,
-    .table-switch:checked {
-        background-color: #10b981 !important;
-        border-color: #10b981 !important;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | NÚT THAO TÁC
-    |--------------------------------------------------------------------------
-    */
-
-    .action-btn,
-    .product-table .btn-sm {
-        width: 34px !important;
-        height: 34px !important;
-        border-radius: 10px !important;
-        border: 1px solid #dce6f2 !important;
-        background: #fff !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0 !important;
-    }
-
-    .action-btn.edit,
-    .product-table .text-primary {
-        color: #2563eb !important;
-    }
-
-    .action-btn.delete,
-    .product-table .text-danger {
-        color: #ef233c !important;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | MODAL THÊM / SỬA SẢN PHẨM
-    |--------------------------------------------------------------------------
-    */
-
-    .product-modal {
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .product-modal .modal-title {
-        font-weight: 800;
-        color: #2d3b52;
-    }
-
-    .product-image-box {
-        text-align: center;
-    }
-
-    .product-image-preview {
-        width: 120px;
-        height: 120px;
-        border-radius: 6px;
-        border: 1px solid #d7e1ee;
-        background: #f8fafc;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #64748b;
-        font-size: 34px;
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .product-image-preview img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .camera-badge {
-        position: absolute;
-        right: 14px;
-        bottom: 0;
-        width: 34px;
-        height: 34px;
-        background: #2563eb;
-        color: #fff;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 15px;
-        border: 3px solid #fff;
-    }
-
-    .image-note {
-        margin-top: 8px;
-        color: #6b7280;
-        font-size: 14px;
-    }
-
-    @media (max-width: 768px) {
-        .page-header {
-            flex-direction: column;
-        }
-
-        .btn-page-action {
-            width: 100%;
-        }
-
-        .product-table tbody td {
-            white-space: normal;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{ asset('admin/css/pages/auth-products-index.css') }}">
 @endpush
 
 @push('scripts')
@@ -553,6 +251,25 @@
     const productForm = document.getElementById('productForm');
     const mainImageInput = document.getElementById('main_image');
     const productImagePreview = document.getElementById('productImagePreview');
+    const productAdvancedFields = document.getElementById('productAdvancedFields');
+    const productAdvancedCollapse = bootstrap.Collapse.getOrCreateInstance(productAdvancedFields, { toggle: false });
+    const openingStockSection = document.getElementById('openingStockSection');
+    const enableOpeningStock = document.getElementById('enableOpeningStock');
+    const openingStockFields = document.getElementById('openingStockFields');
+
+    function setOpeningStockEnabled(enabled) {
+        enableOpeningStock.checked = enabled;
+        openingStockFields.disabled = !enabled;
+        openingStockFields.classList.toggle('is-enabled', enabled);
+    }
+
+    enableOpeningStock.addEventListener('change', () => {
+        setOpeningStockEnabled(enableOpeningStock.checked);
+
+        if (enableOpeningStock.checked) {
+            document.getElementById('initial_quantity').focus();
+        }
+    });
 
     function routeWithId(template, id) {
         return template.replace('__ID__', id);
@@ -635,14 +352,20 @@
 
         document.getElementById('productFormMethod').value = 'POST';
         document.getElementById('productId').value = '';
-        document.getElementById('productModalTitle').innerText = 'Thêm / Sửa Sản phẩm';
+        document.getElementById('productModalTitle').innerText = 'Thêm sản phẩm nhanh';
         document.getElementById('productFormErrors').innerHTML = '';
         document.getElementById('is_active').value = '1';
+        openingStockSection.classList.remove('d-none');
+        setOpeningStockEnabled(false);
+        productAdvancedCollapse.hide();
 
         resetImagePreview();
 
         productForm.action = productRoutes.store;
         productModal.show();
+        document.getElementById('productModal').addEventListener('shown.bs.modal', () => {
+            document.getElementById('product_name').focus();
+        }, { once: true });
     }
 
     function openEditProductModal(productId) {
@@ -656,7 +379,7 @@
             .then(data => {
                 const product = data.product;
 
-                document.getElementById('productModalTitle').innerText = 'Thêm / Sửa Sản phẩm';
+                document.getElementById('productModalTitle').innerText = 'Cập nhật sản phẩm';
                 document.getElementById('productFormMethod').value = 'PUT';
                 document.getElementById('productId').value = product.id;
 
@@ -669,7 +392,6 @@
                 document.getElementById('short_description').value = product.short_description || '';
                 document.getElementById('product_category_id').value = product.product_category_id || '';
                 document.getElementById('min_quantity_alert').value = product.min_quantity_alert || 0;
-                document.getElementById('sort_order').value = product.sort_order || 0;
                 document.getElementById('is_active').value = product.is_active ? '1' : '0';
 
                 if (product.image_url) {
@@ -681,6 +403,9 @@
                     `;
                 }
 
+                productAdvancedCollapse.show();
+                setOpeningStockEnabled(false);
+                openingStockSection.classList.add('d-none');
                 productModal.show();
             });
     }
@@ -689,6 +414,11 @@
         event.preventDefault();
 
         const formData = new FormData(productForm);
+        const submitButton = productForm.querySelector('button[type="submit"]');
+        const originalButtonHtml = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+        document.getElementById('productFormErrors').innerHTML = '';
 
         fetch(productForm.action, {
                 method: 'POST',
@@ -704,14 +434,24 @@
                 if (!response.ok) {
                     if (data.errors) {
                         renderFormErrors(data.errors);
+                        productAdvancedCollapse.show();
                     }
 
-                    return;
+                    throw new Error(data.message || 'Không thể lưu sản phẩm.');
                 }
 
                 productModal.hide();
                 showProductAlert(data.message);
                 loadProductTable();
+            })
+            .catch(error => {
+                if (!document.getElementById('productFormErrors').innerHTML) {
+                    renderFormErrors({ general: [error.message] });
+                }
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonHtml;
             });
     });
 

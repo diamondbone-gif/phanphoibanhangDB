@@ -309,21 +309,21 @@
 
                     <div class="col-md-6">
                         <label class="form-label">
-                            SL ban đầu <span class="text-danger">*</span>
+                            SL đã nhập
                         </label>
-                        <input type="number" name="initial_quantity" id="edit_initial_quantity"
-                            class="form-control required-input" min="1">
+                        <input type="number" id="edit_initial_quantity" class="form-control" disabled>
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">
-                            SL còn lại <span class="text-danger">*</span>
+                            SL tồn hiện tại
                         </label>
-                        <input type="number" name="current_quantity" id="edit_current_quantity"
-                            class="form-control required-input" min="0">
+                        <input type="number" id="edit_current_quantity" class="form-control" disabled>
+                    </div>
 
-                        <div id="quantityCompareWarning" class="quantity-warning">
-                            SL còn lại không được lớn hơn SL ban đầu.
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">
+                            Số lượng chỉ được thay đổi bằng phiếu nhập, xuất hoặc kiểm kê để bảo toàn lịch sử kho.
                         </div>
                     </div>
 
@@ -350,351 +350,7 @@
 @endsection
 
 @push('styles')
-<style>
-    .inventory-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        align-items: flex-start;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .page-title {
-        font-size: 28px;
-        font-weight: 800;
-        color: #172033;
-    }
-
-    .page-subtitle {
-        color: #6b7890;
-        font-size: 15px;
-    }
-
-    .inventory-stat-card,
-    .inventory-filter-card {
-        background: #fff;
-        border: 1px solid #e5edf7;
-        border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(36, 58, 94, 0.08);
-    }
-
-    .inventory-stat-card {
-        width: 100%;
-        padding: 20px;
-        min-height: 104px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        text-align: left;
-        transition: all 0.25s ease;
-    }
-
-    .inventory-stat-card:hover {
-        transform: translateY(-4px);
-        border-color: #c9ddf8;
-        box-shadow: 0 16px 36px rgba(36, 58, 94, 0.14);
-    }
-
-    .inventory-filter-card {
-        padding: 16px;
-    }
-
-    .stat-label {
-        color: #6b7890;
-        font-weight: 700;
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
-
-    .stat-value {
-        font-size: 28px;
-        font-weight: 900;
-        line-height: 1;
-    }
-
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 16px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.25s ease;
-    }
-
-    .inventory-stat-card:hover .stat-icon {
-        transform: scale(1.08) rotate(-4deg);
-    }
-
-    .stat-icon.primary {
-        background: #eaf2ff;
-        color: #2563eb;
-    }
-
-    .stat-icon.warning {
-        background: #fff0c7;
-        color: #e0a000;
-    }
-
-    .stat-icon.danger {
-        background: #ffe1e5;
-        color: #e63946;
-    }
-
-    .form-control,
-    .form-select {
-        border-radius: 12px;
-        border-color: #d8e3f0;
-        min-height: 42px;
-        transition: all 0.22s ease;
-    }
-
-    .form-control:hover,
-    .form-select:hover {
-        border-color: #b7c7dc;
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-    }
-
-    .inventory-modal {
-        border-radius: 14px;
-        overflow: hidden;
-        border: 0;
-        box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
-    }
-
-    .inventory-modal .modal-title {
-        color: #2d3b52;
-        font-weight: 800;
-    }
-
-    .inventory-modal .modal-header {
-        background: #f8fbff;
-        border-bottom: 1px solid #e6eef8;
-    }
-
-    .inventory-modal .modal-footer {
-        background: #fbfdff;
-        border-top: 1px solid #e6eef8;
-    }
-
-    .inventory-table-card {
-        background: #fff;
-        border-radius: 18px;
-        overflow: hidden;
-        box-shadow: 0 10px 28px rgba(36, 58, 94, 0.08);
-    }
-
-    .inventory-table {
-        margin-bottom: 0;
-    }
-
-    .inventory-table thead th {
-        background: #f8fafc;
-        color: #465670;
-        font-weight: 800;
-        border-bottom: 1px solid #d8e0ec;
-        padding: 14px 12px;
-        white-space: nowrap;
-    }
-
-    .inventory-table tbody td {
-        padding: 13px 12px;
-        vertical-align: middle;
-        border-bottom: 1px solid #e6edf5;
-        white-space: nowrap;
-    }
-
-    .batch-badge {
-        background: #edf2f7;
-        color: #536174;
-        padding: 5px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 800;
-        display: inline-flex;
-    }
-
-    .table-switch {
-        width: 44px !important;
-        height: 22px !important;
-        cursor: pointer;
-    }
-
-    .table-switch:checked {
-        background-color: #10b981;
-        border-color: #10b981;
-    }
-
-    .batch-status-wrap {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .inventory-action-group {
-        display: inline-flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: nowrap;
-    }
-
-    .table-action-btn {
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        border: none !important;
-        outline: none !important;
-        border-radius: 12px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-        font-size: 16px !important;
-        line-height: 1 !important;
-        padding: 0 !important;
-        text-decoration: none !important;
-        box-shadow: none !important;
-        transition: all 0.22s ease;
-    }
-
-    .table-action-btn i {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        pointer-events: none;
-    }
-
-    .table-action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14) !important;
-    }
-
-    .table-action-btn:active {
-        transform: scale(0.95);
-    }
-
-    .table-action-btn.action-edit {
-        background: #eaf3ff !important;
-        color: #0d6efd !important;
-    }
-
-    .table-action-btn.action-edit:hover {
-        background: #0d6efd !important;
-        color: #ffffff !important;
-    }
-
-    .table-action-btn.action-delete {
-        background: #ffe8e8 !important;
-        color: #dc3545 !important;
-    }
-
-    .table-action-btn.action-delete:hover {
-        background: #dc3545 !important;
-        color: #ffffff !important;
-    }
-
-    .input-error {
-        border-color: #dc3545 !important;
-        background: #fff7f7 !important;
-        box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.12) !important;
-        animation: inputShake 0.28s ease;
-    }
-
-    .input-success {
-        border-color: #20c997 !important;
-        background: #f6fffb !important;
-    }
-
-    .quantity-warning {
-        margin-top: 8px;
-        color: #dc3545;
-        font-size: 13px;
-        font-weight: 700;
-        display: none;
-    }
-
-    .quantity-warning.show {
-        display: block;
-        animation: fadeDown 0.25s ease;
-    }
-
-    .alert {
-        border-radius: 14px;
-        animation: fadeDown 0.25s ease;
-    }
-
-    @keyframes inputShake {
-        0% {
-            transform: translateX(0);
-        }
-
-        25% {
-            transform: translateX(-4px);
-        }
-
-        50% {
-            transform: translateX(4px);
-        }
-
-        75% {
-            transform: translateX(-3px);
-        }
-
-        100% {
-            transform: translateX(0);
-        }
-    }
-
-    @keyframes fadeDown {
-        from {
-            opacity: 0;
-            transform: translateY(-4px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @media (max-width: 768px) {
-        .inventory-header {
-            flex-direction: column;
-        }
-
-        .header-actions {
-            width: 100%;
-        }
-
-        .header-actions .btn {
-            flex: 1;
-        }
-
-        .page-title {
-            font-size: 23px;
-        }
-
-        .table-action-btn {
-            width: 34px !important;
-            height: 34px !important;
-            min-width: 34px !important;
-            border-radius: 10px !important;
-            font-size: 14px !important;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{ asset('admin/css/pages/auth-inventory-index.css') }}">
 @endpush
 
 @push('scripts')
@@ -817,72 +473,6 @@
         return true;
     }
 
-    function validateEditQuantities() {
-        const initialInput = document.getElementById('edit_initial_quantity');
-        const currentInput = document.getElementById('edit_current_quantity');
-        const warning = document.getElementById('quantityCompareWarning');
-
-        const initialQuantity = Number(initialInput.value);
-        const currentQuantity = Number(currentInput.value);
-
-        initialInput.classList.remove('input-error', 'input-success');
-        currentInput.classList.remove('input-error', 'input-success');
-
-        if (warning) {
-            warning.classList.remove('show');
-        }
-
-        if (!initialInput.value || !currentInput.value) {
-            setInputError(initialInput);
-            setInputError(currentInput);
-
-            renderErrors('editBatchErrors', {
-                quantity: ['Vui lòng nhập đầy đủ SL ban đầu và SL còn lại.']
-            });
-
-            return false;
-        }
-
-        if (initialQuantity <= 0) {
-            setInputError(initialInput);
-
-            renderErrors('editBatchErrors', {
-                initial_quantity: ['SL ban đầu phải lớn hơn 0.']
-            });
-
-            return false;
-        }
-
-        if (currentQuantity < 0) {
-            setInputError(currentInput);
-
-            renderErrors('editBatchErrors', {
-                current_quantity: ['SL còn lại không được nhỏ hơn 0.']
-            });
-
-            return false;
-        }
-
-        if (currentQuantity > initialQuantity) {
-            setInputError(initialInput);
-            setInputError(currentInput);
-
-            if (warning) {
-                warning.classList.add('show');
-            }
-
-            renderErrors('editBatchErrors', {
-                quantity: ['SL còn lại không được lớn hơn SL ban đầu.']
-            });
-
-            return false;
-        }
-
-        setInputSuccess(initialInput);
-        setInputSuccess(currentInput);
-        return true;
-    }
-
     function validateEditForm() {
         clearInputErrors(editBatchForm);
 
@@ -918,52 +508,9 @@
             return false;
         }
 
-        if (!validateEditQuantities()) {
-            return false;
-        }
-
         [batchInput, manufactureInput, expiryInput].forEach(setInputSuccess);
         return true;
     }
-
-    function liveCheckEditQuantities() {
-        const initialInput = document.getElementById('edit_initial_quantity');
-        const currentInput = document.getElementById('edit_current_quantity');
-        const warning = document.getElementById('quantityCompareWarning');
-
-        if (!initialInput || !currentInput) {
-            return;
-        }
-
-        const initialQuantity = Number(initialInput.value);
-        const currentQuantity = Number(currentInput.value);
-
-        initialInput.classList.remove('input-error', 'input-success');
-        currentInput.classList.remove('input-error', 'input-success');
-
-        if (warning) {
-            warning.classList.remove('show');
-        }
-
-        if (!initialInput.value || !currentInput.value) {
-            return;
-        }
-
-        if (currentQuantity > initialQuantity) {
-            setInputError(initialInput);
-            setInputError(currentInput);
-
-            if (warning) {
-                warning.classList.add('show');
-            }
-
-            return;
-        }
-
-        setInputSuccess(initialInput);
-        setInputSuccess(currentInput);
-    }
-
     function loadInventoryTable(url = null) {
         const params = new URLSearchParams({
             keyword: document.getElementById('inventoryKeyword').value,
@@ -1071,7 +618,6 @@
         editBatchForm.reset();
         clearInputErrors(editBatchForm);
         document.getElementById('editBatchErrors').innerHTML = '';
-        document.getElementById('quantityCompareWarning').classList.remove('show');
 
         fetch(routeWithId(inventoryRoutes.editBatch, batchId), {
                 headers: {
@@ -1096,7 +642,6 @@
                 editBatchForm.action = routeWithId(inventoryRoutes.updateBatch, batch.id);
                 editBatchModal.show();
 
-                setTimeout(liveCheckEditQuantities, 100);
             })
             .catch(() => {
                 showInventoryAlert('Không lấy được dữ liệu lô hàng để sửa.', 'danger');
@@ -1227,8 +772,6 @@
         }
     });
 
-    document.getElementById('edit_initial_quantity').addEventListener('input', liveCheckEditQuantities);
-    document.getElementById('edit_current_quantity').addEventListener('input', liveCheckEditQuantities);
 
     document.querySelectorAll('.required-input').forEach(input => {
         input.addEventListener('input', function() {

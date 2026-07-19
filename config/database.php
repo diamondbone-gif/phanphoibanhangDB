@@ -5,6 +5,11 @@ use Pdo\Mysql;
 
 return [
 
+    'xampp' => [
+        'mysql_path' => env('MYSQL_PATH', 'D:\\xampp\\mysql\\bin\\mysql.exe'),
+        'mysqldump_path' => env('MYSQLDUMP_PATH', 'D:\\xampp\\mysql\\bin\\mysqldump.exe'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Default Database Connection Name

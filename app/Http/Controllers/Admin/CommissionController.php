@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -158,7 +158,7 @@ class CommissionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'payout_type' => ['required', 'in:all,installment'],
-            'amount' => ['required', 'numeric', 'min:1000'],
+            'amount' => ['required', 'numeric', 'min:1000', 'regex:/^\d+(?:\.\d{1,2})?$/'],
             'paid_date' => ['required', 'date'],
             'payment_method' => ['required', 'string', 'max:100'],
             'note' => ['nullable', 'string', 'max:1000'],
@@ -181,25 +181,25 @@ class CommissionController extends Controller
         $this->getCtvData($ctv);
 
         $payoutType = $request->input('payout_type');
-        $amount = (float) $request->input('amount');
+        $amountCents = Money::cents($request->input('amount'));
         $paidDate = Carbon::parse($request->input('paid_date'))->setTimeFrom(now());
         $paymentMethod = $request->input('payment_method');
         $note = $request->input('note');
         $paidBy = Auth::guard('admin')->id();
 
         try {
-            DB::transaction(function () use ($ctv, $payoutType, &$amount, $paidDate, $paymentMethod, $note, $paidBy) {
-                $totalDebt = $this->getCtvTotalDebt($ctv);
+            DB::transaction(function () use ($ctv, $payoutType, &$amountCents, $paidDate, $paymentMethod, $note, $paidBy) {
+                $totalDebtCents = $this->getCtvTotalDebtCents($ctv);
 
-                if ($totalDebt <= 0) {
+                if ($totalDebtCents <= 0) {
                     throw new \Exception('CTV này không còn hoa hồng cần chi.');
                 }
 
                 if ($payoutType === 'all') {
-                    $amount = $totalDebt;
+                    $amountCents = $totalDebtCents;
                 }
 
-                if ($amount > $totalDebt) {
+                if ($amountCents > $totalDebtCents) {
                     throw new \Exception('Số tiền chi không được lớn hơn hoa hồng còn nợ.');
                 }
 
@@ -208,26 +208,20 @@ class CommissionController extends Controller
                 $insertData = [
                     'payout_code' => $this->makePayoutCode(),
                     'referrer_customer_id' => $ctv,
-                    'total_amount' => $amount,
+                    'total_amount' => Money::decimal($amountCents),
                     'payout_status_id' => $payoutStatusPaidId,
                     'paid_at' => $paidDate,
                     'paid_by' => $paidBy,
                     'note' => $note,
+                    'payment_method' => $paymentMethod,
+                    'payout_type' => $payoutType,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
 
-                if (Schema::hasColumn('customer_commission_payouts', 'payment_method')) {
-                    $insertData['payment_method'] = $paymentMethod;
-                }
-
-                if (Schema::hasColumn('customer_commission_payouts', 'payout_type')) {
-                    $insertData['payout_type'] = $payoutType;
-                }
-
                 $payoutId = DB::table('customer_commission_payouts')->insertGetId($insertData);
 
-                $this->allocatePayoutToCommissions($ctv, $payoutId, $amount, $paidDate, $paidBy);
+                $this->allocatePayoutToCommissions($ctv, $payoutId, $amountCents, $paidDate, $paidBy);
             });
 
             return response()->json([
@@ -245,9 +239,6 @@ class CommissionController extends Controller
         $ctvData = $this->getCtvData($ctv);
         $summary = $this->getCtvCommissionSummary($ctv);
 
-        $hasPaymentMethod = Schema::hasColumn('customer_commission_payouts', 'payment_method');
-        $hasPayoutType = Schema::hasColumn('customer_commission_payouts', 'payout_type');
-
         $selects = [
             'p.id',
             'p.payout_code',
@@ -255,15 +246,9 @@ class CommissionController extends Controller
             'p.paid_at',
             'p.note',
             'ps.name as status_name',
+            'p.payment_method',
+            'p.payout_type',
         ];
-
-        $selects[] = $hasPaymentMethod
-            ? 'p.payment_method'
-            : DB::raw("'Chưa cập nhật' as payment_method");
-
-        $selects[] = $hasPayoutType
-            ? 'p.payout_type'
-            : DB::raw("'installment' as payout_type");
 
         $histories = DB::table('customer_commission_payouts as p')
             ->leftJoin('payout_statuses as ps', 'ps.id', '=', 'p.payout_status_id')
@@ -310,7 +295,9 @@ class CommissionController extends Controller
         return response()->json([
             'ctv' => $ctvData,
             'summary' => $summary,
-            'max_edit_amount' => (float) $summary['total_debt'] + (float) $payoutData->total_amount,
+            'max_edit_amount' => (float) Money::decimal(
+                Money::cents($summary['total_debt']) + Money::cents($payoutData->total_amount)
+            ),
             'payout' => [
                 'id' => $payoutData->id,
                 'total_amount' => (float) $payoutData->total_amount,
@@ -326,7 +313,7 @@ class CommissionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'payout_type' => ['required', 'in:all,installment'],
-            'amount' => ['required', 'numeric', 'min:1000'],
+            'amount' => ['required', 'numeric', 'min:1000', 'regex:/^\d+(?:\.\d{1,2})?$/'],
             'paid_date' => ['required', 'date'],
             'payment_method' => ['required', 'string', 'max:100'],
             'note' => ['nullable', 'string', 'max:1000'],
@@ -349,14 +336,14 @@ class CommissionController extends Controller
         $this->getCtvData($ctv);
 
         $payoutType = $request->input('payout_type');
-        $amount = (float) $request->input('amount');
+        $amountCents = Money::cents($request->input('amount'));
         $paidDate = Carbon::parse($request->input('paid_date'))->setTimeFrom(now());
         $paymentMethod = $request->input('payment_method');
         $note = $request->input('note');
         $paidBy = Auth::guard('admin')->id();
 
         try {
-            DB::transaction(function () use ($ctv, $payout, $payoutType, &$amount, $paidDate, $paymentMethod, $note, $paidBy) {
+            DB::transaction(function () use ($ctv, $payout, $payoutType, &$amountCents, $paidDate, $paymentMethod, $note, $paidBy) {
                 $payoutData = DB::table('customer_commission_payouts')
                     ->where('id', $payout)
                     ->where('referrer_customer_id', $ctv)
@@ -369,41 +356,35 @@ class CommissionController extends Controller
 
                 $this->reversePayoutItems($payout);
 
-                $totalDebtAfterReverse = $this->getCtvTotalDebt($ctv);
+                $totalDebtAfterReverseCents = $this->getCtvTotalDebtCents($ctv);
 
-                if ($totalDebtAfterReverse <= 0) {
+                if ($totalDebtAfterReverseCents <= 0) {
                     throw new \Exception('CTV này không còn hoa hồng cần chi.');
                 }
 
                 if ($payoutType === 'all') {
-                    $amount = $totalDebtAfterReverse;
+                    $amountCents = $totalDebtAfterReverseCents;
                 }
 
-                if ($amount > $totalDebtAfterReverse) {
+                if ($amountCents > $totalDebtAfterReverseCents) {
                     throw new \Exception('Số tiền sửa không được lớn hơn hoa hồng còn nợ.');
                 }
 
                 $updateData = [
-                    'total_amount' => $amount,
+                    'total_amount' => Money::decimal($amountCents),
                     'paid_at' => $paidDate,
                     'paid_by' => $paidBy,
                     'note' => $note,
+                    'payment_method' => $paymentMethod,
+                    'payout_type' => $payoutType,
                     'updated_at' => now(),
                 ];
-
-                if (Schema::hasColumn('customer_commission_payouts', 'payment_method')) {
-                    $updateData['payment_method'] = $paymentMethod;
-                }
-
-                if (Schema::hasColumn('customer_commission_payouts', 'payout_type')) {
-                    $updateData['payout_type'] = $payoutType;
-                }
 
                 DB::table('customer_commission_payouts')
                     ->where('id', $payout)
                     ->update($updateData);
 
-                $this->allocatePayoutToCommissions($ctv, $payout, $amount, $paidDate, $paidBy);
+                $this->allocatePayoutToCommissions($ctv, $payout, $amountCents, $paidDate, $paidBy);
             });
 
             return response()->json([
@@ -416,7 +397,7 @@ class CommissionController extends Controller
         }
     }
 
-    private function allocatePayoutToCommissions(int $ctv, int $payoutId, float $amount, Carbon $paidDate, ?int $paidBy): void
+    private function allocatePayoutToCommissions(int $ctv, int $payoutId, int $amountCents, Carbon $paidDate, ?int $paidBy): void
     {
         $commissionStatusPaidId = $this->getCommissionStatusId('paid');
         $commissionStatusApprovedId = $this->getCommissionStatusId('approved');
@@ -434,27 +415,29 @@ class CommissionController extends Controller
             ->lockForUpdate()
             ->get();
 
-        $remaining = $amount;
+        $remainingCents = $amountCents;
 
         foreach ($commissions as $commission) {
-            if ($remaining <= 0) {
+            if ($remainingCents <= 0) {
                 break;
             }
 
-            $debt = max((float) $commission->commission_amount - (float) $commission->paid_amount, 0);
+            $commissionCents = Money::cents($commission->commission_amount);
+            $paidCents = Money::cents($commission->paid_amount);
+            $debtCents = max($commissionCents - $paidCents, 0);
 
-            if ($debt <= 0) {
+            if ($debtCents <= 0) {
                 continue;
             }
 
-            $payAmount = min($debt, $remaining);
-            $newPaidAmount = (float) $commission->paid_amount + $payAmount;
-            $isFullyPaid = $newPaidAmount >= (float) $commission->commission_amount;
+            $payCents = min($debtCents, $remainingCents);
+            $newPaidCents = $paidCents + $payCents;
+            $isFullyPaid = $newPaidCents >= $commissionCents;
 
             DB::table('customer_commission_payout_items')->insert([
                 'payout_id' => $payoutId,
                 'customer_commission_id' => $commission->id,
-                'amount' => $payAmount,
+                'amount' => Money::decimal($payCents),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -462,7 +445,7 @@ class CommissionController extends Controller
             DB::table('customer_commissions')
                 ->where('id', $commission->id)
                 ->update([
-                    'paid_amount' => $newPaidAmount,
+                    'paid_amount' => Money::decimal($newPaidCents),
                     'status' => $isFullyPaid ? 'paid' : 'partial',
                     'commission_status_id' => $isFullyPaid
                         ? $commissionStatusPaidId
@@ -472,10 +455,10 @@ class CommissionController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            $remaining -= $payAmount;
+            $remainingCents -= $payCents;
         }
 
-        if ($remaining > 0.5) {
+        if ($remainingCents !== 0) {
             throw new \Exception('Không đủ hoa hồng còn nợ để phân bổ thanh toán.');
         }
     }
@@ -504,14 +487,18 @@ class CommissionController extends Controller
                 continue;
             }
 
-            $newPaidAmount = max((float) $commission->paid_amount - (float) $item->amount, 0);
-            $isFullyPaid = $newPaidAmount >= (float) $commission->commission_amount;
-            $isPartial = $newPaidAmount > 0 && !$isFullyPaid;
+            $commissionCents = Money::cents($commission->commission_amount);
+            $newPaidCents = max(
+                Money::cents($commission->paid_amount) - Money::cents($item->amount),
+                0
+            );
+            $isFullyPaid = $newPaidCents >= $commissionCents;
+            $isPartial = $newPaidCents > 0 && !$isFullyPaid;
 
             DB::table('customer_commissions')
                 ->where('id', $commission->id)
                 ->update([
-                    'paid_amount' => $newPaidAmount,
+                    'paid_amount' => Money::decimal($newPaidCents),
                     'status' => $isFullyPaid ? 'paid' : ($isPartial ? 'partial' : 'unpaid'),
                     'commission_status_id' => $isFullyPaid
                         ? $commissionStatusPaidId
@@ -582,11 +569,11 @@ class CommissionController extends Controller
         ];
     }
 
-    private function getCtvTotalDebt(int $ctvId): float
+    private function getCtvTotalDebtCents(int $ctvId): int
     {
         $summary = $this->getCtvCommissionSummary($ctvId);
 
-        return (float) $summary['total_debt'];
+        return Money::cents($summary['total_debt']);
     }
 
     private function getCommissionStatusId(string $code): ?int

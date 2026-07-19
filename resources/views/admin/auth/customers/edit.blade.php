@@ -45,83 +45,9 @@ $referrerPhone = old('referrer_phone', $currentReferrerPhone ?? '');
 $commissionRate = old('commission_rate', $currentCommissionRate ?? 5);
 @endphp
 
-<style>
-    .customer-form-card {
-        border: 0;
-        border-radius: 18px;
-        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-        overflow: hidden;
-        background: #fff;
-    }
-
-    .customer-form-card .card-header {
-        background: #fff;
-        border-bottom: 0;
-        padding: 18px 18px 0;
-    }
-
-    .customer-form-title {
-        font-weight: 800;
-        color: #0d6efd;
-        font-size: 1.15rem;
-    }
-
-    .customer-form-card .card-body {
-        padding: 18px;
-    }
-
-    .customer-type-option {
-        position: relative;
-        cursor: pointer;
-        width: 100%;
-    }
-
-    .customer-type-option input {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    .customer-type-box {
-        border: 1px solid #d9e3f0;
-        border-radius: 16px;
-        padding: 22px 18px;
-        text-align: center;
-        transition: all 0.18s ease;
-        background: #fff;
-        min-height: 86px;
-    }
-
-    .customer-type-box strong {
-        display: block;
-        color: #0f172a;
-        font-weight: 800;
-        margin-bottom: 6px;
-        font-size: 1.02rem;
-    }
-
-    .customer-type-box span {
-        color: #64748b;
-        font-size: 0.92rem;
-    }
-
-    .customer-type-option input:checked+.customer-type-box {
-        border-color: #0d6efd;
-        background: #eaf2ff;
-        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.22);
-    }
-
-    .sub-box {
-        background: #f8fbff;
-        border: 1px solid #dbeafe;
-        border-radius: 14px;
-        padding: 16px;
-    }
-
-    .text-red-label {
-        color: #dc3545;
-    }
-</style>
+@push('styles')
+<link rel="stylesheet" href="{{ asset('admin/css/pages/auth-customers-edit.css') }}">
+@endpush
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">

@@ -1,0 +1,43 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/Console
+        - app/Support
+        - app/Services/ReturnAmountCalculator.php
+        - app/Services/ReturnOrderService.php
+        - app/Services/FinancialTransactionService.php
+        - app/Services/WarehouseInventoryService.php
+        - app/Services/CustomerCareNotificationService.php
+        - app/Http/Controllers/Admin/CustomerCareNotificationController.php
+        - app/Services/CustomerCareReminderService.php
+        - app/Http/Controllers/Admin/CustomerCareReminderController.php
+        - app/Services/CustomerCareLogService.php
+        - app/Http/Controllers/Admin/CustomerCareLogController.php
+        - app/Http/Requests/Admin/SaveCustomerCareLogRequest.php
+        - app/Http/Requests/Admin/StoreCustomerCareReminderRequest.php
+        - app/Services/CustomerLifecycleService.php
+        - app/Http/Controllers/Admin/CustomerLifecycleController.php
+        - app/Http/Requests/Admin/MarkCustomerStoppedRequest.php
+        - app/Models/FinancialTransaction.php
+        - app/Models/Warehouse.php
+        - app/Models/WarehouseStock.php
+        - app/Models/StockDocument.php
+        - app/Models/StockDocumentItem.php
+        - app/Http/Controllers/Admin/FinancialTransactionController.php
+        - app/Services/StockDocumentService.php
+        - app/Http/Controllers/Admin/StockDocumentController.php
+        - app/Http/Requests/Admin/StoreStockDocumentRequest.php
+        - app/Services/CustomerReferralService.php
+        - app/Http/Controllers/Admin/AuditLogController.php
+        - app/Models/AuditLog.php
+        - app/Services/CommissionService.php
+        - app/Models/CustomerCommissionAdjustment.php
+        - app/Models/CustomerCommissionRecovery.php
+        - app/Http/Controllers/Admin/CommissionClawbackController.php
+        - app/Http/Requests/Admin/StoreCommissionRecoveryRequest.php
+        - app/Http/Controllers/Admin/OrderReturnController.php
+        - app/Http/Requests/Admin/StoreOrderReturnRequest.php
+    level: 5
+    tmpDir: storage/framework/cache/phpstan

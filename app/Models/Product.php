@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
@@ -28,6 +28,7 @@ class Product extends Model
 
         'price',
         'cost_price',
+        'average_cost',
 
         'main_image',
         'short_description',
@@ -53,6 +54,7 @@ class Product extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'cost_price' => 'decimal:2',
+        'average_cost' => 'decimal:2',
         'default_commission_rate' => 'decimal:2',
 
         'total_quantity' => 'integer',
@@ -231,7 +233,7 @@ class Product extends Model
             return $this->main_image;
         }
 
-        return asset('storage/' . ltrim($this->main_image, '/'));
+        return asset('storage/'.ltrim($this->main_image, '/'));
     }
 
     /*
