@@ -20,6 +20,8 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderReturnController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductCategoryController;
+use App\Http\Controllers\Admin\ProductPromotionController;
 use App\Http\Controllers\Admin\StockDocumentController;
 use Illuminate\Support\Facades\Route;
 
@@ -671,6 +673,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         )
             ->name('products.toggle-status')
             ->whereNumber('product');
+
+        Route::get('product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+        Route::post('product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
+        Route::put('product-categories/{category}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+        Route::delete('product-categories/{category}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+
+        Route::get('product-promotions', [ProductPromotionController::class, 'index'])->name('product-promotions.index');
+        Route::post('product-promotions', [ProductPromotionController::class, 'store'])->name('product-promotions.store');
+        Route::put('product-promotions/{promotion}', [ProductPromotionController::class, 'update'])->name('product-promotions.update');
+        Route::delete('product-promotions/{promotion}', [ProductPromotionController::class, 'destroy'])->name('product-promotions.destroy');
 
         /*
         |--------------------------------------------------------------------------

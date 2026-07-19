@@ -143,8 +143,8 @@
     request()->is('admin/product-categories*');
 
     $isProductComboActive =
-    request()->routeIs('admin.product-events.*') ||
-    request()->is('admin/product-events*');
+    request()->routeIs('admin.product-promotions.*') ||
+    request()->is('admin/product-promotions*');
 
     $isProductWarehouseActive =
     $isProductListActive ||
@@ -368,7 +368,7 @@
                     </li>
 
                     <li>
-                        <a href="javascript:void(0)"
+                        <a href="{{ route('admin.product-categories.index') }}"
                             class="submenu-link {{ $isProductCategoryActive ? 'active' : '' }}">
                             <i class="fa-solid fa-layer-group"></i>
 
@@ -379,7 +379,7 @@
                     </li>
 
                     <li>
-                        <a href="javascript:void(0)" class="submenu-link {{ $isProductComboActive ? 'active' : '' }}">
+                        <a href="{{ route('admin.product-promotions.index') }}" class="submenu-link {{ $isProductComboActive ? 'active' : '' }}">
                             <i class="fa-solid fa-tags"></i>
 
                             <span>

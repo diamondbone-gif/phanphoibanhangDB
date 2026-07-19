@@ -1,0 +1,14 @@
+@php($selectedItems = $promotion?->items ?? collect())
+<label>Mã chương trình<input name="code" value="{{ old('code', $promotion?->code) }}" required maxlength="50"></label>
+<label>Tên chương trình<input name="name" value="{{ old('name', $promotion?->name) }}" required maxlength="180"></label>
+<label>Loại<select name="promotion_type" required><option value="product_discount" @selected(old('promotion_type', $promotion?->promotion_type)==='product_discount')>Giảm theo sản phẩm</option><option value="combo" @selected(old('promotion_type', $promotion?->promotion_type)==='combo')>Combo sản phẩm</option></select></label>
+<label>Cách tính<select name="discount_type" required><option value="percent" @selected(old('discount_type', $promotion?->discount_type)==='percent')>Phần trăm (%)</option><option value="fixed_amount" @selected(old('discount_type', $promotion?->discount_type)==='fixed_amount')>Giảm số tiền</option><option value="fixed_price" @selected(old('discount_type', $promotion?->discount_type)==='fixed_price')>Giá combo cố định</option></select></label>
+<label>Giá trị<input name="discount_value" type="number" step="0.01" min="0" value="{{ old('discount_value', $promotion?->discount_value ?? 0) }}" required></label>
+<label>Đơn tối thiểu<input name="minimum_order_amount" type="number" step="0.01" min="0" value="{{ old('minimum_order_amount', $promotion?->minimum_order_amount ?? 0) }}"></label>
+<label>Bắt đầu<input name="starts_at" type="datetime-local" value="{{ old('starts_at', $promotion?->starts_at?->format('Y-m-d\TH:i')) }}"></label>
+<label>Kết thúc<input name="ends_at" type="datetime-local" value="{{ old('ends_at', $promotion?->ends_at?->format('Y-m-d\TH:i')) }}"></label>
+<label class="pm-check"><input name="is_active" type="checkbox" value="1" @checked(old('is_active', $promotion?->is_active ?? true))> Đang hoạt động</label>
+<label class="pm-span">Mô tả<textarea name="description" rows="2">{{ old('description', $promotion?->description) }}</textarea></label>
+<div class="pm-span promotion-items" data-products='@json($products)'><div class="pm-subheading"><strong>Sản phẩm áp dụng</strong><button type="button" class="pm-btn add-promotion-item">+ Thêm sản phẩm</button></div><div class="promotion-item-list">
+@foreach($selectedItems as $item)<div class="promotion-item-row"><select name="product_ids[]" required>@foreach($products as $product)<option value="{{ $product->id }}" @selected($item->product_id===$product->id)>{{ $product->product_code }} — {{ $product->product_name }}</option>@endforeach</select><input name="quantities[]" type="number" min="1" value="{{ $item->quantity }}" required><label class="pm-check"><input name="gift_product_ids[]" type="checkbox" value="{{ $item->product_id }}" @checked($item->is_gift)> Quà tặng</label><button type="button" class="remove-promotion-item" aria-label="Xóa">×</button></div>@endforeach
+</div></div>
